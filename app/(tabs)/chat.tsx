@@ -22,7 +22,7 @@ export default function Chat() {
         <Text className="text-xl font-semibold tracking-tight">Chat</Text>
         <Image
           source={require("@/assets/homeIcons/menuV.png")}
-          className="w-10 h-10"
+          className="w-8 h-8"
           resizeMode="contain"
         />
       </View>

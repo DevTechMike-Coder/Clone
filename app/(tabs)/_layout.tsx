@@ -9,7 +9,12 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
     <View>
       {/* Pill highlight only wraps the icon */}
       <View className={clsx("tab-pill", focused && "tabs-active")}>
-        <Image source={icon} resizeMode="contain" className="w-8 h-8" />
+        <Image
+          source={icon}
+          resizeMode="contain"
+          className="w-8 h-8"
+          style={{ tintColor: focused ? "#fff" : "#666" }}
+        />
       </View>
     </View>
   );
@@ -23,7 +28,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: {
-          position : "absolute",
+          position: "absolute",
           bottom: Math.max(insets.bottom, 16),
           height: 70,
           marginHorizontal: 20,
@@ -32,14 +37,14 @@ export default function TabLayout() {
           elevation: 0,
         },
         tabBarItemStyle: {
-          paddingVertical: 15
+          paddingVertical: 15,
         },
         tabBarIconStyle: {
           width: 30,
           height: 30,
           alignItems: "center",
-          justifyContent: "center"
-        }
+          justifyContent: "center",
+        },
       }}
     >
       {bottomTabs.map((tab) => (
@@ -49,7 +54,7 @@ export default function TabLayout() {
           options={{
             title: tab.title,
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} icon={tab.icon}/>
+              <TabIcon focused={focused} icon={tab.icon} />
             ),
           }}
         />
