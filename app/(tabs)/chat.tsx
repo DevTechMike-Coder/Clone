@@ -1,9 +1,10 @@
-import { Text, View } from "react-native";
+import { Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Chat() {
   return (
-    <View>
+    <SafeAreaView>
       <Text>DM for More</Text>
-    </View>
+    </SafeAreaView>
   );
 }
