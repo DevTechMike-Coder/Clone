@@ -3,3 +3,12 @@
 @import "tailwindcss/utilities.css";
  
 @import "nativewind/theme";
+
+@layer components {
+  .tab-pill {
+    @apply w-14 h-14 rounded-full flex items-center justify-center;
+  }
+  .tabs-active {
+    @apply bg-blue-500;
+  }
+}

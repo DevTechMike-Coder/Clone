@@ -11,8 +11,8 @@ export default function Index() {
     <SafeAreaView className="flex-1 p-5">
       <View className="flex-row items-center justify-between">
         <Image
-          source={require("@/assets/homeIcons/menu.png")}
-          className="w-15 h-15 object-contain"
+          source={require("@/assets/homeIcons/plus.png")}
+          className="w-9 h-9 object-contain"
         />
         <Text className="text-xl font-bold uppercase tracking-tighter text-blue-500">
           Clone
