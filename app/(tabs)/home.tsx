@@ -3,6 +3,7 @@ import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { router } from "expo-router";
+import IndexVideoFeed from "@/components/IndexVideoFeed";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -10,10 +11,13 @@ export default function Index() {
   return (
     <SafeAreaView className="flex-1 p-5">
       <View className="flex-row items-center justify-between">
-        <Image
-          source={require("@/assets/homeIcons/plus.png")}
-          className="w-9 h-9 object-contain"
-        />
+        <TouchableOpacity onPress={() => router.push("/createNew")}>
+          <Image
+            source={require("@/assets/homeIcons/plus.png")}
+            className="w-9 h-9 object-contain"
+          />
+        </TouchableOpacity>
+
         <Text className="text-xl font-bold uppercase tracking-tighter text-blue-500">
           Clone
         </Text>
@@ -25,6 +29,8 @@ export default function Index() {
           />
         </TouchableOpacity>
       </View>
+
+      <IndexVideoFeed />
     </SafeAreaView>
   );
 }

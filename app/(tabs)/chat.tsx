@@ -42,16 +42,16 @@ export default function Chat() {
         <TouchableOpacity
           onPress={() => router.push("/followpage")}
           activeOpacity={0.7}
-          className="w-10 h-10 items-center justify-center rounded-full bg-gray-50"
+          className="w-13 h-13 items-center justify-center rounded-full bg-gray-50"
         >
           <Image
             source={require("@/assets/homeIcons/add-user.png")}
-            className="w-7 h-7"
+            className="w-10 h-10"
             resizeMode="contain"
           />
         </TouchableOpacity>
 
-        <Text className="text-2xl font-bold tracking-tight text-gray-900">
+        <Text className="text-xl font-bold uppercase tracking-tighter text-blue-500">
           Messages
         </Text>
 

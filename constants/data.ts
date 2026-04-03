@@ -2,7 +2,7 @@ import { icons } from "./icons";
 
 export const bottomTabs = [
   {
-    name: "index",
+    name: "home",
     title: "Home",
     icon: icons.home,
   },

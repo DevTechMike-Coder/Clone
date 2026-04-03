@@ -6,7 +6,7 @@ import { router } from "expo-router";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
-const FollowPage = () => {
+const Inbox = () => {
   return (
     <SafeAreaView className="flex-1 p-5">
       <View className="flex-row items-center px-4 py-3 gap-4">
@@ -18,16 +18,10 @@ const FollowPage = () => {
           />
         </TouchableOpacity>
 
-        <Text className="text-xl font-bold uppercase tracking-tighter text-blue-500">
-          Discover People
-        </Text>
-      </View>
-
-      <View className="px-4 py-3">
-        <Text className="text-xl font-semibold tracking-tight">Suggested for you</Text>
+        <Text className="text-xl font-bold uppercase tracking-tighter text-blue-500">Inbox</Text>
       </View>
     </SafeAreaView>
   );
 };
 
-export default FollowPage;
+export default Inbox;

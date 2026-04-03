@@ -1,27 +1,28 @@
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import React from "react";
+import { router } from "expo-router";
+
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
-import { router } from "expo-router";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
-const Inbox = () => {
+const signIn = () => {
   return (
-    <SafeAreaView className="flex-1 p-5">
-      <View className="flex-row items-center px-4 py-3 gap-4">
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+    <SafeAreaView className="flex-1 items-center justify-center gap-5">
+      <View>
+        <TouchableOpacity onPress={() => router.back()}>
           <Image
             source={require("@/assets/homeIcons/arrowleft.png")}
-            className="w-6 h-6" // Slightly larger for better tap targets/visibility
+            className="w-5 h-5"
             resizeMode="contain"
           />
         </TouchableOpacity>
-
-        <Text className="text-xl font-semibold tracking-tight">Inbox</Text>
       </View>
+
+      <Text>signIn</Text>
     </SafeAreaView>
   );
 };
 
-export default Inbox;
+export default signIn;
