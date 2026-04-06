@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import React from "react";
 import {
-  Alert,
   FlatList,
   Image,
   ImageSourcePropType,
@@ -16,6 +15,10 @@ type CardItem = {
   name: string;
   description: string;
   image: ImageSourcePropType;
+};
+
+type IndexVideoFeedProps = {
+  onOptionsPress: (item: CardItem) => void;
 };
 
 const FEED_ITEMS: CardItem[] = [
@@ -42,9 +45,9 @@ const FEED_ITEMS: CardItem[] = [
   },
 ];
 
-const IndexVideoFeed = () => {
+const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   const openMenu = (item: CardItem) => {
-    Alert.alert(item.name, "More actions for this post are not implemented yet.");
+    onOptionsPress(item);
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<CardItem>) => {
