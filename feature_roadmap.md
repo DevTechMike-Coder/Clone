@@ -4,7 +4,7 @@ Based on the current project structure (Expo with file-based routing), here is a
 
 ## 👤 User Management & Profile
 
-- **Authentication System**: Secure login, registration, and password recovery.
+- **Authentication System**: Secure login, registration, and password recovery. iN progress
 - **Social Login**: One-tap sign-in with Google or Apple.
 - **Bio & Profile Editing**: Users can update their avatar, name, and bio.
 - **Following System**: Ability to follow, unfollow users and see their posts.
