@@ -7,17 +7,38 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView as RNSafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRef, useState } from "react";
-import { router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { router, useNavigation } from "expo-router";
 
 const SafeAreaView = styled(RNSafeAreaView);
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function Profile() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current; // starts off-screen right
+
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: menuOpen
+        ? { display: "none" }
+        : {
+            position: "absolute",
+            bottom: Math.max(insets.bottom, 16),
+            height: 70,
+            marginHorizontal: 20,
+            borderRadius: 20,
+            borderTopWidth: 0,
+            elevation: 0,
+          },
+    });
+  }, [menuOpen, navigation, insets]);
 
   const openMenu = () => {
     setMenuOpen(true);

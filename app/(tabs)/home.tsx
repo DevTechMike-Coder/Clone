@@ -8,17 +8,39 @@ import {
   Animated,
   StyleSheet,
 } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView as RNSafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { styled } from "nativewind";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import IndexVideoFeed from "@/components/IndexVideoFeed";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 export default function Index() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: isMenuOpen
+        ? { display: "none" }
+        : {
+            position: "absolute",
+            bottom: Math.max(insets.bottom, 16),
+            height: 70,
+            marginHorizontal: 20,
+            borderRadius: 20,
+            borderTopWidth: 0,
+            elevation: 0,
+          },
+    });
+  }, [isMenuOpen, navigation, insets]);
 
   const openMenu = () => {
     setIsMenuOpen(true);
