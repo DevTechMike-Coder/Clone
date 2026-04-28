@@ -12,7 +12,7 @@ const Inbox = () => {
       <View className="flex-row items-center px-4 py-3 gap-4">
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
           <Image
-            source={require("@/assets/homeIcons/arrowleft.png")}
+            source={require("@/assets/homeIcons/chevronleft.png")}
             className="w-8 h-8" // Slightly larger for better tap targets/visibility
             resizeMode="contain"
           />

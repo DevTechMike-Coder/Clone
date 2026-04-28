@@ -38,7 +38,7 @@ const signIn = () => {
                 className="h-10 w-10 items-center justify-center"
               >
                 <Image
-                  source={require("@/assets/homeIcons/arrowleft.png")}
+                  source={require("@/assets/homeIcons/chevronleft.png")}
                   className="h-6 w-6"
                   resizeMode="contain"
                 />
