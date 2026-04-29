@@ -131,7 +131,7 @@ const signIn = () => {
                         resizeMode="contain"
                       />
                       <Text className="text-base font-semibold text-gray-900">
-                        Facebook
+                        Apple
                       </Text>
                     </TouchableOpacity>
                   </View>
