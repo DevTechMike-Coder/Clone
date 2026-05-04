@@ -5,6 +5,7 @@ import {
   Image,
   TextInput,
   KeyboardAvoidingView,
+  ActivityIndicator,
   Platform,
   ScrollView,
 } from "react-native";
@@ -12,15 +13,66 @@ import React, { useState } from "react";
 import { router } from "expo-router";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
-import { Ionicons } from "@expo/vector-icons";
+
+import { authService } from "@/services/authService";
+import Toast from "react-native-toast-message";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
+const eyeOutline = require("@/assets/authicons/eye.png");
+const eyeOffOutline = require("@/assets/authicons/eyeInvincible.png");
+
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async () => {
+    if (!email || !password || !fullName) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Please fill in all fields",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await authService.signUp(email, password, fullName);
+
+      console.log("Signup success, session:", !!data?.session);
+
+      if (data?.session) {
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: "Welcome to Clone!",
+        });
+        router.replace("/home");
+      } else {
+        Toast.show({
+          type: "info",
+          text1: "Verification Required",
+          text2: "Please check your email to verify your account.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      Toast.show({
+        type: "error",
+        text1: "Sign Up Error",
+        text2: error.message || "An unexpected error occurred",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-slate-50">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1"
@@ -47,10 +99,10 @@ const SignUp = () => {
             <View className="flex-1 items-center justify-center py-8">
               <View className="w-full gap-6" style={{ maxWidth: 420 }}>
                 <View className="items-center gap-2">
-                  <Text className="text-2xl font-bold text-gray-900">
+                  <Text className="text-2xl font-bold text-slate-950">
                     Create Account
                   </Text>
-                  <Text className="text-center text-gray-600">
+                  <Text className="text-center text-slate-600">
                     Join the community
                   </Text>
                 </View>
@@ -59,34 +111,41 @@ const SignUp = () => {
                   <View className="w-full gap-4">
                     <TextInput
                       placeholder="Full Name"
-                      placeholderTextColor="#9CA3AF"
-                      className="h-12 rounded-2xl border border-gray-300 bg-white pl-4 pr-12 text-gray-900"
+                      placeholderTextColor="#94A3B8"
+                      value={fullName}
+                      onChangeText={setFullName}
+                      className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
                     />
 
                     <TextInput
                       placeholder="Email"
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor="#94A3B8"
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      className="h-12 rounded-2xl border border-gray-300 bg-white pl-4 pr-12 text-gray-900"
+                      value={email}
+                      onChangeText={setEmail}
+                      className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
                     />
 
                     <View className="relative w-full">
                       <TextInput
                         placeholder="Password"
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor="#94A3B8"
                         secureTextEntry={!showPassword}
-                        className="h-12 rounded-2xl border border-gray-300 bg-white pl-4 pr-12 text-gray-900"
+                        value={password}
+                        onChangeText={setPassword}
+                        className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
                       />
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-0 h-12 w-10 items-center justify-center"
                       >
-                        <Ionicons
-                          name={showPassword ? "eye-off-outline" : "eye-outline"}
-                          size={22}
-                          color="#6B7280"
+                        <Image
+                          source={showPassword ? eyeOffOutline : eyeOutline}
+                          className="h-6 w-6"
+                          style={{ tintColor: "#64748B" }}
+                          resizeMode="contain"
                         />
                       </TouchableOpacity>
                     </View>
@@ -94,53 +153,61 @@ const SignUp = () => {
 
                   <TouchableOpacity
                     activeOpacity={0.85}
-                    className="h-12 w-full items-center justify-center rounded-2xl bg-blue-600"
+                    onPress={handleSignUp}
+                    disabled={loading}
+                    className={`h-12 w-full items-center justify-center rounded-2xl ${
+                      loading ? "bg-blue-400" : "bg-blue-600"
+                    }`}
                   >
-                    <Text className="text-base font-semibold text-white">
-                      Sign Up
-                    </Text>
+                    {loading ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text className="text-base font-semibold text-white">
+                        Sign Up
+                      </Text>
+                    )}
                   </TouchableOpacity>
 
                   <View className="w-full flex-row items-center gap-3">
-                    <View className="h-px flex-1 bg-gray-200" />
-                    <Text className="text-sm font-semibold text-gray-500">
+                    <View className="h-px flex-1 bg-slate-200" />
+                    <Text className="text-sm font-semibold text-slate-500">
                       OR
                     </Text>
-                    <View className="h-px flex-1 bg-gray-200" />
+                    <View className="h-px flex-1 bg-slate-200" />
                   </View>
 
                   <View className="w-full flex-row items-center justify-center gap-4">
                     <TouchableOpacity
                       activeOpacity={0.85}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-4"
+                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4"
                     >
                       <Image
                         source={require("@/assets/brandIcon/google.png")}
                         className="h-5 w-5"
                         resizeMode="contain"
                       />
-                      <Text className="text-base font-semibold text-gray-900">
+                      <Text className="text-base font-semibold text-slate-900">
                         Google
                       </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       activeOpacity={0.85}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-4"
+                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4"
                     >
                       <Image
-                        source={require("@/assets/brandIcon/facebook.png")}
+                        source={require("@/assets/brandIcon/apple.png")}
                         className="h-5 w-5"
                         resizeMode="contain"
                       />
-                      <Text className="text-base font-semibold text-gray-900">
+                      <Text className="text-base font-semibold text-slate-900">
                         Apple
                       </Text>
                     </TouchableOpacity>
                   </View>
 
                   <View className="flex-row items-center justify-center gap-2">
-                    <Text className="text-gray-700">
+                    <Text className="text-slate-600">
                       Already have an account?
                     </Text>
                     <TouchableOpacity onPress={() => router.push("/signIn")}>
