@@ -13,7 +13,7 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
           source={icon}
           resizeMode="contain"
           className="w-8 h-8"
-          style={{ tintColor: focused ? "#fff" : "#666" }}
+          style={{ tintColor: focused ? "#FFFFFF" : "#64748B" }}
         />
       </View>
     </View>
@@ -33,8 +33,14 @@ export default function TabLayout() {
           height: 70,
           marginHorizontal: 20,
           borderRadius: 20,
-          borderTopWidth: 0,
-          elevation: 0,
+          borderTopWidth: 1,
+          borderColor: "#E2E8F0",
+          backgroundColor: "#FFFFFF",
+          elevation: 6,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 18,
         },
         tabBarItemStyle: {
           paddingVertical: 15,

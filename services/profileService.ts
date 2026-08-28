@@ -1,4 +1,13 @@
+import { File } from 'expo-file-system';
 import { supabase } from '../lib/supabase';
+
+export type ProfileSearchResult = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+};
 
 export const profileService = {
   async getProfile(userId: string) {
@@ -25,25 +34,21 @@ export const profileService = {
   async uploadAvatar(uri: string, userId: string) {
     const fileName = `${userId}/${Date.now()}.jpg`;
     
-    // Fetch the image as a blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    // Convert blob to array buffer for better compatibility with React Native
-    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as ArrayBuffer);
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(blob);
-    });
+    // Modern Expo File API reads real binary directly into ArrayBuffer
+    const file = new File(uri);
+    const arrayBuffer = await file.arrayBuffer();
 
     const { data, error } = await supabase.storage
       .from('avatars')
       .upload(fileName, arrayBuffer, {
         contentType: 'image/jpeg',
+        upsert: true,
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase avatar upload error:", error);
+      throw new Error(`Avatar upload failed: ${error.message}`);
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from('avatars')
@@ -56,5 +61,25 @@ export const profileService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
     return this.getProfile(user.id);
+  },
+
+  async searchProfiles(query: string) {
+    const trimmedQuery = query.trim();
+
+    if (!trimmedQuery) {
+      return [] as ProfileSearchResult[];
+    }
+
+    const escapedQuery = trimmedQuery.replace(/[%_]/g, (char) => `\\${char}`);
+    const request = supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url, bio')
+      .or(`username.ilike.%${escapedQuery}%,full_name.ilike.%${escapedQuery}%`)
+      .limit(20);
+
+    const { data, error } = await request;
+
+    if (error) throw error;
+    return (data ?? []) as ProfileSearchResult[];
   }
 };

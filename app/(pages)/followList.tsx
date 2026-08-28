@@ -8,10 +8,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { followService, SuggestedUser } from "@/services/followService";
 import * as Haptics from "expo-haptics";
@@ -19,57 +19,69 @@ import Toast from "react-native-toast-message";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
-const FollowPage = () => {
-  const [users, setUsers] = useState<SuggestedUser[]>([]);
+type TabType = "followers" | "following";
+
+export default function FollowList() {
+  const { userId, initialTab, username } = useLocalSearchParams<{
+    userId: string;
+    initialTab?: TabType;
+    username?: string;
+  }>();
+
+  const [activeTab, setActiveTab] = useState<TabType>(
+    initialTab === "following" ? "following" : "followers"
+  );
+  const [followers, setFollowers] = useState<SuggestedUser[]>([]);
+  const [following, setFollowing] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [togglingIds, setTogglingIds] = useState<Record<string, boolean>>({});
 
-  const fetchSuggested = useCallback(async () => {
+  const fetchData = useCallback(async () => {
+    if (!userId) return;
     try {
-      const data = await followService.getSuggestedUsers(30);
-      setUsers(data);
+      setLoading(true);
+      const [followersData, followingData] = await Promise.all([
+        followService.getFollowers(userId),
+        followService.getFollowing(userId),
+      ]);
+      setFollowers(followersData);
+      setFollowing(followingData);
     } catch (error) {
-      console.error("Error loading suggested users:", error);
+      console.error("Error loading follow list:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchSuggested();
-    }, [fetchSuggested])
+      fetchData();
+    }, [fetchData])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchSuggested();
+    fetchData();
   };
 
   const handleToggleFollow = async (user: SuggestedUser) => {
     if (togglingIds[user.id]) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
     const prevFollowing = user.is_following;
     const nextFollowing = !prevFollowing;
 
-    // Optimistic Update
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === user.id
-          ? {
-              ...u,
-              is_following: nextFollowing,
-              followers_count: u.followers_count + (nextFollowing ? 1 : -1),
-            }
-          : u
-      )
-    );
+    // Optimistic update in both lists
+    const updater = (list: SuggestedUser[]) =>
+      list.map((u) =>
+        u.id === user.id ? { ...u, is_following: nextFollowing } : u
+      );
 
+    setFollowers(updater);
+    setFollowing(updater);
     setTogglingIds((prev) => ({ ...prev, [user.id]: true }));
 
     try {
@@ -85,17 +97,12 @@ const FollowPage = () => {
     } catch (error: any) {
       console.error("Error toggling follow:", error);
       // Rollback
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id
-            ? {
-                ...u,
-                is_following: prevFollowing,
-                followers_count: u.followers_count + (prevFollowing ? 1 : -1),
-              }
-            : u
-        )
-      );
+      const rollback = (list: SuggestedUser[]) =>
+        list.map((u) =>
+          u.id === user.id ? { ...u, is_following: prevFollowing } : u
+        );
+      setFollowers(rollback);
+      setFollowing(rollback);
       Toast.show({
         type: "error",
         text1: "Error",
@@ -106,7 +113,8 @@ const FollowPage = () => {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
+  const currentList = activeTab === "followers" ? followers : following;
+  const filteredList = currentList.filter((u) => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
     return (
@@ -123,18 +131,86 @@ const FollowPage = () => {
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
-            Discover People
-          </Text>
+          <View>
+            <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
+              Connections
+            </Text>
+            {username && (
+              <Text className="text-xs text-slate-400">@{username}</Text>
+            )}
+          </View>
         </View>
       </View>
 
-      {/* Search Bar */}
-      <View className="px-5 pt-4 pb-2">
+      {/* Tabs */}
+      <View className="flex-row border-b border-slate-200 bg-white">
+        <TouchableOpacity
+          onPress={() => setActiveTab("followers")}
+          className={`flex-1 flex-row items-center justify-center gap-2 py-3.5 border-b-2 ${
+            activeTab === "followers"
+              ? "border-blue-600"
+              : "border-transparent"
+          }`}
+        >
+          <Text
+            className={`font-bold text-sm ${
+              activeTab === "followers" ? "text-blue-600" : "text-slate-500"
+            }`}
+          >
+            Followers
+          </Text>
+          <View
+            className={`px-2 py-0.5 rounded-full ${
+              activeTab === "followers" ? "bg-blue-100" : "bg-slate-100"
+            }`}
+          >
+            <Text
+              className={`text-xs font-bold ${
+                activeTab === "followers" ? "text-blue-600" : "text-slate-500"
+              }`}
+            >
+              {followers.length}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setActiveTab("following")}
+          className={`flex-1 flex-row items-center justify-center gap-2 py-3.5 border-b-2 ${
+            activeTab === "following"
+              ? "border-blue-600"
+              : "border-transparent"
+          }`}
+        >
+          <Text
+            className={`font-bold text-sm ${
+              activeTab === "following" ? "text-blue-600" : "text-slate-500"
+            }`}
+          >
+            Following
+          </Text>
+          <View
+            className={`px-2 py-0.5 rounded-full ${
+              activeTab === "following" ? "bg-blue-100" : "bg-slate-100"
+            }`}
+          >
+            <Text
+              className={`text-xs font-bold ${
+                activeTab === "following" ? "text-blue-600" : "text-slate-500"
+              }`}
+            >
+              {following.length}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Input */}
+      <View className="px-5 pt-3 pb-2">
         <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
           <Ionicons name="search-outline" size={18} color="#94A3B8" />
           <TextInput
-            placeholder="Search suggested creators..."
+            placeholder={`Search ${activeTab}...`}
             className="flex-1 ml-3 text-base text-slate-800"
             placeholderTextColor="#94A3B8"
             value={searchQuery}
@@ -150,34 +226,29 @@ const FollowPage = () => {
         </View>
       </View>
 
-      {/* Title */}
-      <View className="px-5 py-3">
-        <Text className="text-sm font-bold uppercase tracking-wider text-slate-400">
-          Suggested For You
-        </Text>
-      </View>
-
-      {/* Content */}
+      {/* List Content */}
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#2563EB" />
         </View>
-      ) : filteredUsers.length === 0 ? (
+      ) : filteredList.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
           <Ionicons name="people-outline" size={48} color="#CBD5E1" />
           <Text className="text-lg font-semibold text-slate-900 mt-4">
-            No suggestions found
+            No {activeTab} yet
           </Text>
           <Text className="text-slate-500 text-center mt-2">
-            Try searching for another user or check back later!
+            {activeTab === "followers"
+              ? "When someone follows this profile, they will appear here."
+              : "When this profile follows creators, they will appear here."}
           </Text>
         </View>
       ) : (
         <FlatList
-          data={filteredUsers}
+          data={filteredList}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 30, paddingTop: 6 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -194,11 +265,10 @@ const FollowPage = () => {
                   params: { userId: item.id },
                 })
               }
-              className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3.5 mb-3 border border-slate-200/70 shadow-sm"
+              className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3.5 mb-2.5 border border-slate-200/70 shadow-sm"
             >
-              {/* Avatar & User Details */}
               <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+                <View className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
                   {item.avatar_url ? (
                     <Image
                       source={{ uri: item.avatar_url }}
@@ -208,7 +278,7 @@ const FollowPage = () => {
                   ) : (
                     <Image
                       source={require("@/assets/homeIcons/profileUser.png")}
-                      className="h-8 w-8"
+                      className="h-7 w-7"
                       resizeMode="contain"
                     />
                   )}
@@ -219,25 +289,21 @@ const FollowPage = () => {
                     {item.full_name || item.username}
                   </Text>
                   <Text className="text-xs text-slate-400 mt-0.5">
-                    @{item.username} • {item.followers_count} followers
+                    @{item.username}
                   </Text>
                   {item.bio ? (
-                    <Text
-                      className="text-xs text-slate-500 mt-1"
-                      numberOfLines={1}
-                    >
+                    <Text className="text-xs text-slate-500 mt-1" numberOfLines={1}>
                       {item.bio}
                     </Text>
                   ) : null}
                 </View>
               </View>
 
-              {/* Follow Button */}
               <TouchableOpacity
                 onPress={() => handleToggleFollow(item)}
                 disabled={togglingIds[item.id]}
                 activeOpacity={0.7}
-                className={`px-4 py-2 rounded-xl items-center justify-center ${
+                className={`px-4 py-1.5 rounded-xl items-center justify-center ${
                   item.is_following
                     ? "bg-slate-100 border border-slate-300"
                     : "bg-blue-600"
@@ -257,6 +323,4 @@ const FollowPage = () => {
       )}
     </SafeAreaView>
   );
-};
-
-export default FollowPage;
+}

@@ -215,26 +215,21 @@ create policy "Users can delete own follows" on public.follows
 -- RLS POLICIES: CONVERSATIONS
 -- ============================================================
 
-create policy "Participants can view conversations" on public.conversations
-    for select using (
-        exists (
-            select 1 from conversation_participants
-            where conversation_id = id and user_id = auth.uid()
-        )
-    );
-
 create policy "Authenticated users can create conversations" on public.conversations
     for insert with check (auth.uid() is not null);
+
+create policy "Authenticated users can view conversations" on public.conversations
+    for select using (auth.uid() is not null);
 
 -- ============================================================
 -- RLS POLICIES: CONVERSATION PARTICIPANTS
 -- ============================================================
 
-create policy "Participants can view conversation members" on public.conversation_participants
-    for select using (auth.uid() = user_id);
+create policy "Authenticated users can add conversation participants" on public.conversation_participants
+    for insert with check (auth.uid() is not null);
 
-create policy "Authenticated users can join conversations" on public.conversation_participants
-    for insert with check (auth.uid() = user_id);
+create policy "Authenticated users can view conversation participants" on public.conversation_participants
+    for select using (auth.uid() is not null);
 
 create policy "Users can leave conversations" on public.conversation_participants
     for delete using (auth.uid() = user_id);
@@ -267,8 +262,14 @@ create policy "Participants can send messages" on public.messages
 create policy "Users can view own notifications" on public.notifications
     for select using (auth.uid() = user_id);
 
+create policy "Authenticated users can insert notifications" on public.notifications
+    for insert with check (auth.uid() = from_user_id);
+
 create policy "Users can update own notifications" on public.notifications
     for update using (auth.uid() = user_id);
+
+create policy "Users can delete own notifications" on public.notifications
+    for delete using (auth.uid() = user_id);
 
 -- ============================================================
 -- FUNCTION & TRIGGER: AUTO-CREATE PROFILE ON SIGNUP
