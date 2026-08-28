@@ -193,7 +193,8 @@ export default function Chat() {
                     }`}
                     numberOfLines={1}
                   >
-                    {item.lastMessage?.content || "Tap to start conversation"}
+                    {item.lastMessage?.content ||
+                      (item.lastMessage?.media_url ? "Photo" : "Tap to start conversation")}
                   </Text>
                 </View>
               </View>

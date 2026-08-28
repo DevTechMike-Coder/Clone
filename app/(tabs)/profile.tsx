@@ -44,6 +44,7 @@ export default function Profile() {
     likesCount: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [privacySaving, setPrivacySaving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "repeat" | "bookmark">("overview");
   const navigation = useNavigation();
@@ -78,6 +79,32 @@ export default function Profile() {
       fetchProfile();
     }, [fetchProfile])
   );
+
+  const handleTogglePrivate = async () => {
+    if (!targetUserId || !profile || privacySaving) return;
+    const nextValue = !profile.is_private;
+    setProfile((prev: any) => (prev ? { ...prev, is_private: nextValue } : prev));
+    setPrivacySaving(true);
+    try {
+      await profileService.updateProfile(targetUserId, { is_private: nextValue });
+      Toast.show({
+        type: "success",
+        text1: nextValue ? "Account is private" : "Account is public",
+        text2: nextValue
+          ? "Only people who follow you can see your posts."
+          : "Anyone can see your posts.",
+      });
+    } catch (error: any) {
+      setProfile((prev: any) => (prev ? { ...prev, is_private: !nextValue } : prev));
+      Toast.show({
+        type: "error",
+        text1: "Couldn't update privacy",
+        text2: error.message || "Please try again.",
+      });
+    } finally {
+      setPrivacySaving(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -205,12 +232,31 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-row items-center justify-between py-4">
-            <View className="flex-row items-center gap-3">
+          <TouchableOpacity
+            onPress={handleTogglePrivate}
+            disabled={privacySaving}
+            className="flex-row items-center justify-between py-4"
+          >
+            <View className="flex-row items-center gap-3 flex-1 pr-3">
               <Ionicons name="lock-closed-outline" size={20} color="#475569" />
-              <Text className="text-base text-slate-800">Privacy</Text>
+              <View className="flex-1">
+                <Text className="text-base text-slate-800">Private account</Text>
+                <Text className="text-xs text-slate-400 mt-0.5">
+                  Only people who follow you can see your posts
+                </Text>
+              </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+            <View
+              className={`w-11 h-6 rounded-full justify-center ${
+                profile?.is_private ? "bg-blue-600" : "bg-slate-200"
+              }`}
+            >
+              <View
+                className={`w-5 h-5 rounded-full bg-white ${
+                  profile?.is_private ? "self-end mr-0.5" : "self-start ml-0.5"
+                }`}
+              />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity className="flex-row items-center justify-between py-4">
