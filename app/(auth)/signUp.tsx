@@ -29,6 +29,44 @@ const SignUp = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
+
+  const handleGoogleSignUp = async () => {
+    try {
+      setOauthLoading("google");
+      await authService.signInWithGoogle();
+      router.replace("/home");
+    } catch (error: any) {
+      if (error?.message && !error.message.includes("cancelled")) {
+        Toast.show({
+          type: "error",
+          text1: "Google Sign In Failed",
+          text2: error.message || "Failed to authenticate with Google",
+        });
+      }
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
+  const handleAppleSignUp = async () => {
+    try {
+      setOauthLoading("apple");
+      await authService.signInWithApple();
+      router.replace("/home");
+    } catch (error: any) {
+      if (error?.message && !error.message.includes("cancelled")) {
+        Toast.show({
+          type: "error",
+          text1: "Apple Sign In Failed",
+          text2: error.message || "Failed to authenticate with Apple",
+        });
+      }
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
   const handleSignUp = async () => {
     if (!email || !password || !fullName) {
       Toast.show({
@@ -179,30 +217,46 @@ const SignUp = () => {
                   <View className="w-full flex-row items-center justify-center gap-4">
                     <TouchableOpacity
                       activeOpacity={0.85}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4"
+                      onPress={handleGoogleSignUp}
+                      disabled={!!oauthLoading}
+                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
                     >
-                      <Image
-                        source={require("@/assets/brandIcon/google.png")}
-                        className="h-5 w-5"
-                        resizeMode="contain"
-                      />
-                      <Text className="text-base font-semibold text-slate-900">
-                        Google
-                      </Text>
+                      {oauthLoading === "google" ? (
+                        <ActivityIndicator size="small" color="#2563EB" />
+                      ) : (
+                        <>
+                          <Image
+                            source={require("@/assets/brandIcon/google.png")}
+                            className="h-5 w-5"
+                            resizeMode="contain"
+                          />
+                          <Text className="text-base font-semibold text-slate-900">
+                            Google
+                          </Text>
+                        </>
+                      )}
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       activeOpacity={0.85}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4"
+                      onPress={handleAppleSignUp}
+                      disabled={!!oauthLoading}
+                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
                     >
-                      <Image
-                        source={require("@/assets/brandIcon/apple.png")}
-                        className="h-5 w-5"
-                        resizeMode="contain"
-                      />
-                      <Text className="text-base font-semibold text-slate-900">
-                        Apple
-                      </Text>
+                      {oauthLoading === "apple" ? (
+                        <ActivityIndicator size="small" color="#0F172A" />
+                      ) : (
+                        <>
+                          <Image
+                            source={require("@/assets/brandIcon/apple.png")}
+                            className="h-5 w-5"
+                            resizeMode="contain"
+                          />
+                          <Text className="text-base font-semibold text-slate-900">
+                            Apple
+                          </Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   </View>
 
