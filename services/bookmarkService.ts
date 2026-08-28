@@ -35,8 +35,10 @@ export const bookmarkService = {
 
   getBookmarkedPosts: async (userId?: string): Promise<Post[]> => {
     const { data: { user } } = await supabase.auth.getUser();
-    const targetUserId = userId || user?.id;
-    if (!targetUserId) return [];
+    if (!user) return [];
+    // Bookmarks are private — never fetch another user's saved posts.
+    if (userId && userId !== user.id) return [];
+    const targetUserId = user.id;
 
     const { data, error } = await supabase
       .from("bookmarks")

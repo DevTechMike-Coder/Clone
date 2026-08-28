@@ -2,6 +2,9 @@ import { File } from "expo-file-system";
 import { supabase } from "@/lib/supabase";
 import { notificationService } from "./notificationService";
 
+const CHAT_BUCKET = "chat";
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
 export type ChatMessage = {
   id: string;
   conversation_id: string;
@@ -16,6 +19,32 @@ export type ChatMessage = {
     avatar_url?: string | null;
   };
 };
+
+const isRemoteUrl = (value: string) =>
+  value.startsWith("http://") || value.startsWith("https://");
+
+const resolveChatMediaUrl = async (
+  mediaUrl: string | null | undefined
+): Promise<string | null> => {
+  if (!mediaUrl) return null;
+  if (isRemoteUrl(mediaUrl)) return mediaUrl;
+
+  const { data, error } = await supabase.storage
+    .from(CHAT_BUCKET)
+    .createSignedUrl(mediaUrl, SIGNED_URL_TTL_SECONDS);
+
+  if (error || !data?.signedUrl) {
+    console.warn("Could not sign chat media URL:", error);
+    return null;
+  }
+
+  return data.signedUrl;
+};
+
+const withSignedMedia = async (message: ChatMessage): Promise<ChatMessage> => ({
+  ...message,
+  media_url: await resolveChatMediaUrl(message.media_url),
+});
 
 export type ConversationItem = {
   id: string;
@@ -156,56 +185,16 @@ export const chatService = {
     if (!user) throw new Error("You must be logged in to chat");
     if (user.id === otherUserId) throw new Error("Cannot chat with yourself");
 
-    // 1. Check if direct conversation already exists
-    const { data: myConvs } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", user.id);
+    const { data, error } = await supabase.rpc("create_direct_conversation", {
+      other_user_id: otherUserId,
+    });
 
-    if (myConvs && myConvs.length > 0) {
-      const myConvIds = myConvs.map((c) => c.conversation_id);
-
-      const { data: commonConvs } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", otherUserId)
-        .in("conversation_id", myConvIds);
-
-      if (commonConvs && commonConvs.length > 0) {
-        // Check if this common conversation is 1-on-1 (is_group = false)
-        const { data: directConv } = await supabase
-          .from("conversations")
-          .select("id")
-          .eq("id", commonConvs[0].conversation_id)
-          .eq("is_group", false)
-          .maybeSingle();
-
-        if (directConv) {
-          return directConv.id;
-        }
-      }
+    if (error) {
+      console.error("Error creating conversation:", error);
+      throw error;
     }
 
-    // 2. Create new direct conversation
-    const { data: newConv, error: convError } = await supabase
-      .from("conversations")
-      .insert([{ is_group: false }])
-      .select()
-      .single();
-
-    if (convError) throw convError;
-
-    // 3. Add both participants
-    const { error: partError } = await supabase
-      .from("conversation_participants")
-      .insert([
-        { conversation_id: newConv.id, user_id: user.id },
-        { conversation_id: newConv.id, user_id: otherUserId },
-      ]);
-
-    if (partError) throw partError;
-
-    return newConv.id;
+    return data as string;
   },
 
   async getMessages(conversationId: string): Promise<ChatMessage[]> {
@@ -229,13 +218,15 @@ export const chatService = {
       throw error;
     }
 
-    return (data || []).map((item: any) => {
+    const mapped = (data || []).map((item: any) => {
       const sender = Array.isArray(item.sender) ? item.sender[0] : item.sender;
       return {
         ...item,
         sender,
-      };
-    }) as ChatMessage[];
+      } as ChatMessage;
+    });
+
+    return Promise.all(mapped.map(withSignedMedia));
   },
 
   async sendMessage(
@@ -296,10 +287,10 @@ export const chatService = {
     }
 
     const sender = Array.isArray(data.sender) ? data.sender[0] : data.sender;
-    return {
+    return withSignedMedia({
       ...data,
       sender,
-    } as ChatMessage;
+    } as ChatMessage);
   },
 
   async markMessagesAsRead(conversationId: string) {
@@ -317,16 +308,16 @@ export const chatService = {
   },
 
   async uploadChatMedia(uri: string, userId: string): Promise<string> {
-    const fileName = `chat/${userId}/${Date.now()}.jpg`;
+    const fileName = `${userId}/${Date.now()}.jpg`;
 
     const file = new File(uri);
     const arrayBuffer = await file.arrayBuffer();
 
-    const { data, error } = await supabase.storage
-      .from("posts")
+    const { error } = await supabase.storage
+      .from(CHAT_BUCKET)
       .upload(fileName, arrayBuffer, {
         contentType: "image/jpeg",
-        upsert: true,
+        upsert: false,
       });
 
     if (error) {
@@ -334,11 +325,8 @@ export const chatService = {
       throw new Error(`Media upload failed: ${error.message}`);
     }
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("posts").getPublicUrl(fileName);
-
-    return publicUrl;
+    // Store the private object path. Recipients receive a short-lived signed URL on read.
+    return fileName;
   },
 
   subscribeToMessages(
@@ -363,10 +351,12 @@ export const chatService = {
             .eq("id", payload.new.sender_id)
             .single();
 
-          onMessage({
-            ...payload.new,
-            sender: data || undefined,
-          } as ChatMessage);
+          onMessage(
+            await withSignedMedia({
+              ...payload.new,
+              sender: data || undefined,
+            } as ChatMessage)
+          );
         }
       )
       .subscribe();

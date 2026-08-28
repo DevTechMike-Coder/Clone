@@ -190,16 +190,16 @@ export default function UserProfile() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
-              if (userId) {
-                router.push({
-                  pathname: "/(pages)/followList",
-                  params: {
-                    userId,
-                    initialTab: "following",
-                    username: profile?.username || "user",
-                  },
-                });
-              }
+              if (!userId) return;
+              if (profile?.is_private && !isOwnProfile && !isFollowing) return;
+              router.push({
+                pathname: "/(pages)/followList",
+                params: {
+                  userId,
+                  initialTab: "following",
+                  username: profile?.username || "user",
+                },
+              });
             }}
             className="items-center px-3 py-1"
           >
@@ -212,16 +212,16 @@ export default function UserProfile() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
-              if (userId) {
-                router.push({
-                  pathname: "/(pages)/followList",
-                  params: {
-                    userId,
-                    initialTab: "followers",
-                    username: profile?.username || "user",
-                  },
-                });
-              }
+              if (!userId) return;
+              if (profile?.is_private && !isOwnProfile && !isFollowing) return;
+              router.push({
+                pathname: "/(pages)/followList",
+                params: {
+                  userId,
+                  initialTab: "followers",
+                  username: profile?.username || "user",
+                },
+              });
             }}
             className="items-center px-3 py-1"
           >
@@ -329,76 +329,90 @@ export default function UserProfile() {
 
         {/* Content Area */}
         <View className="min-h-[300px]">
-          {activeTab === "overview" && (
-            posts.length > 0 ? (
-              <View className="flex-row flex-wrap">
-                {posts.map((post) => (
-                  <TouchableOpacity
-                    key={post.id}
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(pages)/viewPost",
-                        params: { postId: post.id },
-                      })
-                    }
-                    className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
-                  >
-                    <Image
-                      source={{ uri: post.media_url }}
-                      className="w-full h-full"
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View className="items-center justify-center py-20 px-10">
-                <Ionicons name="document-text-outline" size={48} color="#CBD5E1" />
-                <Text className="text-lg font-semibold text-slate-900 mt-4">
-                  No posts yet
-                </Text>
-                <Text className="text-slate-500 text-center mt-2">
-                  This user hasn&apos;t posted anything yet.
-                </Text>
-              </View>
-            )
-          )}
+          {profile?.is_private && !isOwnProfile && !isFollowing ? (
+            <View className="items-center justify-center py-20 px-10">
+              <Ionicons name="lock-closed-outline" size={48} color="#CBD5E1" />
+              <Text className="text-lg font-semibold text-slate-900 mt-4">
+                This account is private
+              </Text>
+              <Text className="text-slate-500 text-center mt-2">
+                Follow this account to see their posts.
+              </Text>
+            </View>
+          ) : (
+            <>
+              {activeTab === "overview" && (
+                posts.length > 0 ? (
+                  <View className="flex-row flex-wrap">
+                    {posts.map((post) => (
+                      <TouchableOpacity
+                        key={post.id}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(pages)/viewPost",
+                            params: { postId: post.id },
+                          })
+                        }
+                        className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                      >
+                        <Image
+                          source={{ uri: post.media_url }}
+                          className="w-full h-full"
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <View className="items-center justify-center py-20 px-10">
+                    <Ionicons name="document-text-outline" size={48} color="#CBD5E1" />
+                    <Text className="text-lg font-semibold text-slate-900 mt-4">
+                      No posts yet
+                    </Text>
+                    <Text className="text-slate-500 text-center mt-2">
+                      This user hasn&apos;t posted anything yet.
+                    </Text>
+                  </View>
+                )
+              )}
 
-          {activeTab === "repeat" && (
-            reposts.length > 0 ? (
-              <View className="flex-row flex-wrap">
-                {reposts.map((post) => (
-                  <TouchableOpacity
-                    key={post.id}
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(pages)/viewPost",
-                        params: { postId: post.id },
-                      })
-                    }
-                    className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
-                  >
-                    <Image
-                      source={{ uri: post.media_url }}
-                      className="w-full h-full"
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View className="items-center justify-center py-20 px-10">
-                <Ionicons name="repeat-outline" size={48} color="#CBD5E1" />
-                <Text className="text-lg font-semibold text-slate-900 mt-4">
-                  No reposts yet
-                </Text>
-                <Text className="text-slate-500 text-center mt-2">
-                  This user hasn&apos;t reposted anything yet.
-                </Text>
-              </View>
-            )
+              {activeTab === "repeat" && (
+                reposts.length > 0 ? (
+                  <View className="flex-row flex-wrap">
+                    {reposts.map((post) => (
+                      <TouchableOpacity
+                        key={post.id}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(pages)/viewPost",
+                            params: { postId: post.id },
+                          })
+                        }
+                        className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                      >
+                        <Image
+                          source={{ uri: post.media_url }}
+                          className="w-full h-full"
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <View className="items-center justify-center py-20 px-10">
+                    <Ionicons name="repeat-outline" size={48} color="#CBD5E1" />
+                    <Text className="text-lg font-semibold text-slate-900 mt-4">
+                      No reposts yet
+                    </Text>
+                    <Text className="text-slate-500 text-center mt-2">
+                      This user hasn&apos;t reposted anything yet.
+                    </Text>
+                  </View>
+                )
+              )}
+            </>
           )}
         </View>
       </ScrollView>

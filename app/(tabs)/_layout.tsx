@@ -1,8 +1,10 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { bottomTabs } from "@/constants/data";
 import { View, Image } from "react-native";
 import { clsx } from "clsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
+import AuthSplash from "@/components/AuthSplash";
 
 const TabIcon = ({ focused, icon }: TabIconProps) => {
   return (
@@ -21,7 +23,17 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
 };
 
 export default function TabLayout() {
+  const { session, loading } = useAuth();
   const insets = useSafeAreaInsets();
+
+  if (loading) {
+    return <AuthSplash />;
+  }
+
+  if (!session) {
+    return <Redirect href="/" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
