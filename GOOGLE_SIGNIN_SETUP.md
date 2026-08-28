@@ -20,10 +20,12 @@ it does not exist; 16.1.4 is the newest release.
 > **Expo Go:** the package's native module (`RNGoogleSignin`) is not present in
 > Expo Go, and *importing* the package there throws
 > `TurboModuleRegistry.getEnforcing(...): 'RNGoogleSignin' could not be found`.
-> `authService.ts` therefore imports it lazily (only when the user taps the
-> Google button, wrapped in try/catch), so the rest of the app runs normally in
-> Expo Go and the Google button shows a clear "not available in this build"
-> error instead of crashing the app.
+> That error escapes a try/catch around `require()` (Metro reports it as an
+> uncaught module-load error), so `authService.ts` detects Expo Go *before*
+> calling `require()` (via `expo-constants` → `expoGoConfig` / `appOwnership`)
+> and throws a plain, catchable Error instead. The result is the same: the
+> rest of the app runs normally in Expo Go, and tapping the Google button
+> shows a clear "not available in Expo Go" toast instead of crashing the app.
 
 ## 2. Google Cloud Console — create TWO OAuth clients
 

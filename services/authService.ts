@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // Complete any pending auth session in web browser (still used for Apple)
@@ -22,23 +23,47 @@ if (!GOOGLE_WEB_CLIENT_ID) {
 type GoogleSigninModule = typeof import("@react-native-google-signin/google-signin");
 
 // The `@react-native-google-signin/google-signin` package is backed by a
-// native module (`RNGoogleSignin`) and throws at *import time* when that
-// module is not present in the running binary:
+// native module (`RNGoogleSignin`). When that module is missing from the
+// running binary, *importing* the package throws
 //
 //   TurboModuleRegistry.getEnforcing(...): 'RNGoogleSignin' could not be found
 //
-// That happens in Expo Go, which only ships the native modules Expo itself
-// provides. Importing the package at the top of this file used to crash every
-// screen that imports `authService` (signIn, signUp, profile) — expo-router
-// even reported those routes as "missing the required default export" because
-// their module evaluation threw. We therefore load the package lazily, only
-// when the user actually taps "Google", so the rest of the app works in Expo
-// Go and Google Sign-In fails with a clear message instead. (Metro memoizes
-// `require`, so this stays a single module instance per app run.)
+// and — crucially — that error escapes a try/catch placed around `require()`
+// (Metro surfaces it as an uncaught module-load error rather than a normal
+// JS exception), so we cannot rely on catching it. The module is absent in
+// two situations we can detect up front:
+//
+//   1. Expo Go — it only ships the native modules Expo itself provides.
+//   2. Web — the package has no web implementation.
+//
+// We therefore check for those before ever touching `require()`, so tapping
+// "Google" fails with a clear, catchable Error (shown as a toast) instead of
+// crashing with the uncaught TurboModule error. The `require()` is still
+// wrapped in try/catch as a last resort for any other build whose native
+// module didn't get linked. (Metro memoizes `require`, so this stays a single
+// module instance per app run.)
+function isRunningInExpoGo(): boolean {
+  // `executionEnvironment` is deliberately NOT used here: it returns
+  // "storeClient" for both Expo Go AND expo-dev-client development builds,
+  // and a dev build must NOT be blocked (it has the native module). Detect
+  // Expo Go directly instead: `expoGoConfig` is populated only when running
+  // inside the Expo Go app, and `appOwnership` is "expo" there (and null in
+  // dev/standalone builds, which is exactly what we want).
+  return Constants.expoGoConfig != null || Constants.appOwnership === "expo";
+}
+
 function loadGoogleSignin(): GoogleSigninModule {
   if (Platform.OS === "web") {
     throw new Error(
       "Google Sign-In is only available in the mobile app (Android/iOS)."
+    );
+  }
+
+  if (isRunningInExpoGo()) {
+    throw new Error(
+      "Google Sign-In is not available in Expo Go. It requires a native " +
+        "development or production build — run `npx expo run:android` or " +
+        "`eas build --profile development`. See GOOGLE_SIGNIN_SETUP.md."
     );
   }
 
