@@ -9,6 +9,15 @@ export type ProfileSearchResult = {
   bio: string | null;
 };
 
+export type ProfileUpdates = {
+  full_name?: string | null;
+  username?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  website?: string | null;
+  is_private?: boolean;
+};
+
 export const profileService = {
   async getProfile(userId: string) {
     const { data, error } = await supabase
@@ -21,10 +30,19 @@ export const profileService = {
     return data;
   },
 
-  async updateProfile(userId: string, updates: any) {
+  async updateProfile(userId: string, updates: ProfileUpdates) {
+    const allowedUpdates: ProfileUpdates = {};
+
+    if (updates.full_name !== undefined) allowedUpdates.full_name = updates.full_name;
+    if (updates.username !== undefined) allowedUpdates.username = updates.username;
+    if (updates.bio !== undefined) allowedUpdates.bio = updates.bio;
+    if (updates.avatar_url !== undefined) allowedUpdates.avatar_url = updates.avatar_url;
+    if (updates.website !== undefined) allowedUpdates.website = updates.website;
+    if (updates.is_private !== undefined) allowedUpdates.is_private = updates.is_private;
+
     const { data, error } = await supabase
       .from('profiles')
-      .update(updates)
+      .update(allowedUpdates)
       .eq('id', userId);
 
     if (error) throw error;
@@ -38,7 +56,7 @@ export const profileService = {
     const file = new File(uri);
     const arrayBuffer = await file.arrayBuffer();
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('avatars')
       .upload(fileName, arrayBuffer, {
         contentType: 'image/jpeg',
@@ -70,7 +88,7 @@ export const profileService = {
       return [] as ProfileSearchResult[];
     }
 
-    const escapedQuery = trimmedQuery.replace(/[%_]/g, (char) => `\\${char}`);
+    const escapedQuery = trimmedQuery.replace(/[%_]/g, (char) => `\\\\${char}`);
     const request = supabase
       .from('profiles')
       .select('id, username, full_name, avatar_url, bio')

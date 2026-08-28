@@ -1,10 +1,11 @@
 import { View, Text, Pressable, Animated } from "react-native";
 import React, { useEffect, useRef } from "react";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 
 import { useAuth } from "@/context/AuthContext";
+import AuthSplash from "@/components/AuthSplash";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -14,8 +15,7 @@ const Index = () => {
   const slideUpAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    if (!loading && session) {
-      router.replace("/home");
+    if (loading || session) {
       return;
     }
 
@@ -32,6 +32,14 @@ const Index = () => {
       }),
     ]).start();
   }, [fadeAnim, slideUpAnim, loading, session]);
+
+  if (loading) {
+    return <AuthSplash />;
+  }
+
+  if (session) {
+    return <Redirect href="/home" />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
@@ -51,7 +59,7 @@ const Index = () => {
                 <Text className="text-blue-600">Clone</Text>
               </Text>
               <Text className="text-left text-lg leading-7 text-slate-600 max-w-[90%]">
-                Create an account, sign in, or continue exploring as a guest.
+                Create an account or sign in to join the community.
               </Text>
             </View>
 
