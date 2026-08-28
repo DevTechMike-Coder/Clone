@@ -1,8 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
-import * as Crypto from "expo-crypto";
-import { encode as encodeBase64 } from "base64-arraybuffer";
 import { Platform } from "react-native";
 import {
   GoogleSignin,
@@ -14,31 +12,22 @@ import {
 // Complete any pending auth session in web browser (still used for Apple)
 WebBrowser.maybeCompleteAuthSession();
 
-GoogleSignin.configure({
-  // Web client, NOT the Android client. This is what lets Google issue a
-  // verifiable idToken — the Android client only identifies the app via
-  // package name + SHA-1, it never goes in app code.
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
-});
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-// url-safe nonce, per https://github.com/react-native-google-signin/docs (Custom nonce)
-function getUrlSafeNonce(byteLength = 32): string {
-  const bytes = Crypto.getRandomBytes(byteLength);
-  return encodeBase64(bytes.buffer)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-async function getNonce() {
-  const rawNonce = getUrlSafeNonce();
-  // Supabase verifies this hash against the nonce baked into the idToken.
-  const nonceDigest = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    rawNonce
+// The web client ID is the only ID that belongs in app code. The Android
+// OAuth client in Google Cloud Console is matched automatically by package
+// name + SHA-1 fingerprint, so it never appears in code.
+if (!GOOGLE_WEB_CLIENT_ID) {
+  console.warn(
+    "[authService] EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is not set. " +
+      "Google Sign-In will fail. Create a 'Web application' OAuth client in " +
+      "Google Cloud Console and put its Client ID in .env.local."
   );
-  return { rawNonce, nonceDigest };
 }
+
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID!,
+});
 
 function extractParamsFromUrl(url: string): Record<string, string> {
   const hashIndex = url.indexOf("#");
@@ -91,23 +80,19 @@ export const authService = {
     return data;
   },
 
-  // OAuth Sign In Helper (Google / Apple)
-  async signInWithOAuthProvider(provider: "google" | "apple") {
+  // OAuth Sign In Helper (Apple)
+  async signInWithOAuthProvider(provider: "apple") {
     const redirectUrl = Linking.createURL("auth/callback");
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: Platform.OS !== "web",
+        skipBrowserRedirect: true,
       },
     });
 
     if (error) throw error;
-
-    if (Platform.OS === "web") {
-      return data;
-    }
 
     if (data?.url) {
       const result = await WebBrowser.openAuthSessionAsync(
@@ -142,17 +127,33 @@ export const authService = {
     return null;
   },
 
-  // Sign In with Google (native)
+  // Sign In with Google (native, Android + iOS only)
   async signInWithGoogle() {
+    if (Platform.OS === "web") {
+      throw new Error(
+        "Google Sign-In is only available in the mobile app (Android/iOS)."
+      );
+    }
+
+    if (!GOOGLE_WEB_CLIENT_ID) {
+      throw new Error(
+        "Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. See GOOGLE_SIGNIN_SETUP.md."
+      );
+    }
+
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-    const { rawNonce, nonceDigest } = await getNonce();
-
     try {
-      const response = await GoogleSignin.signIn({ nonce: nonceDigest });
+      // NOTE: no `nonce` is passed here. The installed version of
+      // @react-native-google-signin/google-signin (16.1.4, the latest) does
+      // NOT support custom nonces, so the Google ID token contains no nonce
+      // claim. Supabase (GoTrue) only accepts a token with a nonce if you also
+      // send one — sending a nonce here would make it reject the token with
+      // "Passed nonce and nonce in id_token should either both exist or not."
+      const response = await GoogleSignin.signIn();
 
       if (!isSuccessResponse(response)) {
-        // user cancelled the picker
+        // User cancelled the picker
         return null;
       }
 
@@ -161,12 +162,9 @@ export const authService = {
         throw new Error("Google did not return an idToken");
       }
 
-      // rawNonce here, never nonceDigest — Supabase hashes it itself to
-      // compare against the digest embedded in the idToken.
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: "google",
         token: idToken,
-        nonce: rawNonce,
       });
 
       if (error) throw error;
@@ -179,7 +177,9 @@ export const authService = {
           case statusCodes.IN_PROGRESS:
             throw new Error("Sign-in already in progress");
           case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            throw new Error("Google Play Services not available on this device");
+            throw new Error(
+              "Google Play Services not available on this device"
+            );
           default:
             throw err;
         }

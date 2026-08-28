@@ -34,8 +34,12 @@ const SignIn = () => {
   const handleGoogleSignIn = async () => {
     try {
       setOauthLoading("google");
-      await authService.signInWithGoogle();
-      router.replace("/home");
+      const data = await authService.signInWithGoogle();
+      // `data` is null when the user cancels the Google account picker —
+      // stay on this screen instead of navigating.
+      if (data) {
+        router.replace("/home");
+      }
     } catch (error: any) {
       if (error?.message && !error.message.includes("cancelled")) {
         Toast.show({
