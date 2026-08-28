@@ -2,12 +2,6 @@ import { supabase } from "@/lib/supabase";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { Platform } from "react-native";
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
 
 // Complete any pending auth session in web browser (still used for Apple)
 WebBrowser.maybeCompleteAuthSession();
@@ -25,9 +19,39 @@ if (!GOOGLE_WEB_CLIENT_ID) {
   );
 }
 
-GoogleSignin.configure({
-  webClientId: GOOGLE_WEB_CLIENT_ID!,
-});
+type GoogleSigninModule = typeof import("@react-native-google-signin/google-signin");
+
+// The `@react-native-google-signin/google-signin` package is backed by a
+// native module (`RNGoogleSignin`) and throws at *import time* when that
+// module is not present in the running binary:
+//
+//   TurboModuleRegistry.getEnforcing(...): 'RNGoogleSignin' could not be found
+//
+// That happens in Expo Go, which only ships the native modules Expo itself
+// provides. Importing the package at the top of this file used to crash every
+// screen that imports `authService` (signIn, signUp, profile) — expo-router
+// even reported those routes as "missing the required default export" because
+// their module evaluation threw. We therefore load the package lazily, only
+// when the user actually taps "Google", so the rest of the app works in Expo
+// Go and Google Sign-In fails with a clear message instead. (Metro memoizes
+// `require`, so this stays a single module instance per app run.)
+function loadGoogleSignin(): GoogleSigninModule {
+  if (Platform.OS === "web") {
+    throw new Error(
+      "Google Sign-In is only available in the mobile app (Android/iOS)."
+    );
+  }
+
+  try {
+    return require("@react-native-google-signin/google-signin");
+  } catch {
+    throw new Error(
+      "Google Sign-In is not available in this build. It requires a " +
+        "development or production build with the native module — it does " +
+        "not work in Expo Go. See GOOGLE_SIGNIN_SETUP.md."
+    );
+  }
+}
 
 function extractParamsFromUrl(url: string): Record<string, string> {
   const hashIndex = url.indexOf("#");
@@ -129,17 +153,16 @@ export const authService = {
 
   // Sign In with Google (native, Android + iOS only)
   async signInWithGoogle() {
-    if (Platform.OS === "web") {
-      throw new Error(
-        "Google Sign-In is only available in the mobile app (Android/iOS)."
-      );
-    }
+    const { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } =
+      loadGoogleSignin();
 
     if (!GOOGLE_WEB_CLIENT_ID) {
       throw new Error(
         "Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. See GOOGLE_SIGNIN_SETUP.md."
       );
     }
+
+    GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
 
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 

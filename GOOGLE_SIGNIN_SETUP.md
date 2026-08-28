@@ -17,6 +17,14 @@ it does not exist; 16.1.4 is the newest release.
 > "Passed nonce and nonce in id_token should either both exist or not."
 > Keep it this way until the library ships nonce support.
 
+> **Expo Go:** the package's native module (`RNGoogleSignin`) is not present in
+> Expo Go, and *importing* the package there throws
+> `TurboModuleRegistry.getEnforcing(...): 'RNGoogleSignin' could not be found`.
+> `authService.ts` therefore imports it lazily (only when the user taps the
+> Google button, wrapped in try/catch), so the rest of the app runs normally in
+> Expo Go and the Google button shows a clear "not available in this build"
+> error instead of crashing the app.
+
 ## 2. Google Cloud Console — create TWO OAuth clients
 
 Console: https://console.cloud.google.com/apis/credentials
