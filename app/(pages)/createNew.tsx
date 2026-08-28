@@ -18,47 +18,49 @@ const FLASH_ICON: Record<FlashMode, keyof typeof Ionicons.glyphMap> = {
 };
 
 const CreateNew = () => {
-
   const [flash, setFlash] = useState<FlashMode>("off");
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
-    const cycleFlash = () =>
+  const cycleFlash = () =>
     setFlash((f) => FLASH_CYCLE[(FLASH_CYCLE.indexOf(f) + 1) % 3]);
 
   return (
     <View className="flex-1 bg-black">
-      <SafeAreaView className="flex-1">
-        <View className="flex-1 px-4 pb-4">
-          <TestCamera />
+      {/* edges={["top"]} — TestCamera handles bottom insets itself */}
+      <SafeAreaView edges={["top"]} className="flex-1">
+        {/* removed px-4 pb-4 — was cropping CameraView's absoluteFillObject */}
+        <View className="flex-1">
+          <TestCamera flash={flash} onPreviewChange={setIsPreviewing} />
         </View>
 
         <View className="absolute left-0 right-0 top-0 pt-12 px-5 flex-row items-center justify-between">
-          <View className="absolute left-5 top-12 z-20">
-            <Pressable
-              onPress={() => router.back()}
-              className="h-11 w-11 rounded-full bg-black/45 items-center justify-center active:opacity-80"
-            >
-              <Image
-                source={require("@/assets/homeIcons/delete.png")}
-                className="w-7 h-7"
-                tintColor="white"
-                resizeMode="contain"
-              />
-            </Pressable>
-          </View>
+          {/* hidden during preview — TestCamera's Cancel handles discard flow */}
+          {!isPreviewing && (
+            <View className="absolute left-5 top-12 z-20">
+              <Pressable
+                onPress={() => router.back()}
+                className="h-11 w-11 rounded-full bg-black/45 items-center justify-center active:opacity-80"
+              >
+                <Image
+                  source={require("@/assets/homeIcons/delete.png")}
+                  className="w-7 h-7"
+                  tintColor="white"
+                  resizeMode="contain"
+                />
+              </Pressable>
+            </View>
+          )}
 
           <View className="h-11 w-11" />
 
-          <Pressable
-            onPress={cycleFlash}
-            className="h-11 w-11 rounded-full bg-black/40 items-center justify-center active:opacity-80"
-          >
-            <Ionicons
-              name={FLASH_ICON[flash]}
-              size={24}
-              color="white"
-              hitSlop={8}
-            />
-          </Pressable>
+          {!isPreviewing && (
+            <Pressable
+              onPress={cycleFlash}
+              className="h-11 w-11 rounded-full bg-black/40 items-center justify-center active:opacity-80"
+            >
+              <Ionicons name={FLASH_ICON[flash]} size={24} color="white" />
+            </Pressable>
+          )}
         </View>
       </SafeAreaView>
     </View>

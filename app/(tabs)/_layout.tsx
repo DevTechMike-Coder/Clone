@@ -1,8 +1,10 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { bottomTabs } from "@/constants/data";
 import { View, Image } from "react-native";
 import { clsx } from "clsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
+import AuthSplash from "@/components/AuthSplash";
 
 const TabIcon = ({ focused, icon }: TabIconProps) => {
   return (
@@ -13,7 +15,7 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
           source={icon}
           resizeMode="contain"
           className="w-8 h-8"
-          style={{ tintColor: focused ? "#fff" : "#666" }}
+          style={{ tintColor: focused ? "#FFFFFF" : "#64748B" }}
         />
       </View>
     </View>
@@ -21,7 +23,17 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
 };
 
 export default function TabLayout() {
+  const { session, loading } = useAuth();
   const insets = useSafeAreaInsets();
+
+  if (loading) {
+    return <AuthSplash />;
+  }
+
+  if (!session) {
+    return <Redirect href="/" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -33,8 +45,14 @@ export default function TabLayout() {
           height: 70,
           marginHorizontal: 20,
           borderRadius: 20,
-          borderTopWidth: 0,
-          elevation: 0,
+          borderTopWidth: 1,
+          borderColor: "#E2E8F0",
+          backgroundColor: "#FFFFFF",
+          elevation: 6,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 18,
         },
         tabBarItemStyle: {
           paddingVertical: 15,

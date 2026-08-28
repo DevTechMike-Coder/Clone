@@ -8,12 +8,12 @@ const SafeAreaView = styled(RNSafeAreaView);
 
 const accountCenter = () => {
   return (
-    <SafeAreaView className="flex-1 p-5">
+    <SafeAreaView className="flex-1 bg-slate-50 p-5">
       <View className="flex-row items-center justify-between px-5 py-4">
         {/* Back Button */}
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-gray-200 items-center justify-center"
+          className="w-10 h-10 rounded-full border border-slate-100 items-center justify-center"
         >
           <Image
             source={require("@/assets/homeIcons/delete.png")}
@@ -27,7 +27,7 @@ const accountCenter = () => {
           className="absolute left-0 right-0 items-center"
           pointerEvents="none"
         >
-          <Text className="text-lg font-bold text-gray-800 tracking-tight">
+          <Text className="text-lg font-bold text-slate-800 tracking-tight">
             Clone
           </Text>
         </View>
@@ -37,12 +37,34 @@ const accountCenter = () => {
       </View>
 
       <View className="px-5 pt-6 pb-2">
-        <Text className="text-2xl font-bold text-gray-900 tracking-tight">
+        <Text className="text-2xl font-bold text-slate-950 tracking-tight">
           Account Center
         </Text>
-        <Text className="text-sm text-gray-400 mt-1">
+        <Text className="text-sm text-slate-500 mt-1">
           Manage your account settings from here
         </Text>
+      </View>
+
+      <View className="border border-slate-200 bg-white rounded-xl px-6 py-6 mx-5 mt-4">
+        <TouchableOpacity
+          onPress={() => router.push("/(pages)/personalDetails")}
+          className="flex-col gap-1"
+        >
+          <View className="flex-row items-center gap-3">
+            <Image
+              source={require("@/assets/homeIcons/profileUser.png")}
+              className="w-6 h-6"
+              resizeMode="contain"
+            />
+            <Text className="text-lg font-medium text-slate-800 tracking-tight">
+              Personal Details
+            </Text>
+          </View>
+
+          <Text className="text-slate-500 text-sm tracking-tight">
+            Manage your personal information
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
