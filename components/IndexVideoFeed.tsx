@@ -12,9 +12,10 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   ListRenderItemInfo,
   RefreshControl,
@@ -135,22 +136,120 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [newPostsCount, setNewPostsCount] = useState(0);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const listBottomPadding = 70 + Math.max(insets.bottom, 16) + 8;
 
+  // Refs that must be readable inside the fetch callbacks without being
+  // dependencies: the scroll position at fetch time, the list handle for
+  // jumping back to the top, and the set of post ids the user has already
+  // seen in this feed session.
+  const listRef = useRef<FlatList<Post>>(null);
+  const atTopRef = useRef(true);
+  const seenPostIdsRef = useRef<Set<string>>(new Set());
+  const unseenPostIdsRef = useRef<string[]>([]);
+  const newPostsCountRef = useRef(0);
+  const bannerVisibleRef = useRef(false);
+  // Stable Animated values for the banner (kept in state so they are never
+  // recreated; only the .setValue/.timing mutations below ever touch them).
+  const [bannerOpacity] = useState(() => new Animated.Value(0));
+  const [bannerTranslateY] = useState(() => new Animated.Value(16));
+
+  const hideNewPostsBanner = useCallback(() => {
+    if (!bannerVisibleRef.current) return;
+    bannerVisibleRef.current = false;
+    Animated.parallel([
+      Animated.timing(bannerOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bannerTranslateY, {
+        toValue: 16,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [bannerOpacity, bannerTranslateY]);
+
+  const showNewPostsBanner = useCallback(
+    (count: number) => {
+      bannerVisibleRef.current = true;
+      setNewPostsCount(count);
+      Animated.parallel([
+        Animated.timing(bannerOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bannerTranslateY, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    },
+    [bannerOpacity, bannerTranslateY],
+  );
+
   const fetchPosts = useCallback(async () => {
     try {
       const data = await postService.getPosts();
-      setPosts(data);
+
+      // The user is only shown the newest posts when they are at the top of
+      // the list (or on the very first load). Posts fetched while scrolled
+      // down get reported through the "new posts" banner instead.
+      const isAtTop = atTopRef.current || seenPostIdsRef.current.size === 0;
+
+      const isUnseen = (post: Post) => !seenPostIdsRef.current.has(post.id);
+      const firstUnseenIndex = data.findIndex(isUnseen);
+      const hasUnseenPosts = firstUnseenIndex !== -1;
+
+      if (isAtTop) {
+        // Everything is about to be visible, so every fetched post counts as
+        // seen from here on. Wait for the render to commit before clearing
+        // the list so the ids cannot be lost in the meantime.
+        unseenPostIdsRef.current = hasUnseenPosts
+          ? data.slice(firstUnseenIndex).map((post) => post.id)
+          : [];
+        setPosts(data);
+        requestAnimationFrame(() => {
+          seenPostIdsRef.current = new Set(data.map((post) => post.id));
+          unseenPostIdsRef.current = [];
+          newPostsCountRef.current = 0;
+          setNewPostsCount(0);
+          hideNewPostsBanner();
+        });
+      } else {
+        // firstUnseenIndex is -1 when every fetched post was already seen
+        // (nothing new since the last refresh) — guard the slice so it does
+        // not accidentally drop the last post (slice(0, -1)).
+        const newPosts = hasUnseenPosts ? data.slice(0, firstUnseenIndex) : [];
+        const unseenIds = newPosts.map((post) => post.id);
+
+        if (newPosts.length > 0) {
+          unseenPostIdsRef.current = unseenIds;
+          newPostsCountRef.current = newPosts.length;
+          showNewPostsBanner(newPosts.length);
+        } else {
+          unseenPostIdsRef.current = [];
+          newPostsCountRef.current = 0;
+          hideNewPostsBanner();
+        }
+
+        // Keep the list contents fresh (new like counts, captions, etc.)
+        // without disturbing the user's scroll position.
+        setPosts(data);
+      }
     } catch (error) {
       console.error("Error fetching posts:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [hideNewPostsBanner, showNewPostsBanner]);
 
   useFocusEffect(
     useCallback(() => {
@@ -163,6 +262,36 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
     fetchPosts();
   };
 
+  const handleNewPostsPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Bring the unseen posts into view: mark them as seen, dismiss the
+    // banner, and jump back to the top of the list where they sit.
+    if (unseenPostIdsRef.current.length > 0) {
+      unseenPostIdsRef.current.forEach((id) => seenPostIdsRef.current.add(id));
+    }
+    unseenPostIdsRef.current = [];
+    newPostsCountRef.current = 0;
+    setNewPostsCount(0);
+    hideNewPostsBanner();
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
+
+  const handleScroll = (event: any) => {
+    const isAtTop = event.nativeEvent.contentOffset.y <= 0;
+    atTopRef.current = isAtTop;
+
+    // Reaching the top puts the unseen posts back in view, so they are no
+    // longer "new" — dismiss the banner without a scroll animation.
+    if (isAtTop && unseenPostIdsRef.current.length > 0) {
+      unseenPostIdsRef.current.forEach((id) => seenPostIdsRef.current.add(id));
+      unseenPostIdsRef.current = [];
+      newPostsCountRef.current = 0;
+      setNewPostsCount(0);
+      hideNewPostsBanner();
+    }
+  };
+
   const viewabilityConfig = useMemo(
     () => ({ itemVisiblePercentThreshold: 60, minimumViewTime: 300 }),
     [],
@@ -171,12 +300,40 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   const onViewableItemsChanged = useMemo(
     () =>
       ({ viewableItems }: { viewableItems: any[] }) => {
+        // Mark posts as "seen" the moment they actually become visible, so
+        // the new-posts banner only counts posts that are still out of view
+        // (e.g. the user scrolled up partway and the newest posts slid into
+        // the screen — those are no longer new).
+        const newlyVisible = viewableItems.filter(
+          (view) => view.isViewable && view.item?.id,
+        );
+        if (newlyVisible.length > 0) {
+          let addedSeen = false;
+          for (const view of newlyVisible) {
+            const id = view.item.id as string;
+            if (!seenPostIdsRef.current.has(id)) {
+              seenPostIdsRef.current.add(id);
+              addedSeen = true;
+            }
+          }
+          if (addedSeen) {
+            unseenPostIdsRef.current = unseenPostIdsRef.current.filter(
+              (id) => !seenPostIdsRef.current.has(id),
+            );
+            if (unseenPostIdsRef.current.length === 0) {
+              newPostsCountRef.current = 0;
+              setNewPostsCount(0);
+              hideNewPostsBanner();
+            }
+          }
+        }
+
         const visiblePost = viewableItems.find(
           (view) => view.isViewable && view.item?.media_type === "video",
         );
         setActiveVideoId(visiblePost?.item?.id ?? null);
       },
-    [],
+    [hideNewPostsBanner],
   );
 
   const openMenu = (item: Post) => onOptionsPress(item);
@@ -510,11 +667,14 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   return (
     <View className="flex-1 pt-5">
       <FlatList
+        ref={listRef}
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         viewabilityConfig={viewabilityConfig}
         onViewableItemsChanged={onViewableItemsChanged}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: listBottomPadding }}
         ItemSeparatorComponent={() => <View className="h-5" />}
         showsVerticalScrollIndicator={false}
@@ -527,6 +687,32 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
           />
         }
       />
+
+      {/* New posts banner — appears when a refresh brings in posts the user
+          has not seen while the feed was scrolled down. */}
+      {newPostsCount > 0 && (
+        <Animated.View
+          pointerEvents="auto"
+          style={{
+            position: "absolute",
+            top: 8,
+            alignSelf: "center",
+            opacity: bannerOpacity,
+            transform: [{ translateY: bannerTranslateY }],
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleNewPostsPress}
+            className="flex-row items-center gap-2 bg-slate-900/90 border border-white/20 px-4 py-2.5 rounded-full shadow-lg"
+          >
+            <Ionicons name="arrow-up" size={16} color="#fff" />
+            <Text className="text-white text-sm font-semibold">
+              {newPostsCount} new {newPostsCount === 1 ? "post" : "posts"}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       {/* Comments Modal — rendered outside FlatList to avoid clipping */}
       {commentPostId && (
