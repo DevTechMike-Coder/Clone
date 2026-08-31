@@ -22,10 +22,25 @@ it does not exist; 16.1.4 is the newest release.
 > `TurboModuleRegistry.getEnforcing(...): 'RNGoogleSignin' could not be found`.
 > That error escapes a try/catch around `require()` (Metro reports it as an
 > uncaught module-load error), so `authService.ts` detects Expo Go *before*
-> calling `require()` (via `expo-constants` → `expoGoConfig` / `appOwnership`)
-> and throws a plain, catchable Error instead. The result is the same: the
-> rest of the app runs normally in Expo Go, and tapping the Google button
-> shows a clear "not available in Expo Go" toast instead of crashing the app.
+> calling `require()` and throws a plain, catchable Error instead. The result
+> is the same: the rest of the app runs normally in Expo Go, and tapping the
+> Google button shows a clear "not available in Expo Go" toast instead of
+> crashing the app.
+>
+> **Detection:** the authoritative check is whether the `RNGoogleSignin`
+> native module exists in the running binary
+> (`TurboModuleRegistry.get("RNGoogleSignin")` — non-enforcing, never
+> crashes). Expo Go never ships it; any dev/standalone build compiled with
+> the package does. `expo-constants` (`expoGoConfig` / `appOwnership`) is
+> used only as a fallback for the Expo Go case, so a real development build
+> can never be misreported as Expo Go.
+>
+> **"But I'm on a dev client and it still says Expo Go!"** Almost always the
+> project was actually launched inside Expo Go: from a plain `npx expo start`
+> (no `--dev-client`), pressing `a` or scanning the QR code opens Expo Go
+> even when a development build is installed. Launch the dev build with
+> `npx expo start --dev-client`, or tap the dev build's icon on the device
+> and open the project from the launcher screen.
 
 ## 2. Google Cloud Console — create TWO OAuth clients
 
@@ -85,6 +100,11 @@ or the picker closing instantly). Rules:
    npx expo run:android        # debug build, uses android/app/debug.keystore
    # or an EAS dev build: eas build --profile development --platform android
    ```
+   Then **launch it with `npx expo start --dev-client`** (or open the dev
+   build's app icon directly). A plain `npx expo start` + `a` / QR scan opens
+   Expo Go even when a dev build is installed — the toast "Google Sign-In is
+   not available in Expo Go" while you *think* you're on a dev client is
+   almost always this.
 5. **After adding a fingerprint, Google takes a few minutes to propagate.**
    If it still fails, wait ~5–10 min, fully uninstall the app from the device,
    and rebuild/reinstall (Android caches Google credential state per install).
