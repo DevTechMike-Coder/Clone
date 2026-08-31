@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Post } from "./postService";
+import { fetchPostInteractions } from "@/lib/postInteractions";
 
 export const bookmarkService = {
   toggleBookmark: async (postId: string) => {
@@ -40,6 +41,20 @@ export const bookmarkService = {
     if (userId && userId !== user.id) return [];
     const targetUserId = user.id;
 
+    // Step 1: list the bookmarks the caller owns and pull each
+    // bookmarked post with the data the feed needs.
+    //
+    // The previous query embedded the current user's like / repost /
+    // bookmark state as to-many joins on `posts` and then filtered
+    // with `.eq('posts.user_liked.user_id', ...)`. PostgREST turns
+    // a to-many embed into an INNER JOIN, so posts the viewer has
+    // not personally liked / reposted / bookmarked were silently
+    // dropped — which, combined with the owner-only SELECT policy
+    // on `bookmarks` introduced in
+    // supabase/migrations/20260828120000_security_hardening.sql,
+    // meant the bookmarks tab frequently showed nothing at all for
+    // the signed-in user. We now fetch the post data without those
+    // per-user joins and look up the flags in step 2.
     const { data, error } = await supabase
       .from("bookmarks")
       .select(
@@ -55,17 +70,11 @@ export const bookmarkService = {
           ),
           comments(count),
           likes(count),
-          reposts(count),
-          user_liked:likes(user_id),
-          user_reposted:reposts(user_id),
-          user_bookmarked:bookmarks(user_id)
+          reposts(count)
         )
-      `
+      `,
       )
       .eq("user_id", targetUserId)
-      .eq('posts.user_liked.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
-      .eq('posts.user_reposted.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
-      .eq('posts.user_bookmarked.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -73,19 +82,33 @@ export const bookmarkService = {
       throw error;
     }
 
-    return (data || [])
-      .filter((item: any) => item.posts)
-      .map((item: any) => {
-        const post = item.posts;
-        return {
+    // Step 2: collect the post ids and pull the current user's
+    // like / repost / bookmark state for them in one round-trip.
+    const postRows = (data ?? [])
+      .filter((item: any) => item?.posts)
+      .map((item: any) => item.posts);
+
+    const flags = await fetchPostInteractions(
+      postRows
+        .map((post: any) => post?.id)
+        .filter((id: unknown): id is string =>
+          typeof id === "string" && id.length > 0,
+        ),
+    );
+
+    return postRows.map(
+      (post: any) =>
+        ({
           ...post,
           comment_count: post.comments?.[0]?.count ?? 0,
           like_count: post.likes?.[0]?.count ?? 0,
           repost_count: post.reposts?.[0]?.count ?? 0,
-          is_liked: (post.user_liked?.length ?? 0) > 0,
-          is_reposted: (post.user_reposted?.length ?? 0) > 0,
+          is_liked: flags.liked.has(post.id),
+          is_reposted: flags.reposted.has(post.id),
+          // The post is in the bookmarks list by construction, so
+          // is_bookmarked is always true here.
           is_bookmarked: true,
-        };
-      }) as Post[];
+        }) as Post,
+    );
   },
 };
