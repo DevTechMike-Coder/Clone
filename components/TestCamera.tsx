@@ -239,6 +239,8 @@ export default function TestCamera({
       filterId: selectedFilter !== "none" ? selectedFilter : undefined,
       textOverlays,
       musicTrack: selectedTrack,
+      durationSeconds: selectedTrack?.durationSeconds,
+      hasSound: Boolean(selectedTrack),
     });
 
     router.push({ pathname: "/postDetails" });

@@ -8,10 +8,11 @@ import CommentsModal from "@/components/modal/CommentsModal";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -48,7 +49,52 @@ const AvatarMedia = ({ uri }: { uri?: string | null }) => {
   );
 };
 
-const FeedMedia = ({ uri }: { uri: string }) => {
+function FeedVideoMedia({ uri, active }: { uri: string; active: boolean }) {
+  const [muted, setMuted] = useState(true);
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
+
+  React.useEffect(() => {
+    if (active) {
+      player.play();
+    } else {
+      player.pause();
+    }
+    return () => {
+      player.pause();
+    };
+  }, [active, player]);
+
+  React.useEffect(() => {
+    // expo-video requires mutating the returned player object.
+    // eslint-disable-next-line react-hooks/immutability -- false positive for native player mutations
+    player.muted = muted;
+  }, [muted, player]);
+
+  return (
+    <View className="h-full w-full relative">
+      <VideoView
+        player={player}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      {active && (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setMuted((m) => !m)}
+          className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/50 items-center justify-center border border-white/20"
+        >
+          <Ionicons name={muted ? "volume-mute" : "volume-high"} size={17} color="white" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const FeedMedia = ({ uri, mediaType, active }: { uri: string; mediaType: "video" | "image"; active: boolean }) => {
   const [hasError, setHasError] = useState(false);
 
   if (hasError || !uri) {
@@ -58,6 +104,10 @@ const FeedMedia = ({ uri }: { uri: string }) => {
         <Text className="text-xs text-slate-400 mt-2 font-medium">Image unavailable</Text>
       </View>
     );
+  }
+
+  if (mediaType === "video") {
+    return <FeedVideoMedia uri={uri} active={active} />;
   }
 
   return (
@@ -86,6 +136,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const listBottomPadding = 70 + Math.max(insets.bottom, 16) + 8;
 
@@ -111,6 +162,22 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
     setRefreshing(true);
     fetchPosts();
   };
+
+  const viewabilityConfig = useMemo(
+    () => ({ itemVisiblePercentThreshold: 60, minimumViewTime: 300 }),
+    [],
+  );
+
+  const onViewableItemsChanged = useMemo(
+    () =>
+      ({ viewableItems }: { viewableItems: any[] }) => {
+        const visiblePost = viewableItems.find(
+          (view) => view.isViewable && view.item?.media_type === "video",
+        );
+        setActiveVideoId(visiblePost?.item?.id ?? null);
+      },
+    [],
+  );
 
   const openMenu = (item: Post) => onOptionsPress(item);
   const openComments = (postId: string) => setCommentPostId(postId);
@@ -314,9 +381,27 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
         </View>
       )}
 
-      {/* Media: Full Width Image */}
+      {/* Media: Full Width Image / Video */}
       <View className="relative w-full aspect-square bg-slate-100 overflow-hidden">
-        <FeedMedia uri={item.media_url} />
+        <FeedMedia
+          uri={item.media_url}
+          mediaType={item.media_type}
+          active={item.media_type === "video" && activeVideoId === item.id}
+        />
+
+        {/* Attached Sound Tag */}
+        {(item.has_sound || item.music_track_title) && (
+          <View
+            pointerEvents="none"
+            className="absolute left-3 bottom-3 flex-row items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/15"
+          >
+            <Ionicons name="musical-notes" size={13} color="#38BDF8" />
+            <Text className="text-white text-[11px] font-bold" numberOfLines={1}>
+              {item.music_track_title || "Original Sound"}
+              {item.music_track_artist ? ` • ${item.music_track_artist}` : ""}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Action Bar */}
@@ -428,6 +513,8 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
         contentContainerStyle={{ paddingBottom: listBottomPadding }}
         ItemSeparatorComponent={() => <View className="h-5" />}
         showsVerticalScrollIndicator={false}

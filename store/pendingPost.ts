@@ -10,6 +10,9 @@ export type MusicTrackItem = {
   title: string;
   artist: string;
   coverUrl?: string;
+  audioUrl?: string;
+  durationSeconds?: number;
+  isTrending?: boolean;
 };
 
 export type PendingPostData = {
@@ -18,6 +21,8 @@ export type PendingPostData = {
   filterId?: string;
   textOverlays?: TextOverlayItem[];
   musicTrack?: MusicTrackItem | null;
+  durationSeconds?: number;
+  hasSound?: boolean;
 };
 
 let pendingPostData: PendingPostData | null = null;

@@ -12,6 +12,7 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Post, postService } from "@/services/postService";
 import { likeService } from "@/services/likeService";
 import { bookmarkService } from "@/services/bookmarkService";
@@ -23,6 +24,59 @@ import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 
 const SafeAreaView = styled(RNSafeAreaView);
+
+function VideoPostMedia({ post }: { post: Post }) {
+  const [muted, setMuted] = useState(true);
+  const player = useVideoPlayer(post.media_url, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
+
+  React.useEffect(() => {
+    player.play();
+    return () => {
+      player.pause();
+    };
+  }, [player]);
+
+  React.useEffect(() => {
+    // expo-audio/player requires mutating the returned player object.
+    // eslint-disable-next-line react-hooks/immutability -- false positive for native player mutations
+    player.muted = muted;
+  }, [muted, player]);
+
+  return (
+    <View className="w-full h-full relative">
+      <VideoView
+        player={player}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => setMuted((m) => !m)}
+        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-black/55 items-center justify-center border border-white/25"
+      >
+        <Ionicons name={muted ? "volume-mute" : "volume-high"} size={18} color="white" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function PostDetailMedia({ post }: { post: Post }) {
+  if (post.media_type !== "video") {
+    return (
+      <Image
+        source={{ uri: post.media_url }}
+        className="w-full h-full"
+        resizeMode="cover"
+      />
+    );
+  }
+
+  return <VideoPostMedia post={post} />;
+}
 
 export default function ViewPost() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
@@ -261,12 +315,21 @@ export default function ViewPost() {
 
           {/* Media Full Aspect */}
           <View className="w-full aspect-square bg-slate-100 overflow-hidden">
-            <Image
-              source={{ uri: post.media_url }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
+            <PostDetailMedia post={post} />
           </View>
+
+          {/* Attached Sound Tag */}
+          {(post.has_sound || post.music_track_title) && (
+            <View className="px-5 py-3 bg-white border-b border-slate-100">
+              <View className="flex-row items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 self-start">
+                <Ionicons name="musical-notes" size={14} color="#2563EB" />
+                <Text className="text-xs font-bold text-slate-700" numberOfLines={1}>
+                  {post.music_track_title || "Original Sound"}
+                  {post.music_track_artist ? ` • ${post.music_track_artist}` : ""}
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Action Bar */}
           <View className="flex-row items-center justify-between px-5 py-4 bg-white border-b border-slate-100">

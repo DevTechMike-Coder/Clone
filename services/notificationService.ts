@@ -14,7 +14,9 @@ export type NotificationItem = {
     avatar_url?: string;
   } | null;
   posts?: {
+    id: string;
     media_url: string;
+    media_type: "video" | "image";
     caption?: string;
   } | null;
 };
@@ -43,7 +45,9 @@ export const notificationService = {
           avatar_url
         ),
         posts:post_id (
+          id,
           media_url,
+          media_type,
           caption
         )
       `

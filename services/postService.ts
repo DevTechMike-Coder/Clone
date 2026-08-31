@@ -10,6 +10,13 @@ export type Post = {
   caption?: string;
   view_count: number;
   created_at: string;
+  filter_id?: string;
+  music_track_id?: string;
+  music_track_title?: string;
+  music_track_artist?: string;
+  music_track_cover_url?: string;
+  duration_seconds?: number;
+  has_sound?: boolean;
   profiles: {
     username: string;
     full_name?: string;
@@ -29,15 +36,56 @@ export const postService = {
     media_url: string;
     media_type: "video" | "image";
     caption?: string;
+    filter_id?: string;
+    music_track_id?: string;
+    music_track_title?: string;
+    music_track_artist?: string;
+    music_track_cover_url?: string;
+    duration_seconds?: number;
+    has_sound?: boolean;
   }) {
-    const { data, error } = await supabase
-      .from("posts")
-      .insert([post])
-      .select()
-      .single();
+    const { user_id, media_url, media_type, caption, ...optionalMeta } = post;
 
-    if (error) throw error;
-    return data;
+    const fullPost = {
+      user_id,
+      media_url,
+      media_type,
+      caption,
+      filter_id: optionalMeta.filter_id,
+      music_track_id: optionalMeta.music_track_id,
+      music_track_title: optionalMeta.music_track_title,
+      music_track_artist: optionalMeta.music_track_artist,
+      music_track_cover_url: optionalMeta.music_track_cover_url,
+      duration_seconds: optionalMeta.duration_seconds,
+      has_sound: optionalMeta.has_sound,
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .insert([fullPost])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      // If the new columns haven't been migrated yet, fall back to the
+      // original post shape so publishing continues to work.
+      const message = String(error?.message || error);
+      const isMissingColumn = /column|does not exist|unknown column/i.test(message);
+
+      if (!isMissingColumn) throw error;
+
+      const { data, error: fallbackError } = await supabase
+        .from("posts")
+        .insert([{ user_id, media_url, media_type, caption }])
+        .select()
+        .single();
+
+      if (fallbackError) throw fallbackError;
+      return data;
+    }
   },
 
   async getPosts() {
@@ -221,8 +269,10 @@ export const postService = {
     })) as Post[];
   },
 
-  async uploadMedia(uri: string, userId: string) {
-    const fileName = `${userId}/${Date.now()}.jpg`;
+  async uploadMedia(uri: string, userId: string, mediaType: "video" | "image" = "image") {
+    const ext = mediaType === "video" ? "mp4" : "jpg";
+    const contentType = mediaType === "video" ? "video/mp4" : "image/jpeg";
+    const fileName = `${userId}/${Date.now()}.${ext}`;
 
     // Modern Expo File API reads real binary directly into ArrayBuffer
     const file = new File(uri);
@@ -231,7 +281,7 @@ export const postService = {
     const { data, error } = await supabase.storage
       .from("posts")
       .upload(fileName, arrayBuffer, {
-        contentType: "image/jpeg",
+        contentType,
         upsert: true,
       });
 
