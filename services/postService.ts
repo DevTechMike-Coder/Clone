@@ -1,5 +1,6 @@
 import { File } from "expo-file-system";
 import { supabase } from "../lib/supabase";
+import { getAuthenticatedUserId } from "../lib/session";
 
 export type Post = {
   id: string;
@@ -50,20 +51,10 @@ export const postService = {
     // not just the React context. A stale/expired (or orphaned) session
     // makes auth.uid() NULL in the database, and RLS then rejects the
     // insert with 42501 ("new row violates row-level security policy")
-    // even though the UI thinks you are signed in.
-    let currentUserId = user_id;
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        currentUserId = user.id;
-      }
-    } catch {
-      // getUser() throws when the stored token is invalid/expired.
-      // Fall through — the insert below will fail with 42501, which is
-      // then mapped to a clear, actionable error message.
-    }
+    // even though the UI thinks you are signed in. getAuthenticatedUserId()
+    // refreshes an expired token first, so a stale-but-recoverable session
+    // keeps working instead of failing.
+    const currentUserId = (await getAuthenticatedUserId()) ?? user_id;
 
     const fullPost = {
       user_id: currentUserId,
@@ -91,8 +82,21 @@ export const postService = {
     } catch (error: any) {
       // 42501 = RLS rejected the row. Almost always a missing/expired
       // session (auth.uid() is NULL) or a missing INSERT policy on the
-      // posts table. Surface it as something the user can act on.
+      // posts table. The session may have expired between the lookup above
+      // and this insert, so refresh once and retry before declaring failure.
       if (String(error?.code) === "42501") {
+        const refreshedUserId = await getAuthenticatedUserId();
+        if (refreshedUserId) {
+          const { data, error: retryError } = await supabase
+            .from("posts")
+            .insert([{ ...fullPost, user_id: refreshedUserId }])
+            .select()
+            .single();
+
+          if (!retryError) return data;
+          if (String(retryError?.code) !== "42501") throw retryError;
+        }
+
         throw new Error(
           "You are not signed in (session expired or invalid) — please sign " +
             "in again. If signing in again does not help, the posts INSERT " +
