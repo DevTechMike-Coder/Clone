@@ -16,7 +16,6 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Ionicons } from "@expo/vector-icons";
 import { postService } from "@/services/postService";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import {
   getPendingPostData,
@@ -63,16 +62,6 @@ const PostDetails = () => {
 
     setLoading(true);
     try {
-      // --- TEMPORARY DEBUG: compare what Postgres sees as auth.uid()
-      // against what the app thinks session.user.id is. Remove once the
-      // RLS insert issue is confirmed fixed.
-      const { data: whoami, error: whoamiErr } = await supabase.rpc(
-        "debug_whoami",
-      );
-      console.log("[debug] Postgres sees auth.uid() as:", whoami, whoamiErr);
-      console.log("[debug] App thinks session.user.id is:", session.user.id);
-      // --- END TEMPORARY DEBUG
-
       const publicUrl = await postService.uploadMedia(
         mediaUri,
         session.user.id,
