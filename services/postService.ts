@@ -1,6 +1,7 @@
 import { File } from "expo-file-system";
 import { supabase } from "../lib/supabase";
 import { getAuthenticatedUserId } from "../lib/session";
+import { fetchPostInteractions } from "../lib/postInteractions";
 
 export type Post = {
   id: string;
@@ -92,6 +93,48 @@ const databaseRejectedInsertError = (error: any, userId: string) =>
           `The insert was attempted as user ${userId}.`,
     { cause: error }
   );
+
+/**
+ * Merge the current user's like / repost / bookmark state onto a
+ * raw post list returned by PostgREST.
+ *
+ * The previous feed query used three to-many embeds
+ * (`user_liked:likes(user_id)`, `user_reposted:reposts(user_id)`,
+ * `user_bookmarked:bookmarks(user_id)`) and filtered the result
+ * with `.eq('<embed>.user_id', currentUserId)`. That makes the
+ * post list shrink to only posts the current user has personally
+ * liked/reposted/bookmarked, and combined with the tighter RLS
+ * on those tables it made every post disappear from the home
+ * feed for users who had not interacted with it. See
+ * supabase/migrations/20260831160000_user_post_interactions.sql.
+ *
+ * This helper keeps the original post shape (with `comment_count`,
+ * `like_count`, `repost_count` and the `is_liked` / `is_reposted`
+ * / `is_bookmarked` flags the UI reads) but builds the flags
+ * from a separate per-user lookup, so the post list itself is
+ * never filtered out.
+ */
+async function mergeInteractionFlags(
+  rows: Record<string, any>[],
+): Promise<Post[]> {
+  if (rows.length === 0) return [];
+
+  const postIds = rows
+    .map((row) => row?.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  const flags = await fetchPostInteractions(postIds);
+
+  return rows.map((post: any) => ({
+    ...post,
+    comment_count: post.comments?.[0]?.count ?? 0,
+    like_count: post.likes?.[0]?.count ?? 0,
+    repost_count: post.reposts?.[0]?.count ?? 0,
+    is_liked: flags.liked.has(post.id),
+    is_reposted: flags.reposted.has(post.id),
+    is_bookmarked: flags.bookmarked.has(post.id),
+  })) as Post[];
+}
 
 export const postService = {
   async createPost(post: {
@@ -185,8 +228,6 @@ export const postService = {
   },
 
   async getPosts() {
-    const { data: { user } } = await supabase.auth.getUser();
-
     const { data, error } = await supabase
       .from("posts")
       .select(
@@ -199,15 +240,9 @@ export const postService = {
         ),
         comments(count),
         likes(count),
-        reposts(count),
-        user_liked:likes(user_id),
-        user_reposted:reposts(user_id),
-        user_bookmarked:bookmarks(user_id)
+        reposts(count)
       `,
       )
-      .eq('user_liked.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
-      .eq('user_reposted.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
-      .eq('user_bookmarked.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -215,20 +250,10 @@ export const postService = {
       throw error;
     }
 
-    return data.map((post: any) => ({
-      ...post,
-      comment_count: post.comments?.[0]?.count ?? 0,
-      like_count: post.likes?.[0]?.count ?? 0,
-      repost_count: post.reposts?.[0]?.count ?? 0,
-      is_liked: (post.user_liked?.length ?? 0) > 0,
-      is_reposted: (post.user_reposted?.length ?? 0) > 0,
-      is_bookmarked: (post.user_bookmarked?.length ?? 0) > 0,
-    })) as Post[];
+    return mergeInteractionFlags(data ?? []);
   },
 
   async getPostsByUser(userId: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-
     const { data, error } = await supabase
       .from("posts")
       .select(
@@ -241,16 +266,10 @@ export const postService = {
         ),
         comments(count),
         likes(count),
-        reposts(count),
-        user_liked:likes(user_id),
-        user_reposted:reposts(user_id),
-        user_bookmarked:bookmarks(user_id)
+        reposts(count)
       `,
       )
       .eq("user_id", userId)
-      .eq('user_liked.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
-      .eq('user_reposted.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
-      .eq('user_bookmarked.user_id', user?.id ?? '00000000-0000-0000-0000-000000000000')
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -258,22 +277,10 @@ export const postService = {
       throw error;
     }
 
-    return data.map((post: any) => ({
-      ...post,
-      comment_count: post.comments?.[0]?.count ?? 0,
-      like_count: post.likes?.[0]?.count ?? 0,
-      repost_count: post.reposts?.[0]?.count ?? 0,
-      is_liked: (post.user_liked?.length ?? 0) > 0,
-      is_reposted: (post.user_reposted?.length ?? 0) > 0,
-      is_bookmarked: (post.user_bookmarked?.length ?? 0) > 0,
-    })) as Post[];
+    return mergeInteractionFlags(data ?? []);
   },
 
   async getPostById(postId: string): Promise<Post | null> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
     const { data, error } = await supabase
       .from("posts")
       .select(
@@ -286,16 +293,10 @@ export const postService = {
         ),
         comments(count),
         likes(count),
-        reposts(count),
-        user_liked:likes(user_id),
-        user_reposted:reposts(user_id),
-        user_bookmarked:bookmarks(user_id)
+        reposts(count)
       `
       )
       .eq("id", postId)
-      .eq("user_liked.user_id", user?.id ?? "00000000-0000-0000-0000-000000000000")
-      .eq("user_reposted.user_id", user?.id ?? "00000000-0000-0000-0000-000000000000")
-      .eq("user_bookmarked.user_id", user?.id ?? "00000000-0000-0000-0000-000000000000")
       .single();
 
     if (error) {
@@ -303,24 +304,13 @@ export const postService = {
       return null;
     }
 
-    return {
-      ...data,
-      comment_count: data.comments?.[0]?.count ?? 0,
-      like_count: data.likes?.[0]?.count ?? 0,
-      repost_count: data.reposts?.[0]?.count ?? 0,
-      is_liked: (data.user_liked?.length ?? 0) > 0,
-      is_reposted: (data.user_reposted?.length ?? 0) > 0,
-      is_bookmarked: (data.user_bookmarked?.length ?? 0) > 0,
-    } as Post;
+    const [merged] = await mergeInteractionFlags([data]);
+    return merged ?? null;
   },
 
   async searchPosts(query: string): Promise<Post[]> {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return [];
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
     const escapedQuery = trimmedQuery.replace(/[\%_]/g, (char) => `\${char}`);
 
@@ -336,16 +326,10 @@ export const postService = {
         ),
         comments(count),
         likes(count),
-        reposts(count),
-        user_liked:likes(user_id),
-        user_reposted:reposts(user_id),
-        user_bookmarked:bookmarks(user_id)
+        reposts(count)
       `
       )
       .ilike("caption", `%${escapedQuery}%`)
-      .eq("user_liked.user_id", user?.id ?? "00000000-0000-0000-0000-000000000000")
-      .eq("user_reposted.user_id", user?.id ?? "00000000-0000-0000-0000-000000000000")
-      .eq("user_bookmarked.user_id", user?.id ?? "00000000-0000-0000-0000-000000000000")
       .order("created_at", { ascending: false })
       .limit(30);
 
@@ -354,15 +338,7 @@ export const postService = {
       return [];
     }
 
-    return (data || []).map((post: any) => ({
-      ...post,
-      comment_count: post.comments?.[0]?.count ?? 0,
-      like_count: post.likes?.[0]?.count ?? 0,
-      repost_count: post.reposts?.[0]?.count ?? 0,
-      is_liked: (post.user_liked?.length ?? 0) > 0,
-      is_reposted: (post.user_reposted?.length ?? 0) > 0,
-      is_bookmarked: (post.user_bookmarked?.length ?? 0) > 0,
-    })) as Post[];
+    return mergeInteractionFlags(data ?? []);
   },
 
   async uploadMedia(uri: string, userId: string, mediaType: "video" | "image" = "image") {
