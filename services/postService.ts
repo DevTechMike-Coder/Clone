@@ -79,12 +79,15 @@ const databaseRejectedInsertError = (error: any, userId: string) =>
       : "Signed in, but Supabase's row-level security refused the post insert. " +
           `${describePostgresError(error)} ` +
           "This is a database problem, not a sign-in problem — signing in again " +
-          "will not help. In the Supabase SQL editor run " +
+          "will not help. Known causes, in order of likelihood: (1) the posts " +
+          "SELECT policy uses can_view_post(id), which cannot see the row during " +
+          "INSERT ... RETURNING — apply supabase/migrations/" +
+          "20260831150000_fix_posts_insert_returning_visibility.sql; " +
+          "(2) the INSERT policy on public.posts is missing or mis-scoped — run " +
           "`select policyname, roles, cmd, permissive, with_check from pg_policies " +
-          "where schemaname = 'public' and tablename = 'posts' order by cmd;`. " +
-          "You need a row with cmd = INSERT, roles = {authenticated}, and " +
-          "permissive = PERMISSIVE. " +
-          `If there is no "for INSERT" row, apply ` +
+          "where schemaname = 'public' and tablename = 'posts' order by cmd;` — you " +
+          "need a row with cmd = INSERT, roles = {authenticated}, and permissive = " +
+          "PERMISSIVE; if there is no \"for INSERT\" row, apply " +
           "supabase/migrations/20260831130000_fix_posts_insert_policy.sql. " +
           `The insert was attempted as user ${userId}.`,
     { cause: error }
