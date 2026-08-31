@@ -80,8 +80,10 @@ const databaseRejectedInsertError = (error: any, userId: string) =>
           `${describePostgresError(error)} ` +
           "This is a database problem, not a sign-in problem — signing in again " +
           "will not help. In the Supabase SQL editor run " +
-          "`select policyname, cmd, with_check from pg_policies where " +
-          "schemaname = 'public' and tablename = 'posts' order by cmd;`. " +
+          "`select policyname, roles, cmd, permissive, with_check from pg_policies " +
+          "where schemaname = 'public' and tablename = 'posts' order by cmd;`. " +
+          "You need a row with cmd = INSERT, roles = {authenticated}, and " +
+          "permissive = PERMISSIVE. " +
           `If there is no "for INSERT" row, apply ` +
           "supabase/migrations/20260831130000_fix_posts_insert_policy.sql. " +
           `The insert was attempted as user ${userId}.`,
