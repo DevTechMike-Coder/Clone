@@ -31,6 +31,63 @@ export type Post = {
   is_bookmarked?: boolean;
 };
 
+/**
+ * SQLSTATE 42501 = insufficient_privilege. Postgres raises it for two very
+ * different situations that used to be reported identically:
+ *
+ *   1. "new row violates row-level security policy for table \"posts\"" —
+ *      RLS rejected the row (no session, or a missing/unmatched INSERT
+ *      policy).
+ *   2. "permission denied for table posts" — the `authenticated` role was
+ *      never granted INSERT on the table at all.
+ *
+ * Only case 1 with no recoverable session is actually "please sign in again".
+ * Everything else is a database-side problem the user cannot fix by signing
+ * in, so the message has to say which one it is and keep the server's own
+ * wording instead of replacing it with a guess.
+ */
+const isRlsOrPermissionDenied = (error: any) => String(error?.code) === "42501";
+
+const isPermissionDenied = (error: any) =>
+  isRlsOrPermissionDenied(error) && /permission denied/i.test(String(error?.message ?? ""));
+
+const describePostgresError = (error: any) => {
+  const message = String(error?.message ?? error ?? "unknown database error");
+  const details = error?.details ? ` Details: ${error.details}` : "";
+  const hint = error?.hint ? ` Hint: ${error.hint}` : "";
+  return `${message}${details}${hint}`;
+};
+
+/** Thrown when there is genuinely no usable session left. */
+const notSignedInError = (cause: any) =>
+  new Error(
+    "Your sign-in has expired. Sign in again, then post once more.",
+    { cause }
+  );
+
+/**
+ * Thrown when the session IS valid but the database still refused the INSERT.
+ * Signing in again cannot fix this, so say so and name the actual check.
+ */
+const databaseRejectedInsertError = (error: any, userId: string) =>
+  new Error(
+    isPermissionDenied(error)
+      ? "Signed in, but Supabase refused the insert: the `authenticated` role " +
+          `has no INSERT permission on public.posts. ${describePostgresError(error)} ` +
+          "Grant it in the Supabase SQL editor: " +
+          "`grant insert on table public.posts to authenticated;`"
+      : "Signed in, but Supabase's row-level security refused the post insert. " +
+          `${describePostgresError(error)} ` +
+          "This is a database problem, not a sign-in problem — signing in again " +
+          "will not help. In the Supabase SQL editor run " +
+          "`select policyname, cmd, with_check from pg_policies where " +
+          "schemaname = 'public' and tablename = 'posts' order by cmd;`. " +
+          `If there is no "for INSERT" row, apply ` +
+          "supabase/migrations/20260831130000_fix_posts_insert_policy.sql. " +
+          `The insert was attempted as user ${userId}.`,
+    { cause: error }
+  );
+
 export const postService = {
   async createPost(post: {
     user_id: string;
@@ -70,39 +127,37 @@ export const postService = {
       has_sound: optionalMeta.has_sound,
     };
 
+    const insertRow = (row: Record<string, unknown>) =>
+      supabase.from("posts").insert([row]).select().single();
+
     try {
-      const { data, error } = await supabase
-        .from("posts")
-        .insert([fullPost])
-        .select()
-        .single();
+      const { data, error } = await insertRow(fullPost);
 
       if (error) throw error;
       return data;
     } catch (error: any) {
-      // 42501 = RLS rejected the row. Almost always a missing/expired
-      // session (auth.uid() is NULL) or a missing INSERT policy on the
-      // posts table. The session may have expired between the lookup above
-      // and this insert, so refresh once and retry before declaring failure.
-      if (String(error?.code) === "42501") {
+      // The session may have expired between the lookup above and this
+      // insert, so refresh once and retry before declaring failure. What we
+      // say afterwards depends on whether that refresh produced a user.
+      if (isRlsOrPermissionDenied(error)) {
         const refreshedUserId = await getAuthenticatedUserId();
-        if (refreshedUserId) {
-          const { data, error: retryError } = await supabase
-            .from("posts")
-            .insert([{ ...fullPost, user_id: refreshedUserId }])
-            .select()
-            .single();
 
-          if (!retryError) return data;
-          if (String(retryError?.code) !== "42501") throw retryError;
+        if (!refreshedUserId) throw notSignedInError(error);
+
+        const { data, error: retryError } = await insertRow({
+          ...fullPost,
+          user_id: refreshedUserId,
+        });
+
+        if (!retryError) return data;
+        // Still refused with a valid session: the database is at fault.
+        if (isRlsOrPermissionDenied(retryError)) {
+          throw databaseRejectedInsertError(retryError, refreshedUserId);
         }
 
-        throw new Error(
-          "You are not signed in (session expired or invalid) — please sign " +
-            "in again. If signing in again does not help, the posts INSERT " +
-            "policy is missing in Supabase; run the fix migration " +
-            "(supabase/migrations/20260831130000_fix_posts_insert_policy.sql)."
-        );
+        // Anything else (e.g. the retry hit a not-yet-migrated column) falls
+        // through to the shared handling below.
+        error = retryError;
       }
 
       // If the new columns haven't been migrated yet, fall back to the
@@ -112,11 +167,12 @@ export const postService = {
 
       if (!isMissingColumn) throw error;
 
-      const { data, error: fallbackError } = await supabase
-        .from("posts")
-        .insert([{ user_id: currentUserId, media_url, media_type, caption }])
-        .select()
-        .single();
+      const { data, error: fallbackError } = await insertRow({
+        user_id: currentUserId,
+        media_url,
+        media_type,
+        caption,
+      });
 
       if (fallbackError) throw fallbackError;
       return data;
