@@ -11,11 +11,14 @@
 -- though the user is signed in.
 --
 -- DIAGNOSTIC — run in the Supabase SQL editor to confirm:
---   select policyname, cmd, with_check
+--   select policyname, roles, cmd, permissive, with_check
 --   from pg_policies
 --   where schemaname = 'public' and tablename = 'posts'
 --   order by cmd;
--- If the "for INSERT" row is missing, run this migration.
+-- The INSERT row must show roles = {authenticated} (or {public}) and
+-- permissive = PERMISSIVE. An INSERT policy scoped to another role, or any
+-- RESTRICTIVE policy that fails, rejects the insert with the same 42501.
+-- If the "for INSERT" row is missing (or mis-scoped), run this migration.
 -- It is idempotent and safe to re-run.
 -- ============================================================
 
@@ -24,4 +27,5 @@ drop policy if exists "Authenticated users can insert their own posts" on public
 create policy "Authenticated users can insert their own posts"
     on public.posts
     for insert
+    to authenticated
     with check (auth.uid() = user_id);
