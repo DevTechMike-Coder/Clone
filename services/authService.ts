@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { NativeModules, Platform, TurboModuleRegistry } from "react-native";
 
 // Complete any pending auth session in web browser (still used for Apple)
 WebBrowser.maybeCompleteAuthSession();
@@ -42,13 +42,33 @@ type GoogleSigninModule = typeof import("@react-native-google-signin/google-sign
 // wrapped in try/catch as a last resort for any other build whose native
 // module didn't get linked. (Metro memoizes `require`, so this stays a single
 // module instance per app run.)
+//
+// The primary signal is the native module itself: `TurboModuleRegistry.get()`
+// (non-enforcing) returns the module only if the running binary actually
+// contains it. Expo Go never contains `RNGoogleSignin`, while any
+// development/production build compiled with the package does — so a real
+// dev-client build can never be mistaken for Expo Go, no matter what
+// `expo-constants` reports. (Inference from `expoGoConfig`/`appOwnership`
+// alone has false-positived on dev-client builds across SDK versions, which
+// is exactly the "I'm on a dev client but it says Expo Go" symptom.)
+function hasGoogleSigninNativeModule(): boolean {
+  return (
+    TurboModuleRegistry.get("RNGoogleSignin") != null ||
+    NativeModules.RNGoogleSignin != null
+  );
+}
+
 function isRunningInExpoGo(): boolean {
   // `executionEnvironment` is deliberately NOT used here: it returns
   // "storeClient" for both Expo Go AND expo-dev-client development builds,
   // and a dev build must NOT be blocked (it has the native module). Detect
-  // Expo Go directly instead: `expoGoConfig` is populated only when running
-  // inside the Expo Go app, and `appOwnership` is "expo" there (and null in
-  // dev/standalone builds, which is exactly what we want).
+  // Expo Go by checking the native module registry first, and fall back to
+  // `expo-constants` only for the Expo Go case: `expoGoConfig` is populated
+  // only when running inside the Expo Go app, and `appOwnership` is "expo"
+  // there (and null in dev/standalone builds, which is exactly what we want).
+  if (hasGoogleSigninNativeModule()) {
+    return false;
+  }
   return Constants.expoGoConfig != null || Constants.appOwnership === "expo";
 }
 
@@ -63,7 +83,10 @@ function loadGoogleSignin(): GoogleSigninModule {
     throw new Error(
       "Google Sign-In is not available in Expo Go. It requires a native " +
         "development or production build — run `npx expo run:android` or " +
-        "`eas build --profile development`. See GOOGLE_SIGNIN_SETUP.md."
+        "`eas build --profile development`, then open the project with " +
+        "`npx expo start --dev-client`. (Pressing 'a' or scanning the QR " +
+        "code from `expo start` opens Expo Go even when a development build " +
+        "is installed.) See GOOGLE_SIGNIN_SETUP.md."
     );
   }
 
@@ -71,9 +94,12 @@ function loadGoogleSignin(): GoogleSigninModule {
     return require("@react-native-google-signin/google-signin");
   } catch {
     throw new Error(
-      "Google Sign-In is not available in this build. It requires a " +
-        "development or production build with the native module — it does " +
-        "not work in Expo Go. See GOOGLE_SIGNIN_SETUP.md."
+      "Google Sign-In is not available in this build: the RNGoogleSignin " +
+        "native module is missing. If you are on a development build, " +
+        "rebuild it after installing the package — `npx expo prebuild " +
+        "--clean && npx expo run:android`, or `eas build --profile " +
+        "development`. It does not work in Expo Go. See " +
+        "GOOGLE_SIGNIN_SETUP.md."
     );
   }
 }

@@ -27,6 +27,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
+    // A session restored from storage can be stale/invalid (expired token,
+    // or leftover from a different Supabase project). The client would keep
+    // sending it, and RLS would reject every authenticated request with
+    // 42501 ("new row violates row-level security policy") while the UI
+    // still looks signed in. Verify the token server-side and drop it if
+    // it is no longer valid.
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
