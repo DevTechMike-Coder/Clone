@@ -135,6 +135,7 @@ export default function Search() {
 
         return (
           <FlatList
+            key="search-users-list"
             data={userResults}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
@@ -203,6 +204,7 @@ export default function Search() {
 
         return (
           <FlatList
+            key="search-posts-list"
             data={postResults}
             keyExtractor={(item) => item.id}
             numColumns={3}
@@ -255,6 +257,7 @@ export default function Search() {
 
     return (
       <FlatList
+        key="explore-posts-list"
         data={explorePosts}
         keyExtractor={(item) => item.id}
         numColumns={3}

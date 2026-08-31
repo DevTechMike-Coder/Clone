@@ -88,7 +88,7 @@ export const profileService = {
       return [] as ProfileSearchResult[];
     }
 
-    const escapedQuery = trimmedQuery.replace(/[%_]/g, (char) => `\\\\${char}`);
+    const escapedQuery = trimmedQuery.replace(/[\%_]/g, (char) => `\${char}`);
     const request = supabase
       .from('profiles')
       .select('id, username, full_name, avatar_url, bio')
