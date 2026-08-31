@@ -43,6 +43,15 @@
       "expo-font",
       "expo-image",
       "expo-web-browser",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone.",
+          "recordAudioAndroid": true,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
       "@react-native-google-signin/google-signin",
       "expo-video",
       [

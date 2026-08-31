@@ -15,6 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
 import { Post, postService } from "@/services/postService";
+import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { repostService } from "@/services/repostService";
 import { followService, UserStats } from "@/services/followService";
 import { chatService } from "@/services/chatService";
@@ -356,11 +357,7 @@ export default function UserProfile() {
                         }
                         className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
                       >
-                        <Image
-                          source={{ uri: post.media_url }}
-                          className="w-full h-full"
-                          resizeMode="cover"
-                        />
+                        <PostGridThumbnail post={post} />
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -392,11 +389,7 @@ export default function UserProfile() {
                         }
                         className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
                       >
-                        <Image
-                          source={{ uri: post.media_url }}
-                          className="w-full h-full"
-                          resizeMode="cover"
-                        />
+                        <PostGridThumbnail post={post} />
                       </TouchableOpacity>
                     ))}
                   </View>

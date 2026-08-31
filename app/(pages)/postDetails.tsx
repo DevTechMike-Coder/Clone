@@ -62,7 +62,11 @@ const PostDetails = () => {
 
     setLoading(true);
     try {
-      const publicUrl = await postService.uploadMedia(mediaUri, session.user.id);
+      const publicUrl = await postService.uploadMedia(
+        mediaUri,
+        session.user.id,
+        mediaType,
+      );
 
       // Append music sound tag to caption if attached
       let finalCaption = caption.trim();
@@ -77,6 +81,13 @@ const PostDetails = () => {
         media_url: publicUrl,
         media_type: mediaType,
         caption: finalCaption,
+        filter_id: filterId,
+        music_track_id: musicTrack?.id,
+        music_track_title: musicTrack?.title,
+        music_track_artist: musicTrack?.artist,
+        music_track_cover_url: musicTrack?.coverUrl,
+        duration_seconds: musicTrack?.durationSeconds,
+        has_sound: Boolean(musicTrack),
       });
 
       Toast.show({

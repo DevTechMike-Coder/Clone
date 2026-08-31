@@ -16,6 +16,7 @@ import {
   NotificationItem,
   notificationService,
 } from "@/services/notificationService";
+import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { formatRelativeTime } from "@/lib/dateUtils";
 
 const SafeAreaView = styled(RNSafeAreaView);
@@ -249,11 +250,7 @@ const Inbox = () => {
               {/* Optional Post Media Preview */}
               {item.posts?.media_url ? (
                 <View className="h-11 w-11 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                  <Image
-                    source={{ uri: item.posts.media_url }}
-                    className="h-full w-full"
-                    resizeMode="cover"
-                  />
+                  <PostGridThumbnail post={item.posts} />
                 </View>
               ) : item.type === "follow" ? (
                 <Ionicons name="chevron-forward" size={18} color="#94A3B8" />

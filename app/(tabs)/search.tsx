@@ -6,6 +6,7 @@ import {
   profileService,
 } from "@/services/profileService";
 import { Post, postService } from "@/services/postService";
+import PostGridThumbnail from "@/components/PostGridThumbnail";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -220,11 +221,7 @@ export default function Search() {
                 }
                 className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
               >
-                <Image
-                  source={{ uri: item.media_url }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                />
+                <PostGridThumbnail post={item} />
               </TouchableOpacity>
             )}
           />
@@ -280,11 +277,7 @@ export default function Search() {
             }
             className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
           >
-            <Image
-              source={{ uri: item.media_url }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
+            <PostGridThumbnail post={item} />
           </TouchableOpacity>
         )}
       />
