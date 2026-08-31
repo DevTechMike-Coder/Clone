@@ -178,7 +178,7 @@ export const postService = {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const escapedQuery = trimmedQuery.replace(/[%_]/g, (char) => `\\${char}`);
+    const escapedQuery = trimmedQuery.replace(/[\%_]/g, (char) => `\${char}`);
 
     const { data, error } = await supabase
       .from("posts")
