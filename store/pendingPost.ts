@@ -1,8 +1,20 @@
+export type TextStyleMode = "classic" | "bold" | "neon" | "typewriter" | "italic";
+export type TextBgMode = "solid" | "transparent" | "frosted" | "outline";
+export type TextAlignMode = "left" | "center" | "right";
+
 export type TextOverlayItem = {
   id: string;
   text: string;
   color: string;
   bgColor?: string;
+  bgMode?: TextBgMode;
+  fontStyle?: TextStyleMode;
+  textAlign?: TextAlignMode;
+  fontSize?: number;
+  x?: number; // relative offset or absolute X
+  y?: number; // relative offset or absolute Y
+  scale?: number;
+  rotation?: number;
 };
 
 export type MusicTrackItem = {

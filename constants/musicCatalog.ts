@@ -42,6 +42,7 @@ type ManifestTrack = {
   durationSeconds?: number;
   isTrending?: boolean;
   storagePath?: string;
+  sourceUrl?: string;
   license?: string;
   attribution?: string;
   licenseUrl?: string;
@@ -57,7 +58,7 @@ export const MUSIC_CATALOG: MusicTrackItem[] = ((musicCatalogJson as { tracks?: 
   durationSeconds: track.durationSeconds,
   isTrending: track.isTrending,
   storagePath: track.storagePath,
-  audioUrl: soundPublicUrl(track.storagePath),
+  audioUrl: track.sourceUrl || soundPublicUrl(track.storagePath),
   coverUrl: track.coverUrl,
   license: track.license && track.license !== "UNVERIFIED" ? track.license : undefined,
   attribution: track.attribution,

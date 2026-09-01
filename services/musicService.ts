@@ -1,33 +1,25 @@
 import { MusicTrackItem } from "@/store/pendingPost";
 import { supabase } from "@/lib/supabase";
-import { MUSIC_CATALOG } from "@/constants/musicCatalog";
+import { findCatalogTrack, MUSIC_CATALOG } from "@/constants/musicCatalog";
 
-/**
- * Reads the music catalog from Supabase when the `music_tracks` table
- * exists, otherwise falls back to the bundled catalog. This keeps the
- * app usable before the migration has been applied.
- *
- * Post counts ("N people used this sound") come from
- * `public.music_track_usage`, a security-invoker view over `posts`. They are
- * deliberately *not* a `usage_count` column on `music_tracks`: an incremented
- * counter loses updates under concurrent inserts and never decrements when a
- * post is deleted, which is exactly how fake-looking trending lists get made.
- */
-const toTrackItem = (row: Record<string, any>): MusicTrackItem => ({
-  id: String(row.id),
-  title: row.title,
-  artist: row.artist,
-  coverUrl: row.cover_url || undefined,
-  audioUrl: row.audio_url || undefined,
-  durationSeconds: row.duration_seconds ?? undefined,
-  isTrending: row.is_trending ?? false,
-  storagePath: row.storage_path || undefined,
-  license: row.license && row.license !== "UNVERIFIED" ? row.license : undefined,
-  licenseUrl: row.license_url || undefined,
-  attribution: row.attribution || undefined,
-  genre: row.genre || undefined,
-  usageCount: row.usage_count ?? undefined,
-});
+const toTrackItem = (row: Record<string, any>): MusicTrackItem => {
+  const fallback = findCatalogTrack(String(row.id));
+  return {
+    id: String(row.id),
+    title: row.title || fallback?.title || "Original Sound",
+    artist: row.artist || fallback?.artist || "Unknown Artist",
+    coverUrl: row.cover_url || fallback?.coverUrl || undefined,
+    audioUrl: row.audio_url || fallback?.audioUrl || undefined,
+    durationSeconds: row.duration_seconds ?? fallback?.durationSeconds ?? undefined,
+    isTrending: row.is_trending ?? fallback?.isTrending ?? false,
+    storagePath: row.storage_path || fallback?.storagePath || undefined,
+    license: row.license && row.license !== "UNVERIFIED" ? row.license : fallback?.license,
+    licenseUrl: row.license_url || fallback?.licenseUrl || undefined,
+    attribution: row.attribution || fallback?.attribution || undefined,
+    genre: row.genre || fallback?.genre || undefined,
+    usageCount: row.usage_count ?? undefined,
+  };
+};
 
 export const musicService = {
   async getMusicTracks(): Promise<MusicTrackItem[]> {

@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +21,9 @@ import {
   clearPendingPostData,
 } from "@/store/pendingPost";
 import { CAMERA_FILTERS } from "@/components/camera/FilterPicker";
+import { ProfileSearchResult } from "@/services/profileService";
+import TagPeopleModal from "@/components/modal/TagPeopleModal";
+import LocationPickerModal from "@/components/modal/LocationPickerModal";
 import Toast from "react-native-toast-message";
 
 const SafeAreaView = styled(RNSafeAreaView);
@@ -35,6 +37,11 @@ const PostDetails = () => {
 
   const [caption, setCaption] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [taggedUsers, setTaggedUsers] = useState<ProfileSearchResult[]>([]);
+  const [showTagModal, setShowTagModal] = useState(false);
+
   const { session } = useAuth();
 
   useEffect(() => {
@@ -68,11 +75,23 @@ const PostDetails = () => {
         mediaType,
       );
 
-      // Append music sound tag to caption if attached
+      // Assemble final rich caption with tags, location and music
       let finalCaption = caption.trim();
+
+      if (taggedUsers.length > 0) {
+        const tagString = taggedUsers.map((u) => `@${u.username || "user"}`).join(" ");
+        finalCaption = finalCaption ? `${finalCaption}\n\n👥 ${tagString}` : `👥 ${tagString}`;
+      }
+
+      if (selectedLocation) {
+        finalCaption = finalCaption
+          ? `${finalCaption}\n📍 ${selectedLocation}`
+          : `📍 ${selectedLocation}`;
+      }
+
       if (musicTrack) {
         finalCaption = finalCaption
-          ? `${finalCaption}\n\n🎵 ${musicTrack.title} - ${musicTrack.artist}`
+          ? `${finalCaption}\n🎵 ${musicTrack.title} - ${musicTrack.artist}`
           : `🎵 ${musicTrack.title} - ${musicTrack.artist}`;
       }
 
@@ -86,9 +105,6 @@ const PostDetails = () => {
         music_track_title: musicTrack?.title,
         music_track_artist: musicTrack?.artist,
         music_track_cover_url: musicTrack?.coverUrl,
-        // Snapshotted rather than joined: the feed has to be able to play the
-        // sound without a second query, and a later catalog edit must not
-        // change what an already-published post sounds like.
         music_track_audio_url: musicTrack?.audioUrl,
         music_track_attribution: musicTrack?.attribution,
         duration_seconds: musicTrack?.durationSeconds,
@@ -114,6 +130,10 @@ const PostDetails = () => {
     }
   };
 
+  const removeTaggedUser = (userId: string) => {
+    setTaggedUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
+
   const activeFilterObj = CAMERA_FILTERS.find((f) => f.id === filterId);
 
   return (
@@ -122,23 +142,29 @@ const PostDetails = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
+        {/* Top App Bar */}
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={28} color="#0F172A" />
+          <TouchableOpacity onPress={() => router.back()} className="p-1">
+            <Ionicons name="chevron-back" size={26} color="#0F172A" />
           </TouchableOpacity>
           <Text className="text-lg font-bold text-slate-900">New Post</Text>
-          <TouchableOpacity onPress={handlePost} disabled={loading}>
+          <TouchableOpacity
+            onPress={handlePost}
+            disabled={loading}
+            className="bg-blue-600 px-5 py-2 rounded-full active:opacity-80"
+          >
             {loading ? (
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color="white" />
             ) : (
-              <Text className="text-blue-600 font-bold text-lg">Share</Text>
+              <Text className="text-white font-bold text-sm">Share</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-6">
+        <ScrollView className="flex-1 px-5 pt-5" showsVerticalScrollIndicator={false}>
+          {/* Media Thumbnail & Caption Box */}
           <View className="flex-row gap-4">
-            <View className="w-28 h-36 rounded-2xl bg-slate-100 items-center justify-center overflow-hidden border border-slate-200 relative">
+            <View className="w-28 h-36 rounded-2xl bg-slate-100 items-center justify-center overflow-hidden border border-slate-200 relative shadow-sm">
               {mediaUri ? (
                 <>
                   <Image
@@ -153,7 +179,7 @@ const PostDetails = () => {
                     />
                   )}
                   {mediaType === "video" && (
-                    <View className="absolute bottom-2 right-2 bg-black/60 px-1.5 py-0.5 rounded">
+                    <View className="absolute bottom-2 right-2 bg-black/60 px-1.5 py-0.5 rounded-md">
                       <Ionicons name="videocam" size={12} color="white" />
                     </View>
                   )}
@@ -164,7 +190,8 @@ const PostDetails = () => {
             </View>
             <View className="flex-1">
               <TextInput
-                placeholder="Write a caption..."
+                placeholder="Write an engaging caption..."
+                placeholderTextColor="#94A3B8"
                 multiline
                 numberOfLines={4}
                 value={caption}
@@ -177,12 +204,20 @@ const PostDetails = () => {
 
           {/* Attached Sound Tag Pill */}
           {musicTrack && (
-            <View className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex-row items-center gap-3">
-              <View className="w-9 h-9 rounded-xl bg-blue-600 items-center justify-center">
-                <Ionicons name="musical-notes" size={18} color="white" />
-              </View>
+            <View className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex-row items-center gap-3 shadow-sm">
+              {musicTrack.coverUrl ? (
+                <Image
+                  source={{ uri: musicTrack.coverUrl }}
+                  className="w-10 h-10 rounded-xl"
+                  contentFit="cover"
+                />
+              ) : (
+                <View className="w-10 h-10 rounded-xl bg-blue-600 items-center justify-center">
+                  <Ionicons name="musical-notes" size={18} color="white" />
+                </View>
+              )}
               <View className="flex-1">
-                <Text className="text-sm font-bold text-slate-900 leading-tight">
+                <Text className="text-sm font-bold text-slate-900 leading-tight" numberOfLines={1}>
                   {musicTrack.title}
                 </Text>
                 <Text className="text-xs text-slate-500">
@@ -194,7 +229,7 @@ const PostDetails = () => {
                     : ""}
                 </Text>
                 {musicTrack.attribution ? (
-                  <Text className="text-[10px] text-slate-400 mt-1" numberOfLines={2}>
+                  <Text className="text-[10px] text-slate-400 mt-0.5" numberOfLines={1}>
                     {musicTrack.attribution}
                   </Text>
                 ) : null}
@@ -215,24 +250,150 @@ const PostDetails = () => {
             </View>
           )}
 
-          <View className="mt-8 gap-4">
-            <TouchableOpacity className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200">
+          {/* Selected Location Pill */}
+          {selectedLocation && (
+            <View className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+                <View className="w-8 h-8 rounded-xl bg-emerald-600 items-center justify-center">
+                  <Ionicons name="location" size={16} color="white" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xs font-bold text-emerald-900" numberOfLines={1}>
+                    {selectedLocation}
+                  </Text>
+                  <Text className="text-[10px] text-emerald-600">Location Tagged</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSelectedLocation(null)}
+                className="p-1"
+              >
+                <Ionicons name="close-circle" size={20} color="#10B981" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Selected Tagged People Chips */}
+          {taggedUsers.length > 0 && (
+            <View className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-2xl">
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="people" size={16} color="#7C3AED" />
+                  <Text className="text-xs font-bold text-purple-900">
+                    Tagged People ({taggedUsers.length})
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowTagModal(true)}>
+                  <Text className="text-xs font-bold text-purple-600">+ Edit</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8 }}
+              >
+                {taggedUsers.map((user) => (
+                  <View
+                    key={user.id}
+                    className="flex-row items-center gap-1.5 bg-white border border-purple-200 px-3 py-1.5 rounded-full shadow-sm"
+                  >
+                    {user.avatar_url ? (
+                      <Image
+                        source={{ uri: user.avatar_url }}
+                        className="w-5 h-5 rounded-full"
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <Ionicons name="person-circle" size={18} color="#7C3AED" />
+                    )}
+                    <Text className="text-xs font-bold text-purple-800">
+                      @{user.username || "user"}
+                    </Text>
+                    <TouchableOpacity onPress={() => removeTaggedUser(user.id)}>
+                      <Ionicons name="close-circle" size={16} color="#9333EA" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Interactive Actions (Add Location, Tag People) */}
+          <View className="mt-6 gap-3.5 pb-12">
+            {/* Add Location Row */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowLocationModal(true)}
+              className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
+            >
               <View className="flex-row items-center gap-3">
-                <Ionicons name="location-outline" size={22} color="#475569" />
-                <Text className="text-base text-slate-700">Add Location</Text>
+                <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
+                  <Ionicons
+                    name="location-outline"
+                    size={22}
+                    color={selectedLocation ? "#10B981" : "#475569"}
+                  />
+                </View>
+                <View>
+                  <Text className="text-base font-semibold text-slate-800">
+                    {selectedLocation ? "Change Location" : "Add Location"}
+                  </Text>
+                  <Text className="text-xs text-slate-400">
+                    {selectedLocation || "Show where this was captured"}
+                  </Text>
+                </View>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
-            <TouchableOpacity className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200">
+            {/* Tag People Row */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowTagModal(true)}
+              className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
+            >
               <View className="flex-row items-center gap-3">
-                <Ionicons name="person-outline" size={22} color="#475569" />
-                <Text className="text-base text-slate-700">Tag People</Text>
+                <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
+                  <Ionicons
+                    name="person-outline"
+                    size={22}
+                    color={taggedUsers.length > 0 ? "#7C3AED" : "#475569"}
+                  />
+                </View>
+                <View>
+                  <Text className="text-base font-semibold text-slate-800">
+                    {taggedUsers.length > 0
+                      ? `Tagged People (${taggedUsers.length})`
+                      : "Tag People"}
+                  </Text>
+                  <Text className="text-xs text-slate-400">
+                    {taggedUsers.length > 0
+                      ? taggedUsers.map((u) => `@${u.username}`).join(", ")
+                      : "Tag friends in your post"}
+                  </Text>
+                </View>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Tag People Modal */}
+        <TagPeopleModal
+          visible={showTagModal}
+          selectedUsers={taggedUsers}
+          onClose={() => setShowTagModal(false)}
+          onSave={setTaggedUsers}
+        />
+
+        {/* Location Picker Modal */}
+        <LocationPickerModal
+          visible={showLocationModal}
+          selectedLocation={selectedLocation}
+          onClose={() => setShowLocationModal(false)}
+          onSelectLocation={setSelectedLocation}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
