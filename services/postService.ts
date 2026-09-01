@@ -348,6 +348,18 @@ export const postService = {
     return mergeInteractionFlags(data ?? []);
   },
 
+  async deletePost(postId: string): Promise<void> {
+    const { error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", postId);
+
+    if (error) {
+      console.error("Error deleting post:", error);
+      throw error;
+    }
+  },
+
   async uploadMedia(uri: string, userId: string, mediaType: "video" | "image" = "image") {
     const ext = mediaType === "video" ? "mp4" : "jpg";
     const contentType = mediaType === "video" ? "video/mp4" : "image/jpeg";

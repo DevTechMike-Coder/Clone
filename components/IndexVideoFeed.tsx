@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import SoundChip from "@/components/SoundChip";
+import StoriesBar from "@/components/StoriesBar";
 import { stopAllSounds } from "@/lib/useTrackSound";
 import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -689,6 +690,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        ListHeaderComponent={<StoriesBar />}
         viewabilityConfig={viewabilityConfig}
         onViewableItemsChanged={onViewableItemsChanged}
         onScroll={handleScroll}
