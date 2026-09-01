@@ -111,7 +111,12 @@ export const chatService = {
         .from("messages")
         .select("*")
         .in("conversation_id", conversationIds)
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        // The inbox only needs the latest message per conversation for its
+        // preview. Cap the query (server default max is ~1000 anyway) so a
+        // user with many conversations and lots of history never reads the
+        // entire messages table into memory at once.
+        .limit(1000),
     ]);
 
     if (convsRes.error) throw convsRes.error;

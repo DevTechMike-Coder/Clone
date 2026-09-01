@@ -55,7 +55,9 @@ export default function Search() {
   const fetchExplorePosts = useCallback(async () => {
     try {
       setExploreLoading(true);
-      const posts = await postService.getPosts();
+      // Bound the explore grid so the whole `posts` table is never loaded at
+      // once (the unbounded read was the source of the OkHttp OOM on Android).
+      const posts = await postService.getPosts({ limit: 40, offset: 0 });
       setExplorePosts(posts);
     } catch (error) {
       console.error("Error fetching explore posts:", error);
