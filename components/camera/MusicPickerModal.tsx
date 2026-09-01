@@ -69,7 +69,12 @@ export default function MusicPickerModal({
 
     return () => {
       cancelled = true;
-      player.pause();
+      // No `player.pause()` here. `useAudioPlayer` releases the native player
+      // when the modal unmounts, and that release is registered inside the hook
+      // — so React runs it *before* this cleanup, and pausing threw
+      // "Cannot use shared object that was already released". Stopping the
+      // preview is already handled by the `!visible` branch above, which runs
+      // whenever the modal is hidden.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
