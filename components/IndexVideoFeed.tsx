@@ -101,7 +101,17 @@ function FeedVideoMedia({ uri, active }: { uri: string; active: boolean }) {
   );
 }
 
-const FeedMedia = ({ uri, mediaType, active }: { uri: string; mediaType: "video" | "image"; active: boolean }) => {
+const FeedMedia = ({
+  uri,
+  thumbnailUrl,
+  mediaType,
+  active,
+}: {
+  uri: string;
+  thumbnailUrl?: string | null;
+  mediaType: "video" | "image";
+  active: boolean;
+}) => {
   const [hasError, setHasError] = useState(false);
 
   if (hasError || !uri) {
@@ -114,6 +124,28 @@ const FeedMedia = ({ uri, mediaType, active }: { uri: string; mediaType: "video"
   }
 
   if (mediaType === "video") {
+    // Only the one video currently on screen is given a real player. Mounting a
+    // `useVideoPlayer` for every clip in the render window opens an HTTP/2
+    // stream per item and lets ExoPlayer buffer each file — the largest native
+    // heap consumer in this app and exactly the shape of the OkHttp OOM on
+    // Android. Off-screen videos render a static poster/placeholder instead and
+    // spin up their player on demand when they become the active item.
+    if (!active) {
+      return (
+        <View className="h-full w-full items-center justify-center bg-slate-900 rounded-xl">
+          {thumbnailUrl ? (
+            <StyledImage
+              source={{ uri: thumbnailUrl }}
+              className="h-full w-full"
+              contentFit="cover"
+            />
+          ) : (
+            <Ionicons name="play-circle-outline" size={44} color="rgba(255,255,255,0.55)" />
+          )}
+        </View>
+      );
+    }
+
     return <FeedVideoMedia uri={uri} active={active} />;
   }
 
@@ -149,6 +181,8 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   // rather than activeVideoId: an image post can carry a sound too, and an
   // image-only feed would otherwise never find an "active" item.
   const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
   const insets = useSafeAreaInsets();
   const listBottomPadding = 70 + Math.max(insets.bottom, 16) + 8;
 
@@ -162,6 +196,11 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   const unseenPostIdsRef = useRef<string[]>([]);
   const newPostsCountRef = useRef(0);
   const bannerVisibleRef = useRef(false);
+  // Infinite-scroll cursor. The feed is paged instead of loading the whole
+  // `posts` table at once — that unbounded response was the OkHttp/OOM culprit.
+  const pageRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+  const PAGE_SIZE = 20;
   // Stable Animated values for the banner (kept in state so they are never
   // recreated; only the .setValue/.timing mutations below ever touch them).
   const [bannerOpacity] = useState(() => new Animated.Value(0));
@@ -206,7 +245,9 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
 
   const fetchPosts = useCallback(async () => {
     try {
-      const data = await postService.getPosts();
+      pageRef.current = 0;
+      const data = await postService.getPosts({ limit: PAGE_SIZE, offset: 0 });
+      setHasMorePosts(data.length === PAGE_SIZE);
 
       // The user is only shown the newest posts when they are at the top of
       // the list (or on the very first load). Posts fetched while scrolled
@@ -260,6 +301,42 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
       setRefreshing(false);
     }
   }, [hideNewPostsBanner, showNewPostsBanner]);
+
+  // Append the next, older page of posts when the user scrolls to the bottom.
+  // Bound to `loadingMore`/`hasMorePosts` so it can never fire twice for the
+  // same page or keep appending once the table is exhausted.
+  const loadMorePosts = useCallback(async () => {
+    // `loadingMoreRef` guards synchronously so a burst of `onEndReached`
+    // callbacks cannot issue two fetches for the same page (state updates are
+    // async, so `loadingMore` alone is not a reliable re-entrancy guard).
+    if (loadingMoreRef.current || !hasMorePosts) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+
+    const nextOffset = (pageRef.current + 1) * PAGE_SIZE;
+    try {
+      const data = await postService.getPosts({ limit: PAGE_SIZE, offset: nextOffset });
+      setHasMorePosts(data.length === PAGE_SIZE);
+
+      if (data.length === 0) return;
+
+      pageRef.current += 1;
+      setPosts((prev) => {
+        const existing = new Set(prev.map((post) => post.id));
+        const fresh = data.filter((post) => !existing.has(post.id));
+        return [...prev, ...fresh];
+      });
+
+      // Older posts appended by paging are not "new" — keep the unseen-banner
+      // bookkeeping from counting them as fresh content above.
+      data.forEach((post) => seenPostIdsRef.current.add(post.id));
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [hasMorePosts]);
 
   useFocusEffect(
     useCallback(() => {
@@ -561,6 +638,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
       <View className="relative w-full aspect-square bg-slate-100 overflow-hidden">
         <FeedMedia
           uri={item.media_url}
+          thumbnailUrl={item.thumbnail_url}
           mediaType={item.media_type}
           active={item.media_type === "video" && activeVideoId === item.id}
         />
@@ -699,6 +777,21 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
         ItemSeparatorComponent={() => <View className="h-5" />}
         showsVerticalScrollIndicator={false}
         scrollIndicatorInsets={{ bottom: listBottomPadding }}
+        // Keep the mounted render window small. A media feed with a player per
+        // row is the main native-heap consumer; a tight window limits how many
+        // items (and their buffers) are alive at once.
+        initialNumToRender={3}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        updateCellsBatchingPeriod={50}
+        // Infinite scroll: page the feed instead of loading the whole table.
+        onEndReached={loadMorePosts}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator size="small" color="#2563EB" style={{ marginVertical: 24 }} />
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

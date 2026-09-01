@@ -53,7 +53,11 @@ export const notificationService = {
       `
       )
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      // Bound the list to the most recent notifications so the response body
+      // read over HTTP/2 stays small. The unread badge count is tracked
+      // separately via `getUnreadCount()`, so this does not affect the badge.
+      .limit(50);
 
     if (error) {
       console.error("Error fetching notifications:", error);

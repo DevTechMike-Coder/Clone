@@ -72,7 +72,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-status-bar"
+      "expo-status-bar",
+      "./plugins/withAndroidLargeHeap"
     ],
     "experiments": {
       "typedRoutes": true,

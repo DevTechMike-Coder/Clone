@@ -234,8 +234,20 @@ export const postService = {
     }
   },
 
-  async getPosts() {
-    const { data, error } = await supabase
+  /**
+   * Fetch posts, newest first.
+   *
+   * The home feed and explore grid are paginated by passing `limit`/`offset`.
+   * Without them this still returns the full table (kept for any legacy
+   * caller), but loading the entire `posts` relation at once is the single
+   * largest response body the app reads over HTTP/2 on Android, and it was the
+   * source of a native OkHttp heap exhaustion when the table grew. Callers that
+   * render a list should always page.
+   */
+  async getPosts(options: { limit?: number; offset?: number } = {}) {
+    const { limit, offset } = options;
+
+    const base = supabase
       .from("posts")
       .select(
         `
@@ -251,6 +263,13 @@ export const postService = {
       `,
       )
       .order("created_at", { ascending: false });
+
+    const query =
+      typeof limit === "number" && limit >= 0
+        ? base.range(offset ?? 0, (offset ?? 0) + limit - 1)
+        : base;
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching posts:", error);
