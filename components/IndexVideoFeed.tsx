@@ -63,9 +63,12 @@ function FeedVideoMedia({ uri, active }: { uri: string; active: boolean }) {
     } else {
       player.pause();
     }
-    return () => {
-      player.pause();
-    };
+    // No cleanup on purpose. `useVideoPlayer` releases the native player on
+    // unmount (and whenever the source changes), and that release is registered
+    // inside the hook — so React runs it *before* this component's effect
+    // cleanups. Calling `player.pause()` in a cleanup threw
+    // "Cannot use shared object that was already released" every time a video
+    // scrolled out of the list. Releasing the player already stops playback.
   }, [active, player]);
 
   React.useEffect(() => {

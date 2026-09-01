@@ -32,11 +32,14 @@ function VideoPostMedia({ post }: { post: Post }) {
     p.muted = true;
   });
 
+  // No cleanup on purpose. `useVideoPlayer` releases the native player on
+  // unmount (and whenever the source changes), and that release is registered
+  // inside the hook — so React runs it *before* this component's effect
+  // cleanups. Calling `player.pause()` here threw
+  // "Cannot use shared object that was already released". Releasing the player
+  // already stops playback.
   React.useEffect(() => {
     player.play();
-    return () => {
-      player.pause();
-    };
   }, [player]);
 
   React.useEffect(() => {
@@ -239,7 +242,9 @@ export default function ViewPost() {
         </View>
       </View>
 
-      {loading && !refreshing ? (
+      {/* Keep the already-loaded post (and its video player) mounted while a
+          refetch runs, instead of swapping the screen for a spinner. */}
+      {loading && !post ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#2563EB" />
         </View>
