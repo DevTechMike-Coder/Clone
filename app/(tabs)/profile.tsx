@@ -7,6 +7,10 @@ import {
   Animated,
   ActivityIndicator,
   Dimensions,
+  Modal,
+  Alert,
+  Pressable,
+  Share,
 } from "react-native";
 import {
   SafeAreaView as RNSafeAreaView,
@@ -22,16 +26,18 @@ import { bookmarkService } from "@/services/bookmarkService";
 import { repostService } from "@/services/repostService";
 import { followService, UserStats } from "@/services/followService";
 import { authService } from "@/services/authService";
+import { storyService } from "@/services/storyService";
 import Toast from "react-native-toast-message";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 
 const SafeAreaView = styled(RNSafeAreaView);
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function Profile() {
   const { user: authUser } = useAuth();
-  // This is strictly the logged-in user's profile tab
   const targetUserId = authUser?.id;
   const isOwnProfile = true;
 
@@ -39,7 +45,9 @@ export default function Profile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [reposts, setReposts] = useState<Post[]>([]);
   const [bookmarks, setBookmarks] = useState<Post[]>([]);
+  const [activeStoryCount, setActiveStoryCount] = useState(0);
   const [stats, setStats] = useState<UserStats>({
+    postsCount: 0,
     followersCount: 0,
     followingCount: 0,
     likesCount: 0,
@@ -47,6 +55,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [privacySaving, setPrivacySaving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [postMenuPost, setPostMenuPost] = useState<Post | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "repeat" | "bookmark">("overview");
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -56,18 +67,20 @@ export default function Profile() {
     if (!targetUserId) return;
     try {
       setLoading(true);
-      const [profileData, userPosts, userReposts, userBookmarks, userStats] = await Promise.all([
+      const [profileData, userPosts, userReposts, userBookmarks, userStats, storyCount] = await Promise.all([
         profileService.getProfile(targetUserId),
         postService.getPostsByUser(targetUserId),
         repostService.getRepostedPosts(targetUserId),
         bookmarkService.getBookmarkedPosts(targetUserId),
         followService.getUserStats(targetUserId),
+        storyService.getActiveStoryCount(targetUserId),
       ]);
       setProfile(profileData);
       setPosts(userPosts);
       setReposts(userReposts);
       setBookmarks(userBookmarks);
       setStats(userStats);
+      setActiveStoryCount(storyCount);
     } catch (error) {
       console.error("Error fetching profile:", error);
     } finally {
@@ -125,6 +138,43 @@ export default function Profile() {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    setDeleteConfirmId(null);
+    setPostMenuPost(null);
+    setDeletingId(postId);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await postService.deletePost(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setReposts((prev) => prev.filter((p) => p.id !== postId));
+      setBookmarks((prev) => prev.filter((p) => p.id !== postId));
+      setStats((s) => ({ ...s, postsCount: Math.max(0, s.postsCount - 1) }));
+      Toast.show({
+        type: "success",
+        text1: "Post deleted",
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Couldn't delete post",
+        text2: error.message || "Please try again.",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleShareProfile = async () => {
+    if (!profile?.username) return;
+    try {
+      await Share.share({
+        message: `Check out @${profile.username} on Clone!`,
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     navigation.setOptions({
       tabBarStyle: menuOpen
@@ -157,6 +207,11 @@ export default function Profile() {
       useNativeDriver: true,
     }).start(() => setMenuOpen(false));
   };
+
+  const openPostMenu = (post: Post) => {
+    setPostMenuPost(post);
+  };
+  const closePostMenu = () => setPostMenuPost(null);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
@@ -194,7 +249,6 @@ export default function Profile() {
           elevation: 20,
         }}
       >
-        {/* Close Button */}
         <View className="px-5 pt-14 pb-4 flex-row items-center justify-between border-b border-slate-100">
           <View className="flex-row items-center gap-3">
             <Ionicons name="settings-outline" size={22} color="#0F172A" />
@@ -215,9 +269,7 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
 
-        {/* Drawer Items */}
         <View className="px-5 pt-3">
-          {/* Section Label */}
           <Text className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
             Account
           </Text>
@@ -292,6 +344,9 @@ export default function Profile() {
 
         {isOwnProfile && (
           <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={handleShareProfile}>
+              <Ionicons name="share-social-outline" size={26} color="#0F172A" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push("/(pages)/editProfile")}>
               <Image
                 source={require("@/assets/homeIcons/pencil.png")}
@@ -320,20 +375,56 @@ export default function Profile() {
           <ActivityIndicator size="large" color="#2563EB" />
         ) : (
           <>
-            <View className="w-24 h-24 rounded-full bg-white items-center justify-center border-2 border-blue-600 overflow-hidden">
-              {profile?.avatar_url ? (
-                <Image
-                  source={{ uri: profile.avatar_url }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <Image
-                  source={require("@/assets/homeIcons/profileUser.png")}
-                  className="w-14 h-14"
-                  resizeMode="contain"
-                />
-              )}
+            <View className="relative">
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (activeStoryCount > 0) {
+                    router.push({
+                      pathname: "/(pages)/storyViewer",
+                      params: { initialUserId: targetUserId },
+                    });
+                  }
+                }}
+                disabled={activeStoryCount === 0}
+              >
+                <LinearGradient
+                  colors={activeStoryCount > 0 ? ["#F59E0B", "#EC4899", "#8B5CF6", "#3B82F6"] : ["#E2E8F0", "#E2E8F0"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    width: 104,
+                    height: 104,
+                    borderRadius: 52,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <View className="w-[96px] h-[96px] rounded-full bg-white items-center justify-center overflow-hidden">
+                    {profile?.avatar_url ? (
+                      <Image
+                        source={{ uri: profile.avatar_url }}
+                        className="w-full h-full"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Image
+                        source={require("@/assets/homeIcons/profileUser.png")}
+                        className="w-14 h-14"
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+              {/* Add story button — sits outside the story-ring tap target so it never triggers the viewer */}
+              <TouchableOpacity
+                onPress={() => router.push("/(pages)/createStory")}
+                activeOpacity={0.85}
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 items-center justify-center border-[3px] border-white z-10"
+              >
+                <Ionicons name="add" size={19} color="white" />
+              </TouchableOpacity>
             </View>
 
             <View className="items-center pt-2">
@@ -345,6 +436,12 @@ export default function Profile() {
                   @{profile.username}
                 </Text>
               )}
+              {profile?.is_private && (
+                <View className="flex-row items-center gap-1 mt-1">
+                  <Ionicons name="lock-closed" size={12} color="#64748B" />
+                  <Text className="text-xs text-slate-400">Private account</Text>
+                </View>
+              )}
             </View>
           </>
         )}
@@ -353,7 +450,7 @@ export default function Profile() {
       {/* Bio & Social Links */}
       <View className="p-5 flex-col items-center justify-center">
         <Text className="text-base text-slate-500">
-          {profile?.bio || "No bio"}
+          {profile?.bio || "No bio yet. Tap edit to add one!"}
         </Text>
 
         {profile?.website && (
@@ -367,8 +464,42 @@ export default function Profile() {
         )}
       </View>
 
+      {/* Edit Profile + Share buttons */}
+      <View className="flex-row px-5 gap-3 mb-2">
+        <TouchableOpacity
+          onPress={() => router.push("/(pages)/editProfile")}
+          activeOpacity={0.8}
+          className="flex-1 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+        >
+          <Text className="text-slate-900 font-bold">Edit Profile</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push("/(pages)/createNew")}
+          activeOpacity={0.8}
+          className="flex-1 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+        >
+          <Text className="text-slate-900 font-bold">New Post</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleShareProfile}
+          activeOpacity={0.8}
+          className="w-11 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+        >
+          <Ionicons name="share-outline" size={20} color="#0F172A" />
+        </TouchableOpacity>
+      </View>
+
       {/* Stats Row */}
-      <View className="flex-row items-center justify-center gap-3 py-4">
+      <View className="flex-row items-center justify-center gap-1 py-4">
+        <View className="items-center px-3 py-1">
+          <Text className="text-2xl font-bold text-slate-800">{stats.postsCount}</Text>
+          <Text className="text-sm text-slate-500">Posts</Text>
+        </View>
+
+        <View className="h-5 w-px bg-slate-300" />
+
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
@@ -477,15 +608,21 @@ export default function Profile() {
                 <TouchableOpacity
                   key={post.id}
                   activeOpacity={0.85}
+                  onLongPress={() => openPostMenu(post)}
                   onPress={() =>
                     router.push({
                       pathname: "/(pages)/viewPost",
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
                 >
                   <PostGridThumbnail post={post} />
+                  {deletingId === post.id && (
+                    <View className="absolute inset-0 bg-black/60 items-center justify-center">
+                      <ActivityIndicator color="white" />
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -517,13 +654,14 @@ export default function Profile() {
                 <TouchableOpacity
                   key={post.id}
                   activeOpacity={0.85}
+                  onLongPress={() => openPostMenu(post)}
                   onPress={() =>
                     router.push({
                       pathname: "/(pages)/viewPost",
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
                 >
                   <PostGridThumbnail post={post} />
                 </TouchableOpacity>
@@ -549,13 +687,14 @@ export default function Profile() {
                 <TouchableOpacity
                   key={post.id}
                   activeOpacity={0.85}
+                  onLongPress={() => openPostMenu(post)}
                   onPress={() =>
                     router.push({
                       pathname: "/(pages)/viewPost",
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
                 >
                   <PostGridThumbnail post={post} />
                 </TouchableOpacity>
@@ -574,6 +713,112 @@ export default function Profile() {
           )
         )}
       </View>
+
+      {/* Post Options Modal */}
+      <Modal
+        transparent
+        visible={!!postMenuPost}
+        animationType="fade"
+        onRequestClose={closePostMenu}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 justify-end"
+          onPress={closePostMenu}
+        >
+          <Pressable className="bg-white rounded-t-3xl p-5 pb-8" onPress={(e) => e.stopPropagation()}>
+            <View className="items-center mb-4">
+              <View className="w-12 h-1 bg-slate-300 rounded-full" />
+            </View>
+
+            {/* Post thumbnail */}
+            {postMenuPost && (
+              <View className="flex-row items-center gap-3 mb-4 px-2">
+                <View className="w-14 h-14 rounded-lg bg-slate-100 overflow-hidden">
+                  <PostGridThumbnail post={postMenuPost} />
+                </View>
+                <View className="flex-1">
+                  <Text numberOfLines={1} className="text-sm font-bold text-slate-900">
+                    {postMenuPost.caption || "Post"}
+                  </Text>
+                  <Text className="text-xs text-slate-500">
+                    {postMenuPost.media_type === "video" ? "Video" : "Photo"}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View className="gap-2">
+              {postMenuPost && postMenuPost.user_id === targetUserId && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const id = postMenuPost.id;
+                    closePostMenu();
+                    Alert.alert(
+                      "Delete Post?",
+                      "This post will be permanently removed.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Delete",
+                          style: "destructive",
+                          onPress: () => handleDeletePost(id),
+                        },
+                      ],
+                    );
+                  }}
+                  className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+                >
+                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                  <Text className="text-red-500 font-bold text-base">Delete post</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                onPress={() => {
+                  if (postMenuPost) {
+                    router.push({
+                      pathname: "/(pages)/viewPost",
+                      params: { postId: postMenuPost.id },
+                    });
+                    closePostMenu();
+                  }
+                }}
+                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+              >
+                <Ionicons name="eye-outline" size={22} color="#0F172A" />
+                <Text className="text-slate-800 font-semibold text-base">View post</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  if (postMenuPost) {
+                    try {
+                      await Share.share({
+                        message: (postMenuPost.caption ? `${postMenuPost.caption}\n\n` : "") + postMenuPost.media_url,
+                      });
+                    } catch {
+                      // ignore
+                    }
+                  }
+                  closePostMenu();
+                }}
+                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+              >
+                <Ionicons name="share-outline" size={22} color="#0F172A" />
+                <Text className="text-slate-800 font-semibold text-base">Share post</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={closePostMenu}
+                className="flex-row items-center gap-3 py-4 px-2"
+              >
+                <Ionicons name="close-circle-outline" size={22} color="#64748B" />
+                <Text className="text-slate-500 font-semibold text-base">Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

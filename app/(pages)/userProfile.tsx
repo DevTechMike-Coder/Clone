@@ -36,6 +36,7 @@ export default function UserProfile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [reposts, setReposts] = useState<Post[]>([]);
   const [stats, setStats] = useState<UserStats>({
+    postsCount: 0,
     followersCount: 0,
     followingCount: 0,
     likesCount: 0,
@@ -187,7 +188,14 @@ export default function UserProfile() {
         </View>
 
         {/* Stats Row */}
-        <View className="flex-row items-center justify-center gap-3 py-4">
+        <View className="flex-row items-center justify-center gap-1 py-4">
+          <View className="items-center px-3 py-1">
+            <Text className="text-2xl font-bold text-slate-800">{stats.postsCount}</Text>
+            <Text className="text-sm text-slate-500">Posts</Text>
+          </View>
+
+          <View className="h-5 w-px bg-slate-300" />
+
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {

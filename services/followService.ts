@@ -12,6 +12,7 @@ export type SuggestedUser = {
 };
 
 export type UserStats = {
+  postsCount: number;
   followersCount: number;
   followingCount: number;
   likesCount: number;
@@ -84,7 +85,7 @@ export const followService = {
 
   async getUserStats(userId: string): Promise<UserStats> {
     try {
-      const [followersRes, followingRes, postsRes] = await Promise.all([
+      const [followersRes, followingRes, postsRes, postsCountRes] = await Promise.all([
         supabase
           .from("follows")
           .select("*", { count: "exact", head: true })
@@ -97,10 +98,15 @@ export const followService = {
           .from("posts")
           .select("id, likes(count)")
           .eq("user_id", userId),
+        supabase
+          .from("posts")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId),
       ]);
 
       const followersCount = followersRes.count || 0;
       const followingCount = followingRes.count || 0;
+      const postsCount = postsCountRes.count || 0;
 
       let likesCount = 0;
       if (postsRes.data) {
@@ -111,6 +117,7 @@ export const followService = {
       }
 
       return {
+        postsCount,
         followersCount,
         followingCount,
         likesCount,
@@ -118,6 +125,7 @@ export const followService = {
     } catch (error) {
       console.error("Error getting user stats:", error);
       return {
+        postsCount: 0,
         followersCount: 0,
         followingCount: 0,
         likesCount: 0,
