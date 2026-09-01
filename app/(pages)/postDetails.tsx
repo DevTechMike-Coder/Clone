@@ -86,6 +86,11 @@ const PostDetails = () => {
         music_track_title: musicTrack?.title,
         music_track_artist: musicTrack?.artist,
         music_track_cover_url: musicTrack?.coverUrl,
+        // Snapshotted rather than joined: the feed has to be able to play the
+        // sound without a second query, and a later catalog edit must not
+        // change what an already-published post sounds like.
+        music_track_audio_url: musicTrack?.audioUrl,
+        music_track_attribution: musicTrack?.attribution,
         duration_seconds: musicTrack?.durationSeconds,
         has_sound: Boolean(musicTrack),
       });
@@ -182,8 +187,31 @@ const PostDetails = () => {
                 </Text>
                 <Text className="text-xs text-slate-500">
                   {musicTrack.artist}
+                  {musicTrack.durationSeconds
+                    ? ` • ${Math.floor(musicTrack.durationSeconds / 60)}:${String(
+                        Math.floor(musicTrack.durationSeconds % 60),
+                      ).padStart(2, "0")}`
+                    : ""}
                 </Text>
+                {musicTrack.attribution ? (
+                  <Text className="text-[10px] text-slate-400 mt-1" numberOfLines={2}>
+                    {musicTrack.attribution}
+                  </Text>
+                ) : null}
               </View>
+              {musicTrack.audioUrl ? (
+                <View className="px-2 py-1 rounded-full bg-blue-100 border border-blue-200">
+                  <Text className="text-[10px] font-bold uppercase text-blue-700">
+                    {musicTrack.license ? musicTrack.license : "Sound"}
+                  </Text>
+                </View>
+              ) : (
+                <View className="px-2 py-1 rounded-full bg-amber-100 border border-amber-200">
+                  <Text className="text-[10px] font-bold uppercase text-amber-700">
+                    No audio
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 

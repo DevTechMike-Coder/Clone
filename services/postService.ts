@@ -17,6 +17,9 @@ export type Post = {
   music_track_title?: string;
   music_track_artist?: string;
   music_track_cover_url?: string;
+  /** Present once 20260901120000_sounds_library.sql is applied + the sound was self-hosted. */
+  music_track_audio_url?: string | null;
+  music_track_attribution?: string | null;
   duration_seconds?: number;
   has_sound?: boolean;
   profiles: {
@@ -147,6 +150,8 @@ export const postService = {
     music_track_title?: string;
     music_track_artist?: string;
     music_track_cover_url?: string;
+    music_track_audio_url?: string;
+    music_track_attribution?: string;
     duration_seconds?: number;
     has_sound?: boolean;
   }) {
@@ -171,6 +176,8 @@ export const postService = {
       music_track_title: optionalMeta.music_track_title,
       music_track_artist: optionalMeta.music_track_artist,
       music_track_cover_url: optionalMeta.music_track_cover_url,
+      music_track_audio_url: optionalMeta.music_track_audio_url,
+      music_track_attribution: optionalMeta.music_track_attribution,
       duration_seconds: optionalMeta.duration_seconds,
       has_sound: optionalMeta.has_sound,
     };

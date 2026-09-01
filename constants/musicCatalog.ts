@@ -1,80 +1,74 @@
-import { MusicTrackItem } from "@/store/pendingPost";
+import type { MusicTrackItem } from "@/store/pendingPost";
+import musicCatalogJson from "../supabase/seed/music_catalog.json";
 
-// These are publicly streamable demo tracks from SoundHelix.
-// Swap `audioUrl` for licensed tracks or Supabase Storage audio URLs when
-// you connect a real music catalog. `id` values are intentionally stable
-// short strings so they can also be used as the `music_track_id` in posts.
-export const MUSIC_CATALOG: MusicTrackItem[] = [
-  {
-    id: "1",
-    title: "Golden Glow (Original Mix)",
-    artist: "Aurora Beats",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    durationSeconds: 372,
-    isTrending: true,
-    coverUrl: "https://picsum.photos/seed/golden-glow/200/200",
-  },
-  {
-    id: "2",
-    title: "Midnight City Lights",
-    artist: "SynthWave Collective",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    durationSeconds: 424,
-    isTrending: true,
-    coverUrl: "https://picsum.photos/seed/midnight-city/200/200",
-  },
-  {
-    id: "3",
-    title: "Summer Breeze",
-    artist: "Tropical Vibes",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-    durationSeconds: 358,
-    isTrending: true,
-    coverUrl: "https://picsum.photos/seed/summer-breeze/200/200",
-  },
-  {
-    id: "4",
-    title: "Future Funk Deluxe",
-    artist: "Kairo & Friends",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-    durationSeconds: 401,
-    isTrending: true,
-    coverUrl: "https://picsum.photos/seed/future-funk/200/200",
-  },
-  {
-    id: "5",
-    title: "Acoustic Sunrise",
-    artist: "Luna Woods",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-    durationSeconds: 336,
-    isTrending: false,
-    coverUrl: "https://picsum.photos/seed/acoustic-sunrise/200/200",
-  },
-  {
-    id: "6",
-    title: "Cyber Odyssey",
-    artist: "Neon Pulse",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-    durationSeconds: 383,
-    isTrending: false,
-    coverUrl: "https://picsum.photos/seed/cyber-odyssey/200/200",
-  },
-  {
-    id: "7",
-    title: "Lo-Fi Coffee Moments",
-    artist: "ChillHop Dreamer",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-    durationSeconds: 354,
-    isTrending: false,
-    coverUrl: "https://picsum.photos/seed/lofi-coffee/200/200",
-  },
-  {
-    id: "8",
-    title: "Drift Away",
-    artist: "The Skyline",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-    durationSeconds: 411,
-    isTrending: false,
-    coverUrl: "https://picsum.photos/seed/drift-away/200/200",
-  },
-];
+/**
+ * The bundled fallback catalog.
+ *
+ * Two things changed here compared to the original version of this file:
+ *
+ * 1. It no longer points at `soundhelix.com` / `picsum.photos`. Those were
+ *    undocumented third-party demo hosts: no license on the audio, no SLA, and
+ *    a preview that dies the moment they reorganise. The whole point of the
+ *    self-hosted library is that the app never depends on a host it does not
+ *    control, so the fallback uses *your* Supabase Storage bucket instead.
+ * 2. It is generated from `supabase/seed/music_catalog.json` -- the exact file
+ *    `scripts/seed-music.mjs` uploads and upserts from. Before, the seeded rows
+ *    and this list could drift (different ids, different titles); now there is
+ *    one manifest, and `music_tracks.id` matches the fallback id, so posts
+ *    published before the table was seeded still resolve.
+ *
+ * If the migration has not been applied, or the bucket has not been seeded
+ * yet, these rows are what the picker shows. Playback then depends on the
+ * objects existing in the bucket -- `services/musicService.ts` prefers the
+ * table, and `SoundChip` disables itself for a track without a URL.
+ */
+const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+
+export const SOUNDS_BUCKET = (musicCatalogJson as { bucket?: string }).bucket ?? "sounds";
+
+/** Public URL for an object key inside the `sounds` bucket. */
+export const soundPublicUrl = (storagePath?: string | null): string | undefined => {
+  if (!storagePath || !SUPABASE_URL) return undefined;
+  // Avoid double-prefixing if a manifest ever stores a full URL.
+  if (/^https?:\/\//i.test(storagePath)) return storagePath;
+  return `${SUPABASE_URL}/storage/v1/object/public/${SOUNDS_BUCKET}/${storagePath}`;
+};
+
+type ManifestTrack = {
+  id: string;
+  title: string;
+  artist: string;
+  genre?: string;
+  durationSeconds?: number;
+  isTrending?: boolean;
+  storagePath?: string;
+  license?: string;
+  attribution?: string;
+  licenseUrl?: string;
+  coverUrl?: string;
+};
+
+export const MUSIC_CATALOG: MusicTrackItem[] = ((musicCatalogJson as { tracks?: ManifestTrack[] })
+  .tracks ?? []).map((track) => ({
+  id: track.id,
+  title: track.title,
+  artist: track.artist,
+  genre: track.genre,
+  durationSeconds: track.durationSeconds,
+  isTrending: track.isTrending,
+  storagePath: track.storagePath,
+  audioUrl: soundPublicUrl(track.storagePath),
+  coverUrl: track.coverUrl,
+  license: track.license && track.license !== "UNVERIFIED" ? track.license : undefined,
+  attribution: track.attribution,
+  licenseUrl: track.licenseUrl,
+}));
+
+/**
+ * Used by the feed and the post screen: a post only snapshots
+ * `music_track_audio_url` at publish time, so a post made against the old
+ * remote URLs (or before that column existed) has nothing to play. Fall back to
+ * the catalog entry for the same `music_track_id`.
+ */
+export const findCatalogTrack = (trackId?: string | null): MusicTrackItem | undefined =>
+  trackId ? MUSIC_CATALOG.find((track) => track.id === trackId) : undefined;

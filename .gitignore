@@ -44,3 +44,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Sound library sources: downloaded/licensed audio stays out of git (tens of MB
+# of binaries). Supabase Storage holds the canonical copies; see
+# scripts/seed-music.mjs.
+assets/sounds/*
+!assets/sounds/README.txt

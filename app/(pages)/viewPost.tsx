@@ -19,6 +19,8 @@ import { bookmarkService } from "@/services/bookmarkService";
 import { repostService } from "@/services/repostService";
 import { shareService } from "@/services/shareService";
 import CommentsModal from "@/components/modal/CommentsModal";
+import SoundChip from "@/components/SoundChip";
+import { stopAllSounds } from "@/lib/useTrackSound";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
@@ -106,6 +108,11 @@ export default function ViewPost() {
   useFocusEffect(
     useCallback(() => {
       fetchPost();
+
+      // This screen is pushed over the feed rather than replacing it, and both
+      // can have a sound going. Losing focus (back to the feed, into comments on
+      // another post) has to silence this one.
+      return () => stopAllSounds();
     }, [fetchPost])
   );
 
@@ -323,16 +330,17 @@ export default function ViewPost() {
             <PostDetailMedia post={post} />
           </View>
 
-          {/* Attached Sound Tag */}
-          {(post.has_sound || post.music_track_title) && (
+          {/* Attached Sound — also the control that plays it */}
+          {(post.has_sound || post.music_track_title || post.music_track_audio_url) && (
             <View className="px-5 py-3 bg-white border-b border-slate-100">
-              <View className="flex-row items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 self-start">
-                <Ionicons name="musical-notes" size={14} color="#2563EB" />
-                <Text className="text-xs font-bold text-slate-700" numberOfLines={1}>
-                  {post.music_track_title || "Original Sound"}
-                  {post.music_track_artist ? ` • ${post.music_track_artist}` : ""}
-                </Text>
-              </View>
+              <SoundChip
+                variant="card"
+                trackKey={post.id}
+                title={post.music_track_title}
+                artist={post.music_track_artist}
+                audioUrl={post.music_track_audio_url}
+                attribution={post.music_track_attribution}
+              />
             </View>
           )}
 

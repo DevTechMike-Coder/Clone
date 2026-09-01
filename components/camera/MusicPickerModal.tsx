@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { MusicTrackItem } from "@/store/pendingPost";
 import { musicService } from "@/services/musicService";
+import { stopAllSounds } from "@/lib/useTrackSound";
 
 type MusicPickerModalProps = {
   visible: boolean;
@@ -91,6 +92,10 @@ export default function MusicPickerModal({
   }, [tracks, search]);
 
   const togglePreview = (track: MusicTrackItem) => {
+    // A preview started here has to silence any post sound that is playing
+    // underneath (the feed is still mounted behind the camera sheet).
+    stopAllSounds();
+
     if (!track.audioUrl) {
       setPlayingId(null);
       return;
@@ -271,9 +276,26 @@ export default function MusicPickerModal({
                           {item.artist}
                           {item.durationSeconds ? ` • ${formatDuration(item.durationSeconds)}` : ""}
                         </Text>
-                        {item.isTrending && (
-                          <Text className="text-[10px] text-amber-400 font-bold mt-0.5">
-                            TRENDING
+                        <View className="flex-row flex-wrap items-center gap-x-2 mt-0.5">
+                          {item.isTrending && (
+                            <Text className="text-[10px] text-amber-400 font-bold">
+                              TRENDING
+                            </Text>
+                          )}
+                          {!!item.usageCount && (
+                            <Text className="text-[10px] text-slate-500">
+                              {item.usageCount} {item.usageCount === 1 ? "post" : "posts"}
+                            </Text>
+                          )}
+                          {!!item.license && (
+                            <Text className="text-[9px] font-bold text-emerald-400/90 border border-emerald-500/30 rounded-full px-1.5 py-px">
+                              {item.license}
+                            </Text>
+                          )}
+                        </View>
+                        {!!item.attribution && (
+                          <Text className="text-[9px] text-slate-500 mt-0.5" numberOfLines={1}>
+                            {item.attribution}
                           </Text>
                         )}
                       </View>
