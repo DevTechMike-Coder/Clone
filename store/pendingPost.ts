@@ -13,6 +13,19 @@ export type MusicTrackItem = {
   audioUrl?: string;
   durationSeconds?: number;
   isTrending?: boolean;
+  /**
+   * Provenance, added with the self-hosted sound library.
+   * `storagePath` is the object key inside the `sounds` bucket, which is how
+   * `audioUrl` is rebuilt when the Supabase project ref changes.
+   * `attribution` is the credit a CC-BY style licence obliges the app to show.
+   */
+  storagePath?: string;
+  license?: string;
+  licenseUrl?: string;
+  attribution?: string;
+  genre?: string;
+  /** Post count, from `public.music_track_usage` -- not a stored column. */
+  usageCount?: number;
 };
 
 export type PendingPostData = {

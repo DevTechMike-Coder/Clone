@@ -1,5 +1,20 @@
 # Filters + Music Audit & Upgrade Plan
 
+> **Status update (2026-09-01) — the music half of this audit is done; do not
+> re-implement it from the notes below.** `music_tracks` exists
+> (`supabase/migrations/20260831120000_music_and_filters.sql`), the catalog is
+> seeded from `supabase/seed/music_catalog.json` into a public `sounds` Storage
+> bucket (`20260901120000_sounds_library.sql`), preview *and* post playback are
+> wired through `expo-audio` (`components/SoundChip.tsx`,
+> `lib/useTrackSound.ts`), and trending is computed from real post counts via the
+> `music_track_usage` view. See **MUSIC_SOUNDS_SETUP.md** for the runbook and the
+> licensing rules.
+>
+> Two specifics in this document are now wrong and cost time if trusted: audio is
+> **not** static anymore, and §1's "video playback is a big gap" is closed —
+> `IndexVideoFeed.tsx` and `viewPost.tsx` both use `useVideoPlayer`/`VideoView`.
+> The filter half (§2) is still accurate.
+
 **Date:** 2026-08-31
 **Branch:** `arena/01a057b9-clone`
 

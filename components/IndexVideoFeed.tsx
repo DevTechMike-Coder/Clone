@@ -9,6 +9,8 @@ import { formatRelativeTime } from "@/lib/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
+import SoundChip from "@/components/SoundChip";
+import { stopAllSounds } from "@/lib/useTrackSound";
 import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
@@ -142,6 +144,10 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   const [newPostsCount, setNewPostsCount] = useState(0);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  // Which post is *the* post right now, video or not. The sound follows this
+  // rather than activeVideoId: an image post can carry a sound too, and an
+  // image-only feed would otherwise never find an "active" item.
+  const [activePostId, setActivePostId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const listBottomPadding = 70 + Math.max(insets.bottom, 16) + 8;
 
@@ -257,6 +263,10 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   useFocusEffect(
     useCallback(() => {
       fetchPosts();
+
+      // Pushing another route does not unmount the feed under expo-router, so a
+      // sound started here would still be playing on top of the next screen.
+      return () => stopAllSounds();
     }, [fetchPosts]),
   );
 
@@ -335,6 +345,11 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
           (view) => view.isViewable && view.item?.media_type === "video",
         );
         setActiveVideoId(visiblePost?.item?.id ?? null);
+
+        // The sound follows the first viewable post of any media type, so an
+        // image post with a track attached still plays it while it is on screen.
+        const visibleAny = viewableItems.find((view) => view.isViewable && view.item?.id);
+        setActivePostId(visibleAny?.item?.id ?? null);
       },
     [hideNewPostsBanner],
   );
@@ -549,18 +564,18 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
           active={item.media_type === "video" && activeVideoId === item.id}
         />
 
-        {/* Attached Sound Tag */}
-        {(item.has_sound || item.music_track_title) && (
-          <View
-            pointerEvents="none"
-            className="absolute left-3 bottom-3 flex-row items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/15"
-          >
-            <Ionicons name="musical-notes" size={13} color="#38BDF8" />
-            <Text className="text-white text-[11px] font-bold" numberOfLines={1}>
-              {item.music_track_title || "Original Sound"}
-              {item.music_track_artist ? ` • ${item.music_track_artist}` : ""}
-            </Text>
-          </View>
+        {/* Attached Sound — the pill is also the play/stop control. */}
+        {(item.has_sound || item.music_track_title || item.music_track_audio_url) && (
+          <SoundChip
+            variant="overlay"
+            className="absolute left-3 bottom-3 max-w-[85%]"
+            trackKey={item.id}
+            title={item.music_track_title}
+            artist={item.music_track_artist}
+            audioUrl={item.music_track_audio_url}
+            attribution={item.music_track_attribution}
+            active={activePostId === item.id}
+          />
         )}
       </View>
 
