@@ -20,6 +20,7 @@ import { router, useNavigation, useFocusEffect } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
+import { pushNotificationService } from "@/services/pushNotificationService";
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { bookmarkService } from "@/services/bookmarkService";
@@ -123,6 +124,9 @@ export default function Profile() {
 
   const handleSignOut = async () => {
     try {
+      // Remove this device's push token before the session ends — RLS only
+      // allows the owner to delete their rows, so it must run pre-sign-out.
+      await pushNotificationService.unregisterDevice().catch(() => {});
       await authService.signOut();
       router.replace("/");
       Toast.show({

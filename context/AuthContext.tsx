@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { pushNotificationService } from "@/services/pushNotificationService";
 
 type AuthContextType = {
   session: Session | null;
@@ -55,6 +56,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Once a session exists, register this device for push notifications.
+  // Fire-and-forget: permission prompts / token storage must never block
+  // auth, and the call is a guarded no-op in Expo Go / web.
+  useEffect(() => {
+    if (!user) return;
+    pushNotificationService
+      .registerDevice()
+      .catch((error) => console.warn("[push] registration failed:", error));
+  }, [user?.id]);
 
   return (
     <AuthContext.Provider value={{ session, user, loading }}>
