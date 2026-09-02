@@ -16,6 +16,7 @@ import { styled } from "nativewind";
 
 import { authService } from "@/services/authService";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -128,6 +129,8 @@ const SignUp = () => {
             <View className="h-12 justify-center">
               <TouchableOpacity
                 onPress={() => router.back()}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
                 className="h-10 w-10 items-center justify-center"
               >
                 <Image
@@ -153,7 +156,7 @@ const SignUp = () => {
                   <View className="w-full gap-4">
                     <TextInput
                       placeholder="Full Name"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.slate[400]}
                       value={fullName}
                       onChangeText={setFullName}
                       className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
@@ -161,7 +164,7 @@ const SignUp = () => {
 
                     <TextInput
                       placeholder="Email"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.slate[400]}
                       keyboardType="email-address"
                       autoCapitalize="none"
                       value={email}
@@ -172,7 +175,7 @@ const SignUp = () => {
                     <View className="relative w-full">
                       <TextInput
                         placeholder="Password"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.slate[400]}
                         secureTextEntry={!showPassword}
                         value={password}
                         onChangeText={setPassword}
@@ -181,12 +184,14 @@ const SignUp = () => {
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => setShowPassword((v) => !v)}
+                        accessibilityRole="button"
+                        accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                         className="absolute right-3 top-0 h-12 w-10 items-center justify-center"
                       >
                         <Image
                           source={showPassword ? eyeOffOutline : eyeOutline}
                           className="h-6 w-6"
-                          style={{ tintColor: "#64748B" }}
+                          style={{ tintColor: colors.slate[500] }}
                           resizeMode="contain"
                         />
                       </TouchableOpacity>
@@ -226,7 +231,7 @@ const SignUp = () => {
                       className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
                     >
                       {oauthLoading === "google" ? (
-                        <ActivityIndicator size="small" color="#2563EB" />
+                        <ActivityIndicator size="small" color={colors.blue[600]} />
                       ) : (
                         <>
                           <Image
@@ -248,7 +253,7 @@ const SignUp = () => {
                       className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
                     >
                       {oauthLoading === "apple" ? (
-                        <ActivityIndicator size="small" color="#0F172A" />
+                        <ActivityIndicator size="small" color={colors.slate[900]} />
                       ) : (
                         <>
                           <Image

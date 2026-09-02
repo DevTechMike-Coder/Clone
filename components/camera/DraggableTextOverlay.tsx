@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { TextOverlayItem } from "@/store/pendingPost";
+import { colors } from "@/constants/theme";
 
 type DraggableTextOverlayProps = {
   item: TextOverlayItem;
@@ -231,6 +232,8 @@ export default function DraggableTextOverlay({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 onEdit(item);
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit text"
               style={styles.actionCircleBtn}
             >
               <Ionicons name="pencil" size={13} color="white" />
@@ -243,6 +246,8 @@ export default function DraggableTextOverlay({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 onDelete(item.id);
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Delete text"
               style={[styles.actionCircleBtn, styles.deleteCircleBtn]}
             >
               <Ionicons name="close" size={14} color="white" />
@@ -264,14 +269,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(59, 130, 246, 0.9)",
     borderStyle: "dashed",
-    shadowColor: "#3B82F6",
+    shadowColor: colors.blue[500],
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,
     elevation: 8,
   },
   trashHighlight: {
-    borderColor: "#EF4444",
+    borderColor: colors.red[500],
     backgroundColor: "rgba(239, 68, 68, 0.35)",
   },
   actionPillRow: {

@@ -32,6 +32,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import { colors, storyRingGradient } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -239,10 +240,10 @@ export default function Profile() {
           right: 0,
           bottom: 0,
           width: "82%",
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.white,
           zIndex: 20,
           transform: [{ translateX: slideAnim }],
-          shadowColor: "#0F172A",
+          shadowColor: colors.slate[900],
           shadowOffset: { width: -4, height: 0 },
           shadowOpacity: 0.15,
           shadowRadius: 12,
@@ -251,7 +252,7 @@ export default function Profile() {
       >
         <View className="px-5 pt-14 pb-4 flex-row items-center justify-between border-b border-slate-100">
           <View className="flex-row items-center gap-3">
-            <Ionicons name="settings-outline" size={22} color="#0F172A" />
+            <Ionicons name="settings-outline" size={22} color={colors.slate[900]} />
             <Text className="text-lg font-bold text-slate-900 tracking-tight">
               Settings
             </Text>
@@ -259,6 +260,8 @@ export default function Profile() {
 
           <TouchableOpacity
             onPress={closeMenu}
+            accessibilityRole="button"
+            accessibilityLabel="Close settings"
             className="w-9 h-9 rounded-full items-center justify-center"
           >
             <Image
@@ -279,10 +282,10 @@ export default function Profile() {
             className="flex-row items-center justify-between py-4 border-b border-slate-100"
           >
             <View className="flex-row items-center gap-3">
-              <Ionicons name="person-circle-outline" size={20} color="#475569" />
+              <Ionicons name="person-circle-outline" size={20} color={colors.slate[600]} />
               <Text className="text-base text-slate-800">Accounts Center</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+            <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -291,7 +294,7 @@ export default function Profile() {
             className="flex-row items-center justify-between py-4"
           >
             <View className="flex-row items-center gap-3 flex-1 pr-3">
-              <Ionicons name="lock-closed-outline" size={20} color="#475569" />
+              <Ionicons name="lock-closed-outline" size={20} color={colors.slate[600]} />
               <View className="flex-1">
                 <Text className="text-base text-slate-800">Private account</Text>
                 <Text className="text-xs text-slate-400 mt-0.5">
@@ -314,10 +317,10 @@ export default function Profile() {
 
           <TouchableOpacity className="flex-row items-center justify-between py-4">
             <View className="flex-row items-center gap-3">
-              <Ionicons name="notifications-outline" size={20} color="#475569" />
+              <Ionicons name="notifications-outline" size={20} color={colors.slate[600]} />
               <Text className="text-base text-slate-800">Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+            <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -325,7 +328,7 @@ export default function Profile() {
             className="flex-row items-center justify-between py-4"
           >
             <View className="flex-row items-center gap-3">
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              <Ionicons name="log-out-outline" size={20} color={colors.red[500]} />
               <Text className="text-base text-red-500 font-semibold">
                 Sign Out
               </Text>
@@ -344,10 +347,18 @@ export default function Profile() {
 
         {isOwnProfile && (
           <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={handleShareProfile}>
-              <Ionicons name="share-social-outline" size={26} color="#0F172A" />
+            <TouchableOpacity
+              onPress={handleShareProfile}
+              accessibilityRole="button"
+              accessibilityLabel="Share profile"
+            >
+              <Ionicons name="share-social-outline" size={26} color={colors.slate[900]} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/(pages)/editProfile")}>
+            <TouchableOpacity
+              onPress={() => router.push("/(pages)/editProfile")}
+              accessibilityRole="button"
+              accessibilityLabel="Edit profile"
+            >
               <Image
                 source={require("@/assets/homeIcons/pencil.png")}
                 className="w-8 h-8"
@@ -357,6 +368,8 @@ export default function Profile() {
 
             <TouchableOpacity
               onPress={openMenu}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
               className="w-10 h-10 rounded-full items-center justify-center"
             >
               <Image
@@ -372,7 +385,7 @@ export default function Profile() {
       {/* Avatar */}
       <View className="flex items-center pt-4">
         {loading ? (
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={colors.blue[600]} />
         ) : (
           <>
             <View className="relative">
@@ -389,7 +402,7 @@ export default function Profile() {
                 disabled={activeStoryCount === 0}
               >
                 <LinearGradient
-                  colors={activeStoryCount > 0 ? ["#F59E0B", "#EC4899", "#8B5CF6", "#3B82F6"] : ["#E2E8F0", "#E2E8F0"]}
+                  colors={activeStoryCount > 0 ? [...storyRingGradient] : [colors.slate[200], colors.slate[200]]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{
@@ -421,6 +434,8 @@ export default function Profile() {
               <TouchableOpacity
                 onPress={() => router.push("/(pages)/createStory")}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Add story"
                 className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 items-center justify-center border-[3px] border-white z-10"
               >
                 <Ionicons name="add" size={19} color="white" />
@@ -438,7 +453,7 @@ export default function Profile() {
               )}
               {profile?.is_private && (
                 <View className="flex-row items-center gap-1 mt-1">
-                  <Ionicons name="lock-closed" size={12} color="#64748B" />
+                  <Ionicons name="lock-closed" size={12} color={colors.slate[500]} />
                   <Text className="text-xs text-slate-400">Private account</Text>
                 </View>
               )}
@@ -485,9 +500,11 @@ export default function Profile() {
         <TouchableOpacity
           onPress={handleShareProfile}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Share profile"
           className="w-11 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
         >
-          <Ionicons name="share-outline" size={20} color="#0F172A" />
+          <Ionicons name="share-outline" size={20} color={colors.slate[900]} />
         </TouchableOpacity>
       </View>
 
@@ -554,6 +571,9 @@ export default function Profile() {
       <View className="flex-row border-b border-slate-200">
         <TouchableOpacity
           onPress={() => setActiveTab("overview")}
+          accessibilityRole="tab"
+          accessibilityLabel="Posts"
+          accessibilityState={{ selected: activeTab === "overview" }}
           className={`flex-1 items-center py-3 border-b-2 ${
             activeTab === "overview" ? "border-blue-600" : "border-transparent"
           }`}
@@ -563,12 +583,15 @@ export default function Profile() {
             className="w-5 h-5"
             resizeMode="contain"
             style={{
-              tintColor: activeTab === "overview" ? "#2563EB" : "#64748B",
+              tintColor: activeTab === "overview" ? colors.blue[600] : colors.slate[500],
             }}
           />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setActiveTab("repeat")}
+          accessibilityRole="tab"
+          accessibilityLabel="Reposts"
+          accessibilityState={{ selected: activeTab === "repeat" }}
           className={`flex-1 items-center py-3 border-b-2 ${
             activeTab === "repeat" ? "border-blue-600" : "border-transparent"
           }`}
@@ -578,12 +601,15 @@ export default function Profile() {
             className="w-5 h-5"
             resizeMode="contain"
             style={{
-              tintColor: activeTab === "repeat" ? "#2563EB" : "#64748B",
+              tintColor: activeTab === "repeat" ? colors.blue[600] : colors.slate[500],
             }}
           />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setActiveTab("bookmark")}
+          accessibilityRole="tab"
+          accessibilityLabel="Bookmarks"
+          accessibilityState={{ selected: activeTab === "bookmark" }}
           className={`flex-1 items-center py-3 border-b-2 ${
             activeTab === "bookmark" ? "border-blue-600" : "border-transparent"
           }`}
@@ -593,7 +619,7 @@ export default function Profile() {
             className="w-5 h-5"
             resizeMode="contain"
             style={{
-              tintColor: activeTab === "bookmark" ? "#2563EB" : "#64748B",
+              tintColor: activeTab === "bookmark" ? colors.blue[600] : colors.slate[500],
             }}
           />
         </TouchableOpacity>
@@ -628,7 +654,7 @@ export default function Profile() {
             </View>
           ) : (
             <View className="flex-1 items-center justify-center py-20 px-10">
-              <Ionicons name="document-text-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="document-text-outline" size={48} color={colors.slate[300]} />
               <Text className="text-lg font-semibold text-slate-900 mt-4">
                 No posts yet
               </Text>
@@ -669,7 +695,7 @@ export default function Profile() {
             </View>
           ) : (
             <View className="flex-1 items-center justify-center py-20 px-10">
-              <Ionicons name="repeat-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="repeat-outline" size={48} color={colors.slate[300]} />
               <Text className="text-lg font-semibold text-slate-900 mt-4">
                 No reposts yet
               </Text>
@@ -702,7 +728,7 @@ export default function Profile() {
             </View>
           ) : (
             <View className="flex-1 items-center justify-center py-20 px-10">
-              <Ionicons name="bookmark-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="bookmark-outline" size={48} color={colors.slate[300]} />
               <Text className="text-lg font-semibold text-slate-900 mt-4">
                 No bookmarks yet
               </Text>
@@ -768,7 +794,7 @@ export default function Profile() {
                   }}
                   className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
                 >
-                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                  <Ionicons name="trash-outline" size={22} color={colors.red[500]} />
                   <Text className="text-red-500 font-bold text-base">Delete post</Text>
                 </TouchableOpacity>
               )}
@@ -785,7 +811,7 @@ export default function Profile() {
                 }}
                 className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
               >
-                <Ionicons name="eye-outline" size={22} color="#0F172A" />
+                <Ionicons name="eye-outline" size={22} color={colors.slate[900]} />
                 <Text className="text-slate-800 font-semibold text-base">View post</Text>
               </TouchableOpacity>
 
@@ -804,7 +830,7 @@ export default function Profile() {
                 }}
                 className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
               >
-                <Ionicons name="share-outline" size={22} color="#0F172A" />
+                <Ionicons name="share-outline" size={22} color={colors.slate[900]} />
                 <Text className="text-slate-800 font-semibold text-base">Share post</Text>
               </TouchableOpacity>
 
@@ -812,7 +838,7 @@ export default function Profile() {
                 onPress={closePostMenu}
                 className="flex-row items-center gap-3 py-4 px-2"
               >
-                <Ionicons name="close-circle-outline" size={22} color="#64748B" />
+                <Ionicons name="close-circle-outline" size={22} color={colors.slate[500]} />
                 <Text className="text-slate-500 font-semibold text-base">Cancel</Text>
               </TouchableOpacity>
             </View>

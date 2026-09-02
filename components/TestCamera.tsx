@@ -34,6 +34,7 @@ import FilterPicker, { CAMERA_FILTERS } from "./camera/FilterPicker";
 import TextOverlayModal from "./camera/TextOverlayModal";
 import MusicPickerModal from "./camera/MusicPickerModal";
 import DraggableTextOverlay from "./camera/DraggableTextOverlay";
+import { colors } from "@/constants/theme";
 
 type CaptureMode = "Photo" | "Video" | "Story";
 
@@ -323,7 +324,7 @@ export default function TestCamera({
     const newSticker: TextOverlayItem = {
       id: Date.now().toString(),
       text: emoji,
-      color: "#FFFFFF",
+      color: colors.white,
       fontSize: 40,
       fontStyle: "classic",
       bgMode: "transparent",
@@ -453,6 +454,8 @@ export default function TestCamera({
           {/* Left: Close / Discard */}
           <TouchableOpacity
             onPress={() => setShowDiscardModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 shadow-md active:opacity-80"
           >
             <Ionicons name="close" size={22} color="white" />
@@ -482,7 +485,7 @@ export default function TestCamera({
             <Ionicons
               name="musical-notes"
               size={14}
-              color={selectedTrack ? "#38BDF8" : "white"}
+              color={selectedTrack ? colors.sky[400] : "white"}
             />
             <Text
               className="text-white text-xs font-bold"
@@ -498,6 +501,8 @@ export default function TestCamera({
                   setSelectedTrack(null);
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Remove sound"
               >
                 <Ionicons
                   name="close-circle"
@@ -516,6 +521,8 @@ export default function TestCamera({
                 setEditingOverlay(null);
                 setShowTextModal(true);
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Add text"
               className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 shadow-md active:opacity-80"
             >
               <Text className="text-white font-black text-sm">Aa</Text>
@@ -524,6 +531,8 @@ export default function TestCamera({
             {/* Filters */}
             <TouchableOpacity
               onPress={() => setShowFilterPicker((p) => !p)}
+              accessibilityRole="button"
+              accessibilityLabel="Filters"
               className={`w-10 h-10 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
                 showFilterPicker
                   ? "bg-blue-600 border-blue-400"
@@ -536,6 +545,8 @@ export default function TestCamera({
             {/* Stickers */}
             <TouchableOpacity
               onPress={() => setShowStickerTray((p) => !p)}
+              accessibilityRole="button"
+              accessibilityLabel="Stickers"
               className={`w-10 h-10 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
                 showStickerTray
                   ? "bg-blue-600 border-blue-400"
@@ -562,7 +573,7 @@ export default function TestCamera({
               borderRadius: 20,
               borderWidth: 1,
               borderColor: "rgba(255, 255, 255, 0.15)",
-              shadowColor: "#000",
+              shadowColor: colors.black,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.5,
               shadowRadius: 10,
@@ -613,10 +624,10 @@ export default function TestCamera({
                 borderRadius: 30,
                 borderWidth: 1.5,
                 borderColor: isOverTrash
-                  ? "#FCA5A5"
+                  ? colors.red[300]
                   : "rgba(255, 255, 255, 0.25)",
                 transform: [{ scale: isOverTrash ? 1.1 : 1 }],
-                shadowColor: isOverTrash ? "#EF4444" : "#000",
+                shadowColor: isOverTrash ? colors.red[500] : colors.black,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.6,
                 shadowRadius: 10,
@@ -682,7 +693,7 @@ export default function TestCamera({
             onPress={() => setShowDiscardModal(false)}
           >
             <View className="w-full bg-white rounded-3xl p-6 items-center">
-              <Ionicons name="trash-outline" size={32} color="#EF4444" />
+              <Ionicons name="trash-outline" size={32} color={colors.red[500]} />
               <Text className="text-slate-900 text-lg font-bold mt-3 mb-1">
                 Discard Capture?
               </Text>
@@ -819,6 +830,8 @@ export default function TestCamera({
               router.back();
             }
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Close camera"
           className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 shadow-sm active:opacity-80"
         >
           <Ionicons name="close" size={22} color="white" />
@@ -847,7 +860,7 @@ export default function TestCamera({
           <Ionicons
             name="musical-notes"
             size={14}
-            color={selectedTrack ? "#38BDF8" : "white"}
+            color={selectedTrack ? colors.sky[400] : "white"}
           />
           <Text
             className="text-white text-xs font-bold"
@@ -863,6 +876,8 @@ export default function TestCamera({
                 setSelectedTrack(null);
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Remove sound"
             >
               <Ionicons
                 name="close-circle"
@@ -888,6 +903,8 @@ export default function TestCamera({
           ) : (
             <TouchableOpacity
               onPress={cycleFlash}
+              accessibilityRole="button"
+              accessibilityLabel={`Flash ${flash}`}
               className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 shadow-sm active:opacity-80"
             >
               <Ionicons
@@ -918,6 +935,8 @@ export default function TestCamera({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setFacing((f) => (f === "back" ? "front" : "back"));
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Flip camera"
             className="w-11 h-11 rounded-full bg-black/40 border border-white/20 items-center justify-center shadow-md active:opacity-80"
           >
             <Image
@@ -934,6 +953,8 @@ export default function TestCamera({
               const idx = SPEED_OPTIONS.indexOf(speed);
               setSpeed(SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length]);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={`Playback speed ${speed}x`}
             className="w-11 h-11 rounded-full bg-black/40 border border-white/20 items-center justify-center shadow-md active:opacity-80"
           >
             <Text className="text-white text-xs font-bold">{speed}x</Text>
@@ -946,6 +967,10 @@ export default function TestCamera({
               const idx = TIMER_OPTIONS.indexOf(countdownTimer);
               setCountdownTimer(TIMER_OPTIONS[(idx + 1) % TIMER_OPTIONS.length]);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              countdownTimer > 0 ? `Timer ${countdownTimer} seconds` : "Timer off"
+            }
             className={`w-11 h-11 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
               countdownTimer > 0
                 ? "bg-blue-600 border-blue-400"
@@ -970,6 +995,8 @@ export default function TestCamera({
               Haptics.selectionAsync();
               setShowFilterPicker((p) => !p);
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Filters"
             className={`w-11 h-11 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
               selectedFilter !== "none"
                 ? "bg-blue-600 border-blue-400"
@@ -1031,6 +1058,8 @@ export default function TestCamera({
           {!isRecording ? (
             <TouchableOpacity
               onPress={pickMedia}
+              accessibilityRole="button"
+              accessibilityLabel="Choose from gallery"
               className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 items-center justify-center active:opacity-80"
             >
               <Ionicons name="images-outline" size={22} color="white" />
@@ -1053,6 +1082,14 @@ export default function TestCamera({
                 takePhoto();
               }
             }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              activeMode === "Video"
+                ? isRecording
+                  ? "Stop recording"
+                  : "Start recording"
+                : "Take photo"
+            }
             style={styles.shutterRing}
           >
             <View
@@ -1096,13 +1133,13 @@ const styles = StyleSheet.create({
     width: SHUTTER_INNER,
     height: SHUTTER_INNER,
     borderRadius: SHUTTER_INNER / 2,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
   },
   shutterVideoInactive: {
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.red[500],
   },
   shutterVideoActive: {
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.red[500],
     width: 32,
     height: 32,
     borderRadius: 8,

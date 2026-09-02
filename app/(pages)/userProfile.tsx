@@ -23,6 +23,7 @@ import { useState, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -124,8 +125,12 @@ export default function UserProfile() {
       {/* Header Row */}
       <View className="flex-row items-center justify-between px-5 py-4">
         <View className="flex-row items-center gap-3">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#0F172A" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
           </TouchableOpacity>
           <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
             {isOwnProfile ? "My Profile" : "Profile"}
@@ -137,7 +142,7 @@ export default function UserProfile() {
         {/* Avatar */}
         <View className="flex items-center pt-4">
           {loading ? (
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color={colors.blue[600]} />
           ) : (
             <>
               <View className="w-24 h-24 rounded-full bg-white items-center justify-center border-2 border-blue-600 overflow-hidden">
@@ -294,7 +299,7 @@ export default function UserProfile() {
               className="flex-1 bg-white border border-slate-200 h-11 rounded-xl items-center justify-center shadow-sm"
             >
               {messageLoading ? (
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color={colors.blue[600]} />
               ) : (
                 <Text className="text-slate-900 font-bold">Message</Text>
               )}
@@ -306,6 +311,9 @@ export default function UserProfile() {
         <View className="flex-row border-b border-slate-200">
           <TouchableOpacity
             onPress={() => setActiveTab("overview")}
+            accessibilityRole="tab"
+            accessibilityLabel="Posts"
+            accessibilityState={{ selected: activeTab === "overview" }}
             className={`flex-1 items-center py-3 border-b-2 ${
               activeTab === "overview" ? "border-blue-600" : "border-transparent"
             }`}
@@ -315,12 +323,15 @@ export default function UserProfile() {
               className="w-5 h-5"
               resizeMode="contain"
               style={{
-                tintColor: activeTab === "overview" ? "#2563EB" : "#64748B",
+                tintColor: activeTab === "overview" ? colors.blue[600] : colors.slate[500],
               }}
             />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setActiveTab("repeat")}
+            accessibilityRole="tab"
+            accessibilityLabel="Reposts"
+            accessibilityState={{ selected: activeTab === "repeat" }}
             className={`flex-1 items-center py-3 border-b-2 ${
               activeTab === "repeat" ? "border-blue-600" : "border-transparent"
             }`}
@@ -330,7 +341,7 @@ export default function UserProfile() {
               className="w-5 h-5"
               resizeMode="contain"
               style={{
-                tintColor: activeTab === "repeat" ? "#2563EB" : "#64748B",
+                tintColor: activeTab === "repeat" ? colors.blue[600] : colors.slate[500],
               }}
             />
           </TouchableOpacity>
@@ -340,7 +351,7 @@ export default function UserProfile() {
         <View className="min-h-[300px]">
           {profile?.is_private && !isOwnProfile && !isFollowing ? (
             <View className="items-center justify-center py-20 px-10">
-              <Ionicons name="lock-closed-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="lock-closed-outline" size={48} color={colors.slate[300]} />
               <Text className="text-lg font-semibold text-slate-900 mt-4">
                 This account is private
               </Text>
@@ -371,7 +382,7 @@ export default function UserProfile() {
                   </View>
                 ) : (
                   <View className="items-center justify-center py-20 px-10">
-                    <Ionicons name="document-text-outline" size={48} color="#CBD5E1" />
+                    <Ionicons name="document-text-outline" size={48} color={colors.slate[300]} />
                     <Text className="text-lg font-semibold text-slate-900 mt-4">
                       No posts yet
                     </Text>
@@ -403,7 +414,7 @@ export default function UserProfile() {
                   </View>
                 ) : (
                   <View className="items-center justify-center py-20 px-10">
-                    <Ionicons name="repeat-outline" size={48} color="#CBD5E1" />
+                    <Ionicons name="repeat-outline" size={48} color={colors.slate[300]} />
                     <Text className="text-lg font-semibold text-slate-900 mt-4">
                       No reposts yet
                     </Text>

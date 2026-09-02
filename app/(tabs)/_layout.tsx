@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import AuthSplash from "@/components/AuthSplash";
+import { colors } from "@/constants/theme";
 
 const TabIcon = ({ focused, icon }: TabIconProps) => {
   return (
@@ -15,7 +16,7 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
           source={icon}
           resizeMode="contain"
           className="w-8 h-8"
-          style={{ tintColor: focused ? "#FFFFFF" : "#64748B" }}
+          style={{ tintColor: focused ? colors.white : colors.slate[500] }}
         />
       </View>
     </View>
@@ -46,10 +47,10 @@ export default function TabLayout() {
           marginHorizontal: 20,
           borderRadius: 20,
           borderTopWidth: 1,
-          borderColor: "#E2E8F0",
-          backgroundColor: "#FFFFFF",
+          borderColor: colors.slate[200],
+          backgroundColor: colors.white,
           elevation: 6,
-          shadowColor: "#0F172A",
+          shadowColor: colors.slate[900],
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.08,
           shadowRadius: 18,
@@ -71,6 +72,7 @@ export default function TabLayout() {
           name={tab.name}
           options={{
             title: tab.title,
+            tabBarAccessibilityLabel: tab.title,
             tabBarIcon: ({ focused }) => (
               <TabIcon focused={focused} icon={tab.icon} />
             ),

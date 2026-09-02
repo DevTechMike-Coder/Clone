@@ -24,6 +24,7 @@ import { stopAllSounds } from "@/lib/useTrackSound";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -61,6 +62,8 @@ function VideoPostMedia({ post }: { post: Post }) {
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => setMuted((m) => !m)}
+        accessibilityRole="button"
+        accessibilityLabel={muted ? "Unmute video" : "Mute video"}
         className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-black/55 items-center justify-center border border-white/25"
       >
         <Ionicons name={muted ? "volume-mute" : "volume-high"} size={18} color="white" />
@@ -240,8 +243,13 @@ export default function ViewPost() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
         <View className="flex-row items-center gap-3">
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color="#0F172A" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
           </TouchableOpacity>
           <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
             Post
@@ -253,11 +261,11 @@ export default function ViewPost() {
           refetch runs, instead of swapping the screen for a spinner. */}
       {loading && !post ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={colors.blue[600]} />
         </View>
       ) : !post ? (
         <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="alert-circle-outline" size={48} color="#CBD5E1" />
+          <Ionicons name="alert-circle-outline" size={48} color={colors.slate[300]} />
           <Text className="text-lg font-bold text-slate-900 mt-4">
             Post not found
           </Text>
@@ -273,7 +281,7 @@ export default function ViewPost() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#2563EB"
+              tintColor={colors.blue[600]}
             />
           }
         >
@@ -351,13 +359,16 @@ export default function ViewPost() {
               <TouchableOpacity
                 onPress={handleLike}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={post.is_liked ? "Unlike post" : "Like post"}
+                accessibilityState={{ selected: !!post.is_liked }}
                 className="flex-row items-center gap-1.5"
               >
                 <Image
                   source={require("@/assets/homeIcons/heart.png")}
                   className="h-6 w-6"
                   resizeMode="contain"
-                  style={{ tintColor: post.is_liked ? "#ef4444" : "#0f172a" }}
+                  style={{ tintColor: post.is_liked ? colors.red[500] : colors.slate[900] }}
                 />
                 <Text
                   className={`text-sm font-medium ${
@@ -372,13 +383,15 @@ export default function ViewPost() {
               <TouchableOpacity
                 onPress={() => setShowComments(true)}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Open comments"
                 className="flex-row items-center gap-1.5"
               >
                 <Image
                   source={require("@/assets/homeIcons/bubbleChat.png")}
                   className="h-6 w-6"
                   resizeMode="contain"
-                  style={{ tintColor: "#0f172a" }}
+                  style={{ tintColor: colors.slate[900] }}
                 />
                 <Text className="text-sm font-medium text-slate-700">
                   {post.comment_count ?? 0}
@@ -389,13 +402,16 @@ export default function ViewPost() {
               <TouchableOpacity
                 onPress={handleRepost}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={post.is_reposted ? "Remove repost" : "Repost"}
+                accessibilityState={{ selected: !!post.is_reposted }}
                 className="flex-row items-center gap-1.5"
               >
                 <Image
                   source={require("@/assets/homeIcons/repeat.png")}
                   className="h-6 w-6"
                   resizeMode="contain"
-                  style={{ tintColor: post.is_reposted ? "#10b981" : "#0f172a" }}
+                  style={{ tintColor: post.is_reposted ? colors.emerald[500] : colors.slate[900] }}
                 />
                 <Text
                   className={`text-sm font-medium ${
@@ -412,13 +428,16 @@ export default function ViewPost() {
               <TouchableOpacity
                 onPress={handleBookmark}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={post.is_bookmarked ? "Remove bookmark" : "Bookmark post"}
+                accessibilityState={{ selected: !!post.is_bookmarked }}
                 className="p-1"
               >
                 <Image
                   source={require("@/assets/homeIcons/bookmark.png")}
                   className="h-6 w-6"
                   resizeMode="contain"
-                  style={{ tintColor: post.is_bookmarked ? "#2563eb" : "#0f172a" }}
+                  style={{ tintColor: post.is_bookmarked ? colors.blue[600] : colors.slate[900] }}
                 />
               </TouchableOpacity>
 
@@ -426,13 +445,15 @@ export default function ViewPost() {
               <TouchableOpacity
                 onPress={handleShare}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Share post"
                 className="p-1"
               >
                 <Image
                   source={require("@/assets/homeIcons/share.png")}
                   className="h-6 w-6"
                   resizeMode="contain"
-                  style={{ tintColor: "#0f172a" }}
+                  style={{ tintColor: colors.slate[900] }}
                 />
               </TouchableOpacity>
             </View>

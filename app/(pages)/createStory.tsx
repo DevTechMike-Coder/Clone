@@ -24,8 +24,9 @@ import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/AuthContext";
 import { storyService } from "@/services/storyService";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
-const BG_COLORS = ["#000000", "#1E293B", "#7C3AED", "#2563EB", "#059669", "#DC2626", "#F59E0B", "#EC4899"];
+const BG_COLORS = [colors.black, colors.slate[800], colors.violet[600], colors.blue[600], colors.emerald[600], colors.red[600], colors.amber[500], colors.pink[500]];
 
 export default function CreateStory() {
   const insets = useSafeAreaInsets();
@@ -40,7 +41,7 @@ export default function CreateStory() {
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [capturedType, setCapturedType] = useState<"image" | "video">("image");
   const [caption, setCaption] = useState("");
-  const [bgColor, setBgColor] = useState("#000000");
+  const [bgColor, setBgColor] = useState<string>(colors.black);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showDiscard, setShowDiscard] = useState(false);
@@ -91,7 +92,7 @@ export default function CreateStory() {
     setShowDiscard(false);
     setCapturedUri(null);
     setCaption("");
-    setBgColor("#000000");
+    setBgColor(colors.black);
   };
 
   const handlePublish = async () => {
@@ -209,6 +210,8 @@ export default function CreateStory() {
         >
           <TouchableOpacity
             onPress={() => setShowDiscard(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             className="w-10 h-10 rounded-full bg-black/40 items-center justify-center border border-white/20"
           >
             <Ionicons name="close" size={22} color="white" />
@@ -217,6 +220,8 @@ export default function CreateStory() {
           <View className="flex-row items-center gap-2">
             <TouchableOpacity
               onPress={() => setShowColorPicker((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel="Choose background color"
               className="w-10 h-10 rounded-full bg-black/40 items-center justify-center border border-white/20"
             >
               <Ionicons name="color-palette-outline" size={20} color="white" />
@@ -251,7 +256,7 @@ export default function CreateStory() {
                   borderRadius: 14,
                   backgroundColor: c,
                   borderWidth: bgColor === c ? 3 : 2,
-                  borderColor: bgColor === c ? "#fff" : "rgba(255,255,255,0.3)",
+                  borderColor: bgColor === c ? colors.white : "rgba(255,255,255,0.3)",
                 }}
               />
             ))}
@@ -274,7 +279,7 @@ export default function CreateStory() {
             className="h-12 rounded-full bg-white items-center justify-center shadow-lg"
           >
             {publishing ? (
-              <ActivityIndicator color="#2563EB" />
+              <ActivityIndicator color={colors.blue[600]} />
             ) : (
               <Text className="text-slate-900 font-bold">Add to your story</Text>
             )}
@@ -347,6 +352,8 @@ export default function CreateStory() {
       >
         <TouchableOpacity
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
           className="w-10 h-10 rounded-full bg-black/40 items-center justify-center border border-white/20"
         >
           <Ionicons name="close" size={22} color="white" />
@@ -358,6 +365,8 @@ export default function CreateStory() {
 
         <TouchableOpacity
           onPress={() => setFlash((f) => (f === "off" ? "on" : "off"))}
+          accessibilityRole="button"
+          accessibilityLabel={flash === "on" ? "Turn flash off" : "Turn flash on"}
           className="w-10 h-10 rounded-full bg-black/40 items-center justify-center border border-white/20"
         >
           <Ionicons
@@ -403,6 +412,8 @@ export default function CreateStory() {
         <View className="flex-row items-center justify-between px-8">
           <TouchableOpacity
             onPress={pickFromGallery}
+            accessibilityRole="button"
+            accessibilityLabel="Choose from gallery"
             className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 items-center justify-center"
           >
             <Ionicons name="images-outline" size={22} color="white" />
@@ -411,6 +422,8 @@ export default function CreateStory() {
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={takePhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Take photo"
             className="w-20 h-20 rounded-full border-4 border-white items-center justify-center"
           >
             <View className="w-16 h-16 rounded-full bg-white" />

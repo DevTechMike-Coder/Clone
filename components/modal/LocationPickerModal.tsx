@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { colors } from "@/constants/theme";
 
 const POPULAR_LOCATIONS = [
   { id: "1", name: "Lagos, Nigeria", country: "Nigeria", type: "City" },
@@ -93,8 +94,13 @@ export default function LocationPickerModal({
 
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-slate-100">
-            <TouchableOpacity onPress={onClose} className="p-1">
-              <Ionicons name="close" size={24} color="#64748B" />
+            <TouchableOpacity
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              className="p-1"
+            >
+              <Ionicons name="close" size={24} color={colors.slate[500]} />
             </TouchableOpacity>
 
             <Text className="text-lg font-bold text-slate-900">Add Location</Text>
@@ -110,17 +116,21 @@ export default function LocationPickerModal({
 
           {/* Search Bar */}
           <View className="flex-row items-center bg-slate-100 rounded-2xl px-3.5 py-2.5 my-3.5">
-            <Ionicons name="location-outline" size={18} color="#94A3B8" />
+            <Ionicons name="location-outline" size={18} color={colors.slate[400]} />
             <TextInput
               placeholder="Search city, place or landmark..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.slate[400]}
               value={search}
               onChangeText={setSearch}
               className="flex-1 ml-2.5 text-sm text-slate-900"
             />
             {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch("")}>
-                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              <TouchableOpacity
+                onPress={() => setSearch("")}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
+                <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
               </TouchableOpacity>
             )}
           </View>
@@ -163,7 +173,7 @@ export default function LocationPickerModal({
                       <Ionicons
                         name={item.type === "Beach" || item.type === "Island" ? "sunny-outline" : "business-outline"}
                         size={20}
-                        color="#475569"
+                        color={colors.slate[600]}
                       />
                     </View>
 
@@ -181,7 +191,7 @@ export default function LocationPickerModal({
                   </View>
 
                   {isSelected && (
-                    <Ionicons name="checkmark-circle" size={22} color="#2563EB" />
+                    <Ionicons name="checkmark-circle" size={22} color={colors.blue[600]} />
                   )}
                 </TouchableOpacity>
               );

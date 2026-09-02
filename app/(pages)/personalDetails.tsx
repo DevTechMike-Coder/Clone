@@ -12,6 +12,8 @@ export default function PersonalDetails() {
         {/* Back Button */}
         <TouchableOpacity
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           className="w-10 h-10 rounded-full border border-slate-100 items-center justify-center"
         >
           <Image

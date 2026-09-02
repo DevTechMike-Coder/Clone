@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTrackSound } from "@/lib/useTrackSound";
+import { colors } from "@/constants/theme";
 
 type SoundChipProps = {
   trackKey?: string | null;
@@ -73,7 +74,7 @@ export default function SoundChip({
         <Ionicons
           name="musical-notes"
           size={overlay ? 13 : 14}
-          color={overlay ? "#38BDF8" : "#2563EB"}
+          color={overlay ? colors.sky[400] : colors.blue[600]}
         />
         <Text
           className={`${overlay ? "text-white text-[11px] font-bold" : "text-xs font-bold text-slate-700"}`}
@@ -91,6 +92,8 @@ export default function SoundChip({
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={toggle}
+        accessibilityRole="button"
+        accessibilityLabel={isPlaying ? `Pause ${label}` : `Play ${label}`}
         className={
           overlay
             ? "flex-row items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/15 self-start max-w-[85%]"
@@ -98,12 +101,12 @@ export default function SoundChip({
         }
       >
         {isBuffering ? (
-          <ActivityIndicator size="small" color={overlay ? "#38BDF8" : "#2563EB"} />
+          <ActivityIndicator size="small" color={overlay ? colors.sky[400] : colors.blue[600]} />
         ) : (
           <Ionicons
             name={isPlaying ? "pause" : "musical-notes"}
             size={overlay ? 13 : 14}
-            color={overlay ? "#38BDF8" : "#2563EB"}
+            color={overlay ? colors.sky[400] : colors.blue[600]}
           />
         )}
         <Text

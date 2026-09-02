@@ -21,6 +21,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { colors } from "@/constants/theme";
 
 const StyledImage = styled(Image);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -44,7 +45,7 @@ const CommentAvatar = ({ uri }: { uri?: string | null }) => {
         source={require("@/assets/homeIcons/profileUser.png")}
         className="h-5 w-5"
         contentFit="contain"
-        style={{ tintColor: "#94a3b8" }}
+        style={{ tintColor: colors.slate[400] }}
       />
     );
   }
@@ -250,11 +251,13 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
             onPress={() => toggleLikeComment(item.id)}
             className="p-1 items-center justify-center mt-1"
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={isLiked ? "Unlike comment" : "Like comment"}
           >
             <Ionicons
               name={isLiked ? "heart" : "heart-outline"}
               size={16}
-              color={isLiked ? "#ef4444" : "#94a3b8"}
+              color={isLiked ? colors.red[500] : colors.slate[400]}
             />
           </TouchableOpacity>
         </View>
@@ -315,11 +318,13 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                         onPress={() => toggleLikeComment(reply.id)}
                         className="p-1 items-center justify-center"
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={isReplyLiked ? "Unlike reply" : "Like reply"}
                       >
                         <Ionicons
                           name={isReplyLiked ? "heart" : "heart-outline"}
                           size={14}
-                          color={isReplyLiked ? "#ef4444" : "#94a3b8"}
+                          color={isReplyLiked ? colors.red[500] : colors.slate[400]}
                         />
                       </TouchableOpacity>
                     </View>
@@ -391,15 +396,20 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
               <Text className="text-base font-bold text-slate-900">
                 Comments
               </Text>
-              <TouchableOpacity onPress={handleClose} activeOpacity={0.7}>
-                <Ionicons name="close" size={22} color="#64748b" />
+              <TouchableOpacity
+                onPress={handleClose}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Close comments"
+              >
+                <Ionicons name="close" size={22} color={colors.slate[500]} />
               </TouchableOpacity>
             </View>
 
             {/* Comments List */}
             {loading ? (
               <View className="flex-1 items-center justify-center py-10">
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color={colors.blue[600]} />
               </View>
             ) : (
               <FlatList
@@ -411,7 +421,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 renderItem={renderCommentItem}
                 ListEmptyComponent={
                   <View className="items-center py-12 px-10">
-                    <Ionicons name="chatbubbles-outline" size={42} color="#cbd5e1" />
+                    <Ionicons name="chatbubbles-outline" size={42} color={colors.slate[300]} />
                     <Text className="text-slate-500 font-medium text-sm mt-3 text-center">
                       No comments yet
                     </Text>
@@ -429,8 +439,14 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 <Text className="text-xs text-slate-600 font-medium">
                   Replying to <Text className="font-bold text-blue-600">@{replyingTo.username}</Text>
                 </Text>
-                <TouchableOpacity onPress={cancelReply} activeOpacity={0.7} className="p-1">
-                  <Ionicons name="close-circle" size={16} color="#94a3b8" />
+                <TouchableOpacity
+                  onPress={cancelReply}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel reply"
+                  className="p-1"
+                >
+                  <Ionicons name="close-circle" size={16} color={colors.slate[400]} />
                 </TouchableOpacity>
               </View>
             )}
@@ -446,7 +462,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                     ? `Reply to @${replyingTo.username}...`
                     : "Add a comment..."
                 }
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.slate[400]}
                 multiline
                 style={styles.textInput}
               />
@@ -458,12 +474,12 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                   styles.postButton,
                   {
                     backgroundColor:
-                      submitting || !text.trim() ? "#bfdbfe" : "#2563eb",
+                      submitting || !text.trim() ? colors.blue[200] : colors.blue[600],
                   },
                 ]}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <Text className="text-white text-sm font-bold">Post</Text>
                 )}
@@ -486,7 +502,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
   sheetContainer: {
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: "hidden",
@@ -496,15 +512,15 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: colors.slate[50],
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#0f172a",
+    color: colors.slate[900],
     maxHeight: 90,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: colors.slate[200],
   },
   postButton: {
     borderRadius: 20,

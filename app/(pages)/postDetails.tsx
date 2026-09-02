@@ -25,6 +25,7 @@ import { ProfileSearchResult } from "@/services/profileService";
 import TagPeopleModal from "@/components/modal/TagPeopleModal";
 import LocationPickerModal from "@/components/modal/LocationPickerModal";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -144,8 +145,13 @@ const PostDetails = () => {
       >
         {/* Top App Bar */}
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
-          <TouchableOpacity onPress={() => router.back()} className="p-1">
-            <Ionicons name="chevron-back" size={26} color="#0F172A" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            className="p-1"
+          >
+            <Ionicons name="chevron-back" size={26} color={colors.slate[900]} />
           </TouchableOpacity>
           <Text className="text-lg font-bold text-slate-900">New Post</Text>
           <TouchableOpacity
@@ -185,13 +191,13 @@ const PostDetails = () => {
                   )}
                 </>
               ) : (
-                <Ionicons name="image-outline" size={32} color="#94A3B8" />
+                <Ionicons name="image-outline" size={32} color={colors.slate[400]} />
               )}
             </View>
             <View className="flex-1">
               <TextInput
                 placeholder="Write an engaging caption..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.slate[400]}
                 multiline
                 numberOfLines={4}
                 value={caption}
@@ -266,9 +272,11 @@ const PostDetails = () => {
               </View>
               <TouchableOpacity
                 onPress={() => setSelectedLocation(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Remove location"
                 className="p-1"
               >
-                <Ionicons name="close-circle" size={20} color="#10B981" />
+                <Ionicons name="close-circle" size={20} color={colors.emerald[500]} />
               </TouchableOpacity>
             </View>
           )}
@@ -278,7 +286,7 @@ const PostDetails = () => {
             <View className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-2xl">
               <View className="flex-row items-center justify-between mb-2">
                 <View className="flex-row items-center gap-2">
-                  <Ionicons name="people" size={16} color="#7C3AED" />
+                  <Ionicons name="people" size={16} color={colors.violet[600]} />
                   <Text className="text-xs font-bold text-purple-900">
                     Tagged People ({taggedUsers.length})
                   </Text>
@@ -305,13 +313,17 @@ const PostDetails = () => {
                         contentFit="cover"
                       />
                     ) : (
-                      <Ionicons name="person-circle" size={18} color="#7C3AED" />
+                      <Ionicons name="person-circle" size={18} color={colors.violet[600]} />
                     )}
                     <Text className="text-xs font-bold text-purple-800">
                       @{user.username || "user"}
                     </Text>
-                    <TouchableOpacity onPress={() => removeTaggedUser(user.id)}>
-                      <Ionicons name="close-circle" size={16} color="#9333EA" />
+                    <TouchableOpacity
+                      onPress={() => removeTaggedUser(user.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove tag ${user.username || "user"}`}
+                    >
+                      <Ionicons name="close-circle" size={16} color={colors.purple[600]} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -332,7 +344,7 @@ const PostDetails = () => {
                   <Ionicons
                     name="location-outline"
                     size={22}
-                    color={selectedLocation ? "#10B981" : "#475569"}
+                    color={selectedLocation ? colors.emerald[500] : colors.slate[600]}
                   />
                 </View>
                 <View>
@@ -344,7 +356,7 @@ const PostDetails = () => {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
             </TouchableOpacity>
 
             {/* Tag People Row */}
@@ -358,7 +370,7 @@ const PostDetails = () => {
                   <Ionicons
                     name="person-outline"
                     size={22}
-                    color={taggedUsers.length > 0 ? "#7C3AED" : "#475569"}
+                    color={taggedUsers.length > 0 ? colors.violet[600] : colors.slate[600]}
                   />
                 </View>
                 <View>
@@ -374,7 +386,7 @@ const PostDetails = () => {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
             </TouchableOpacity>
           </View>
         </ScrollView>

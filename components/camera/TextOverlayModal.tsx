@@ -19,19 +19,20 @@ import {
   TextOverlayItem,
   TextStyleMode,
 } from "@/store/pendingPost";
+import { colors } from "@/constants/theme";
 
 const COLOR_PALETTE = [
-  "#FFFFFF",
-  "#000000",
-  "#EF4444",
-  "#F97316",
-  "#FACC15",
-  "#10B981",
-  "#06B6D4",
-  "#3B82F6",
-  "#8B5CF6",
-  "#EC4899",
-  "#F43F5E",
+  colors.white,
+  colors.black,
+  colors.red[500],
+  colors.orange[500],
+  colors.yellow[400],
+  colors.emerald[500],
+  colors.cyan[500],
+  colors.blue[500],
+  colors.violet[500],
+  colors.pink[500],
+  colors.rose[500],
 ];
 
 const FONT_STYLES: { id: TextStyleMode; label: string }[] = [
@@ -71,7 +72,7 @@ export default function TextOverlayModal({
   onSaveText,
 }: TextOverlayModalProps) {
   const [text, setText] = useState("");
-  const [selectedColor, setSelectedColor] = useState("#FFFFFF");
+  const [selectedColor, setSelectedColor] = useState<string>(colors.white);
   const [bgMode, setBgMode] = useState<TextBgMode>("solid");
   const [fontStyle, setFontStyle] = useState<TextStyleMode>("bold");
   const [textAlign, setTextAlign] = useState<TextAlignMode>("center");
@@ -81,7 +82,7 @@ export default function TextOverlayModal({
     if (visible) {
       if (initialItem) {
         setText(initialItem.text || "");
-        setSelectedColor(initialItem.color || "#FFFFFF");
+        setSelectedColor(initialItem.color || colors.white);
         setBgMode(
           initialItem.bgMode || (initialItem.bgColor ? "solid" : "transparent")
         );
@@ -90,7 +91,7 @@ export default function TextOverlayModal({
         setFontSize(initialItem.fontSize || 28);
       } else {
         setText("");
-        setSelectedColor("#FFFFFF");
+        setSelectedColor(colors.white);
         setBgMode("solid");
         setFontStyle("bold");
         setTextAlign("center");
@@ -127,8 +128,8 @@ export default function TextOverlayModal({
     let effectiveBgColor: string | undefined = undefined;
 
     if (bgMode === "solid") {
-      effectiveBgColor = selectedColor === "#FFFFFF" ? "#FFFFFF" : selectedColor;
-      effectiveTextColor = selectedColor === "#FFFFFF" ? "#000000" : "#FFFFFF";
+      effectiveBgColor = selectedColor === colors.white ? colors.white : selectedColor;
+      effectiveTextColor = selectedColor === colors.white ? colors.black : colors.white;
     } else if (bgMode === "frosted") {
       effectiveBgColor = "rgba(0,0,0,0.5)";
       effectiveTextColor = selectedColor;
@@ -171,9 +172,9 @@ export default function TextOverlayModal({
       textAlign,
       color:
         bgMode === "solid"
-          ? selectedColor === "#FFFFFF"
-            ? "#000000"
-            : "#FFFFFF"
+          ? selectedColor === colors.white
+            ? colors.black
+            : colors.white
           : selectedColor,
     };
 
@@ -210,7 +211,7 @@ export default function TextOverlayModal({
     if (bgMode === "solid") {
       return {
         backgroundColor:
-          selectedColor === "#FFFFFF" ? "#FFFFFF" : selectedColor,
+          selectedColor === colors.white ? colors.white : selectedColor,
         borderRadius: 18,
         paddingHorizontal: 18,
         paddingVertical: 10,
@@ -271,6 +272,8 @@ export default function TextOverlayModal({
               setText("");
               onClose();
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Close text editor"
             style={styles.circleBtn}
           >
             <Ionicons name="close" size={24} color="white" />
@@ -417,7 +420,7 @@ export default function TextOverlayModal({
                         styles.colorInnerDot,
                         {
                           backgroundColor:
-                            color === "#FFFFFF" ? "#000000" : "#FFFFFF",
+                            color === colors.white ? colors.black : colors.white,
                         },
                       ]}
                     />
@@ -502,11 +505,11 @@ const styles = StyleSheet.create({
     color: "black",
   },
   doneBtn: {
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.blue[600],
     paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: 20,
-    shadowColor: "#2563EB",
+    shadowColor: colors.blue[600],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 6,

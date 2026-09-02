@@ -27,6 +27,7 @@ import {
   View,
 } from "react-native";
 import { styled } from "nativewind";
+import { colors } from "@/constants/theme";
 
 const StyledImage = styled(Image);
 
@@ -92,6 +93,8 @@ function FeedVideoMedia({ uri, active }: { uri: string; active: boolean }) {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => setMuted((m) => !m)}
+          accessibilityRole="button"
+          accessibilityLabel={muted ? "Unmute video" : "Mute video"}
           className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/50 items-center justify-center border border-white/20"
         >
           <Ionicons name={muted ? "volume-mute" : "volume-high"} size={17} color="white" />
@@ -117,7 +120,7 @@ const FeedMedia = ({
   if (hasError || !uri) {
     return (
       <View className="h-full w-full items-center justify-center bg-slate-100 rounded-xl">
-        <Ionicons name="image-outline" size={44} color="#94A3B8" />
+        <Ionicons name="image-outline" size={44} color={colors.slate[400]} />
         <Text className="text-xs text-slate-400 mt-2 font-medium">Image unavailable</Text>
       </View>
     );
@@ -594,6 +597,8 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => router.push({ pathname: "/(pages)/userProfile", params: { userId: item.user_id } })}
+            accessibilityRole="button"
+            accessibilityLabel={`View profile of ${item.profiles?.full_name || item.profiles?.username || "user"}`}
             className="h-10 w-10 items-center justify-center rounded-full border border-slate-200"
           >
             <AvatarMedia uri={item.profiles?.avatar_url} />
@@ -614,13 +619,15 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => openMenu(item)}
+          accessibilityRole="button"
+          accessibilityLabel="More post options"
           className="h-8 w-8 items-center justify-center"
         >
           <StyledImage
             source={require("@/assets/homeIcons/menuV.png")}
             className="h-5 w-5"
             contentFit="contain"
-            style={{ tintColor: "#64748b" }}
+            style={{ tintColor: colors.slate[500] }}
           />
         </TouchableOpacity>
       </View>
@@ -665,12 +672,15 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             className="flex-row items-center gap-1.5"
             activeOpacity={0.7}
             onPress={() => handleLike(item.id)}
+            accessibilityRole="button"
+            accessibilityLabel={item.is_liked ? "Unlike post" : "Like post"}
+            accessibilityState={{ selected: !!item.is_liked }}
           >
             <StyledImage
               source={require("@/assets/homeIcons/heart.png")}
               className="h-6 w-6"
               contentFit="contain"
-              style={{ tintColor: item.is_liked ? "#ef4444" : "#0f172a" }}
+              style={{ tintColor: item.is_liked ? colors.red[500] : colors.slate[900] }}
             />
             <Text
               className={`text-sm font-medium ${
@@ -686,12 +696,14 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             activeOpacity={0.7}
             className="flex-row items-center gap-1.5"
             onPress={() => openComments(item.id)}
+            accessibilityRole="button"
+            accessibilityLabel="Open comments"
           >
             <StyledImage
               source={require("@/assets/homeIcons/bubbleChat.png")}
               className="h-6 w-6"
               contentFit="contain"
-              style={{ tintColor: "#0f172a" }}
+              style={{ tintColor: colors.slate[900] }}
             />
             <Text className="text-sm font-medium text-slate-600">
               {item.comment_count ?? 0}
@@ -703,12 +715,15 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             activeOpacity={0.7}
             className="flex-row items-center gap-1.5"
             onPress={() => handleRepost(item.id)}
+            accessibilityRole="button"
+            accessibilityLabel={item.is_reposted ? "Remove repost" : "Repost"}
+            accessibilityState={{ selected: !!item.is_reposted }}
           >
             <StyledImage
               source={require("@/assets/homeIcons/repeat.png")}
               className="h-6 w-6"
               contentFit="contain"
-              style={{ tintColor: item.is_reposted ? "#10b981" : "#0f172a" }}
+              style={{ tintColor: item.is_reposted ? colors.emerald[500] : colors.slate[900] }}
             />
             <Text
               className={`text-sm font-medium ${
@@ -726,12 +741,15 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             activeOpacity={0.7}
             className="flex-row items-center gap-1.5 p-1"
             onPress={() => handleBookmark(item.id)}
+            accessibilityRole="button"
+            accessibilityLabel={item.is_bookmarked ? "Remove bookmark" : "Bookmark post"}
+            accessibilityState={{ selected: !!item.is_bookmarked }}
           >
             <StyledImage
               source={require("@/assets/homeIcons/bookmark.png")}
               className="h-6 w-6"
               contentFit="contain"
-              style={{ tintColor: item.is_bookmarked ? "#2563eb" : "#0f172a" }}
+              style={{ tintColor: item.is_bookmarked ? colors.blue[600] : colors.slate[900] }}
             />
           </TouchableOpacity>
 
@@ -740,12 +758,14 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             activeOpacity={0.7}
             className="p-1"
             onPress={() => handleShare(item)}
+            accessibilityRole="button"
+            accessibilityLabel="Share post"
           >
             <StyledImage
               source={require("@/assets/homeIcons/share.png")}
               className="h-6 w-6"
               contentFit="contain"
-              style={{ tintColor: "#0f172a" }}
+              style={{ tintColor: colors.slate[900] }}
             />
           </TouchableOpacity>
         </View>
@@ -756,7 +776,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   if (loading && !refreshing) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color={colors.blue[600]} />
       </View>
     );
   }
@@ -789,14 +809,14 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
         onEndReachedThreshold={0.4}
         ListFooterComponent={
           loadingMore ? (
-            <ActivityIndicator size="small" color="#2563EB" style={{ marginVertical: 24 }} />
+            <ActivityIndicator size="small" color={colors.blue[600]} style={{ marginVertical: 24 }} />
           ) : null
         }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#2563EB"
+            tintColor={colors.blue[600]}
           />
         }
       />
@@ -819,7 +839,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             onPress={handleNewPostsPress}
             className="flex-row items-center gap-2 bg-slate-900/90 border border-white/20 px-4 py-2.5 rounded-full shadow-lg"
           >
-            <Ionicons name="arrow-up" size={16} color="#fff" />
+            <Ionicons name="arrow-up" size={16} color={colors.white} />
             <Text className="text-white text-sm font-semibold">
               {newPostsCount} new {newPostsCount === 1 ? "post" : "posts"}
             </Text>
