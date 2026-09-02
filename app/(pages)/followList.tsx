@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { followService, SuggestedUser } from "@/services/followService";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -128,8 +129,13 @@ export default function FollowList() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
         <View className="flex-row items-center gap-3">
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color="#0F172A" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
           </TouchableOpacity>
           <View>
             <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
@@ -208,19 +214,23 @@ export default function FollowList() {
       {/* Search Input */}
       <View className="px-5 pt-3 pb-2">
         <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
-          <Ionicons name="search-outline" size={18} color="#94A3B8" />
+          <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
           <TextInput
             placeholder={`Search ${activeTab}...`}
             className="flex-1 ml-3 text-base text-slate-800"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.slate[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
             </TouchableOpacity>
           )}
         </View>
@@ -229,11 +239,11 @@ export default function FollowList() {
       {/* List Content */}
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={colors.blue[600]} />
         </View>
       ) : filteredList.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="people-outline" size={48} color="#CBD5E1" />
+          <Ionicons name="people-outline" size={48} color={colors.slate[300]} />
           <Text className="text-lg font-semibold text-slate-900 mt-4">
             No {activeTab} yet
           </Text>
@@ -253,7 +263,7 @@ export default function FollowList() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#2563EB"
+              tintColor={colors.blue[600]}
             />
           }
           renderItem={({ item }) => (

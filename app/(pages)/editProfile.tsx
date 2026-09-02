@@ -18,16 +18,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
-const BG = "#F8FAFC";
-const SURFACE = "#FFFFFF";
-const BORDER = "#E2E8F0";
-const TEXT_PRIMARY = "#0F172A";
-const TEXT_MUTED = "#64748B";
-const PLACEHOLDER = "#94A3B8";
-const ACCENT = "#2563EB";
+const BG = colors.slate[50];
+const SURFACE = colors.white;
+const BORDER = colors.slate[200];
+const TEXT_PRIMARY = colors.slate[900];
+const TEXT_MUTED = colors.slate[500];
+const PLACEHOLDER = colors.slate[400];
+const ACCENT = colors.blue[600];
 
 const EditProfile = () => {
   const { user } = useAuth();
@@ -142,7 +143,7 @@ const EditProfile = () => {
   };
 
   const getBorderColor = (field: string, isError = false) => {
-    if (isError) return "#EF4444";
+    if (isError) return colors.red[500];
     return focusedField === field ? ACCENT : BORDER;
   };
 
@@ -183,6 +184,8 @@ const EditProfile = () => {
         <TouchableOpacity
           onPress={() => router.back()}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           style={{
             height: 42,
             width: 42,
@@ -233,9 +236,14 @@ const EditProfile = () => {
         <View style={{ paddingHorizontal: 24, paddingTop: 8 }}>
           {/* Avatar */}
           <View style={{ alignItems: "center", marginBottom: 32 }}>
-            <TouchableOpacity onPress={pickImage} activeOpacity={0.85}>
+            <TouchableOpacity
+              onPress={pickImage}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
+            >
               <LinearGradient
-                colors={["#DBEAFE", "#2563EB"]}
+                colors={[colors.blue[100], colors.blue[600]]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
@@ -252,7 +260,7 @@ const EditProfile = () => {
                     width: 130,
                     height: 130,
                     borderRadius: 65,
-                    backgroundColor: "#F8FAFC",
+                    backgroundColor: colors.slate[50],
                     alignItems: "center",
                     justifyContent: "center",
                     overflow: "hidden",
@@ -264,14 +272,14 @@ const EditProfile = () => {
                       style={{ width: "100%", height: "100%" }}
                     />
                   ) : (
-                    <Ionicons name="person" size={50} color="#CBD5E1" />
+                    <Ionicons name="person" size={50} color={colors.slate[300]} />
                   )}
                 </View>
               </LinearGradient>
 
               {/* Camera badge */}
               <LinearGradient
-                colors={["#2563EB", "#1D4ED8"]}
+                colors={[colors.blue[600], colors.blue[700]]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
@@ -363,6 +371,8 @@ const EditProfile = () => {
                 {username.length > 0 && focusedField === "username" && (
                   <TouchableOpacity
                     onPress={() => setUsername("")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear username"
                     style={{
                       position: "absolute",
                       right: 14,
@@ -371,7 +381,7 @@ const EditProfile = () => {
                       justifyContent: "center",
                     }}
                   >
-                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                    <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -390,7 +400,7 @@ const EditProfile = () => {
                 <Text
                   style={{
                     fontSize: 11,
-                    color: bio.length > 140 ? "#EF4444" : TEXT_MUTED,
+                    color: bio.length > 140 ? colors.red[500] : TEXT_MUTED,
                     marginBottom: 8,
                     marginRight: 2,
                   }}
@@ -452,7 +462,7 @@ const EditProfile = () => {
                     size={18}
                     color={
                       !isValid
-                        ? "#EF4444"
+                        ? colors.red[500]
                         : focusedField === "link"
                         ? ACCENT
                         : TEXT_MUTED
@@ -470,7 +480,7 @@ const EditProfile = () => {
                       justifyContent: "center",
                     }}
                   >
-                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                    <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -481,7 +491,7 @@ const EditProfile = () => {
                     marginLeft: 4,
                     fontSize: 12,
                     fontWeight: "500",
-                    color: "#EF4444",
+                    color: colors.red[500],
                   }}
                 >
                   Please enter a valid website address (e.g. yoursite.com)
@@ -506,11 +516,11 @@ const EditProfile = () => {
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: 14,
-                backgroundColor: "#E2E8F0",
+                backgroundColor: colors.slate[200],
               }}
             >
               <Text
-                style={{ fontSize: 15, fontWeight: "700", color: "#64748B" }}
+                style={{ fontSize: 15, fontWeight: "700", color: colors.slate[500] }}
               >
                 Cancel
               </Text>
@@ -523,7 +533,7 @@ const EditProfile = () => {
               disabled={saving}
             >
               <LinearGradient
-                colors={saving ? ["#94A3B8", "#64748B"] : ["#2563EB", "#1D4ED8"]}
+                colors={saving ? [colors.slate[400], colors.slate[500]] : [colors.blue[600], colors.blue[700]]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
@@ -536,13 +546,13 @@ const EditProfile = () => {
                 }}
               >
                 {saving ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={colors.white} size="small" />
                 ) : null}
                 <Text
                   style={{
                     fontSize: 15,
                     fontWeight: "700",
-                    color: "#FFFFFF",
+                    color: colors.white,
                     letterSpacing: 0.3,
                   }}
                 >

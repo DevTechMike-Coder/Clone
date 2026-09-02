@@ -18,6 +18,7 @@ import {
   chatService,
 } from "@/services/chatService";
 import { formatRelativeTime } from "@/lib/dateUtils";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -66,6 +67,8 @@ export default function Chat() {
         <TouchableOpacity
           onPress={() => router.push("/(pages)/followpage")}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Find people"
           className="w-10 h-10 items-center justify-center rounded-full bg-blue-50 border border-blue-100"
         >
           <Image
@@ -82,26 +85,32 @@ export default function Chat() {
         <TouchableOpacity
           onPress={() => router.push("/(pages)/followpage")}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="New message"
           className="w-10 h-10 items-center justify-center rounded-full bg-slate-100"
         >
-          <Ionicons name="create-outline" size={20} color="#0F172A" />
+          <Ionicons name="create-outline" size={20} color={colors.slate[900]} />
         </TouchableOpacity>
       </View>
 
       {/* --- Search Bar Section --- */}
       <View className="px-5 pt-3 pb-2">
         <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
-          <Ionicons name="search-outline" size={18} color="#94A3B8" />
+          <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
           <TextInput
             placeholder="Search conversations..."
             className="flex-1 ml-3 text-base text-slate-800"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.slate[400]}
             value={searchText}
             onChangeText={setSearchText}
           />
           {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchText("")}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            <TouchableOpacity
+              onPress={() => setSearchText("")}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
             </TouchableOpacity>
           )}
         </View>
@@ -110,11 +119,11 @@ export default function Chat() {
       {/* --- Main Content Section --- */}
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={colors.blue[600]} />
         </View>
       ) : filteredConversations.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="chatbubbles-outline" size={54} color="#CBD5E1" />
+          <Ionicons name="chatbubbles-outline" size={54} color={colors.slate[300]} />
           <Text className="text-lg font-bold text-slate-900 mt-4">
             No messages yet
           </Text>
@@ -139,7 +148,7 @@ export default function Chat() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#2563EB"
+              tintColor={colors.blue[600]}
             />
           }
           renderItem={({ item }) => (

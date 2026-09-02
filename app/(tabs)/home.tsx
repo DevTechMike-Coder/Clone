@@ -111,7 +111,11 @@ export default function Index() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50 p-5">
       <View className="flex-row items-center justify-between">
-        <TouchableOpacity onPress={() => router.push("/createNew")}>
+        <TouchableOpacity
+          onPress={() => router.push("/createNew")}
+          accessibilityRole="button"
+          accessibilityLabel="Create post"
+        >
           <Image
             source={require("@/assets/homeIcons/plus.png")}
             className="w-9 h-9 object-contain"
@@ -122,7 +126,11 @@ export default function Index() {
           Clone
         </Text>
 
-        <TouchableOpacity onPress={() => router.push("/inbox")}>
+        <TouchableOpacity
+          onPress={() => router.push("/inbox")}
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+        >
           <Image
             source={require("@/assets/homeIcons/alarm.png")}
             className="w-9 h-9 object-contain"

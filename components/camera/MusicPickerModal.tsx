@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { MusicTrackItem } from "@/store/pendingPost";
 import { musicService } from "@/services/musicService";
 import { stopAllSounds } from "@/lib/useTrackSound";
+import { colors } from "@/constants/theme";
 
 const GENRES = [
   { id: "all", label: "All" },
@@ -170,7 +171,7 @@ export default function MusicPickerModal({
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2.5">
               <View className="w-9 h-9 rounded-full bg-blue-600/20 items-center justify-center border border-blue-500/30">
-                <Ionicons name="musical-notes" size={20} color="#38BDF8" />
+                <Ionicons name="musical-notes" size={20} color={colors.sky[400]} />
               </View>
               <Text className="text-xl font-bold text-white">Sounds & Music</Text>
             </View>
@@ -191,17 +192,21 @@ export default function MusicPickerModal({
 
           {/* Search Bar */}
           <View className="flex-row items-center bg-slate-800 rounded-2xl px-3.5 py-2.5 mb-3 border border-slate-700">
-            <Ionicons name="search-outline" size={18} color="#94A3B8" />
+            <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
             <TextInput
               placeholder="Search songs, artists, or genres..."
-              placeholderTextColor="#64748B"
+              placeholderTextColor={colors.slate[500]}
               value={search}
               onChangeText={setSearch}
               className="flex-1 ml-2.5 text-white text-sm"
             />
             {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch("")}>
-                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              <TouchableOpacity
+                onPress={() => setSearch("")}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
+                <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
               </TouchableOpacity>
             )}
           </View>
@@ -245,11 +250,13 @@ export default function MusicPickerModal({
           <View className="flex-row items-center gap-3 mb-3 bg-slate-800/80 rounded-2xl px-3 py-2 border border-slate-700">
             <TouchableOpacity
               onPress={() => changeVolume(-0.25)}
+              accessibilityRole="button"
+              accessibilityLabel="Decrease volume"
               className="w-7 h-7 rounded-full bg-slate-700 items-center justify-center active:opacity-80"
             >
               <Ionicons name="remove" size={14} color="white" />
             </TouchableOpacity>
-            <Ionicons name="volume-medium" size={16} color="#94A3B8" />
+            <Ionicons name="volume-medium" size={16} color={colors.slate[400]} />
             <View className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
               <View
                 className="h-full bg-blue-500 rounded-full"
@@ -261,6 +268,8 @@ export default function MusicPickerModal({
             </Text>
             <TouchableOpacity
               onPress={() => changeVolume(0.25)}
+              accessibilityRole="button"
+              accessibilityLabel="Increase volume"
               className="w-7 h-7 rounded-full bg-slate-700 items-center justify-center active:opacity-80"
             >
               <Ionicons name="add" size={14} color="white" />
@@ -272,9 +281,9 @@ export default function MusicPickerModal({
             <View className="flex-row items-center justify-between mb-2 bg-blue-600/20 border border-blue-500/40 rounded-2xl px-3.5 py-2">
               <View className="flex-row items-center gap-2 flex-1 mr-2">
                 {status.isBuffering && !status.playing ? (
-                  <ActivityIndicator size="small" color="#60A5FA" />
+                  <ActivityIndicator size="small" color={colors.blue[400]} />
                 ) : (
-                  <Ionicons name="musical-notes" size={16} color="#60A5FA" />
+                  <Ionicons name="musical-notes" size={16} color={colors.blue[400]} />
                 )}
                 <Text className="text-white text-xs font-bold flex-1" numberOfLines={1}>
                   {tracks.find((t) => t.id === playingId)?.title || "Playing sound..."}
@@ -289,7 +298,7 @@ export default function MusicPickerModal({
           {/* Tracks List */}
           {loading ? (
             <View className="h-80 items-center justify-center">
-              <ActivityIndicator size="large" color="#3B82F6" />
+              <ActivityIndicator size="large" color={colors.blue[500]} />
             </View>
           ) : (
             <FlatList
@@ -299,7 +308,7 @@ export default function MusicPickerModal({
               contentContainerStyle={{ paddingBottom: 24 }}
               ListEmptyComponent={
                 <View className="py-12 items-center justify-center gap-2">
-                  <Ionicons name="musical-notes-outline" size={40} color="#475569" />
+                  <Ionicons name="musical-notes-outline" size={40} color={colors.slate[600]} />
                   <Text className="text-center text-slate-400 text-sm">
                     No sounds found in this category.
                   </Text>

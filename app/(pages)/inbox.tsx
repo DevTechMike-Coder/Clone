@@ -18,6 +18,7 @@ import {
 } from "@/services/notificationService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { formatRelativeTime } from "@/lib/dateUtils";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -64,25 +65,25 @@ const Inbox = () => {
       case "like":
         return (
           <View className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="heart" size={10} color="#FFFFFF" />
+            <Ionicons name="heart" size={10} color={colors.white} />
           </View>
         );
       case "comment":
         return (
           <View className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="chatbubble" size={10} color="#FFFFFF" />
+            <Ionicons name="chatbubble" size={10} color={colors.white} />
           </View>
         );
       case "repost":
         return (
           <View className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="repeat" size={10} color="#FFFFFF" />
+            <Ionicons name="repeat" size={10} color={colors.white} />
           </View>
         );
       case "follow":
         return (
           <View className="absolute -bottom-1 -right-1 bg-purple-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="person" size={10} color="#FFFFFF" />
+            <Ionicons name="person" size={10} color={colors.white} />
           </View>
         );
       default:
@@ -131,8 +132,13 @@ const Inbox = () => {
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
         <View className="flex-row items-center gap-3">
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color="#0F172A" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
           </TouchableOpacity>
           <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
             Activity
@@ -175,11 +181,11 @@ const Inbox = () => {
       {/* Content */}
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={colors.blue[600]} />
         </View>
       ) : filteredNotifications.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="notifications-outline" size={48} color="#CBD5E1" />
+          <Ionicons name="notifications-outline" size={48} color={colors.slate[300]} />
           <Text className="text-lg font-semibold text-slate-900 mt-4">
             No activity yet
           </Text>
@@ -197,7 +203,7 @@ const Inbox = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#2563EB"
+              tintColor={colors.blue[600]}
             />
           }
           renderItem={({ item }) => (
@@ -253,7 +259,7 @@ const Inbox = () => {
                   <PostGridThumbnail post={item.posts} />
                 </View>
               ) : item.type === "follow" ? (
-                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
               ) : null}
             </TouchableOpacity>
           )}

@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import StoryRing from "./StoryRing";
 import { storyService, StoryRing as StoryRingType } from "@/services/storyService";
 import { useAuth } from "@/context/AuthContext";
+import { colors } from "@/constants/theme";
 
 /**
  * Horizontal bar of Instagram-style story rings shown at the top of the home feed.
@@ -63,7 +64,7 @@ export default function StoriesBar() {
   if (loading) {
     return (
       <View className="py-4 items-center justify-center">
-        <ActivityIndicator color="#2563EB" />
+        <ActivityIndicator color={colors.blue[600]} />
       </View>
     );
   }

@@ -7,7 +7,8 @@ import {
 } from "@/services/profileService";
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
-import React, { useCallback, useEffect, useState } from "react";
+import { colors } from "@/constants/theme";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -32,14 +33,125 @@ const CATEGORIES = [
   "Tech",
   "Fitness",
   "Music",
-];
+] as const;
 
+type Category = (typeof CATEGORIES)[number];
 type SearchTab = "users" | "posts";
+
+/**
+ * Keyword bags used to filter the explore grid client-side. Posts have no
+ * dedicated category column, so we match caption / sound metadata / username
+ * against these terms. "All" is unfiltered; "Trending" is sorted by engagement.
+ */
+const CATEGORY_KEYWORDS: Record<Exclude<Category, "All" | "Trending">, string[]> = {
+  Photography: [
+    "photo",
+    "photography",
+    "camera",
+    "portrait",
+    "shot",
+    "lens",
+    "pic",
+    "snapshot",
+  ],
+  Nature: [
+    "nature",
+    "sunset",
+    "sunrise",
+    "mountain",
+    "ocean",
+    "forest",
+    "sky",
+    "beach",
+    "tree",
+    "flower",
+    "landscape",
+    "wildlife",
+    "hike",
+  ],
+  Design: [
+    "design",
+    "ui",
+    "ux",
+    "art",
+    "graphic",
+    "illustration",
+    "brand",
+    "type",
+    "layout",
+  ],
+  Tech: [
+    "tech",
+    "code",
+    "software",
+    "app",
+    "ai",
+    "gadget",
+    "phone",
+    "computer",
+    "startup",
+    "dev",
+  ],
+  Fitness: [
+    "fitness",
+    "gym",
+    "workout",
+    "run",
+    "yoga",
+    "health",
+    "training",
+    "lift",
+    "sport",
+  ],
+  Music: [
+    "music",
+    "song",
+    "track",
+    "concert",
+    "band",
+    "album",
+    "sound",
+    "beat",
+    "dj",
+  ],
+};
+
+function haystackFor(post: Post): string {
+  return [
+    post.caption,
+    post.music_track_title,
+    post.music_track_artist,
+    post.profiles?.username,
+    post.profiles?.full_name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function postMatchesCategory(post: Post, category: Category): boolean {
+  if (category === "All" || category === "Trending") return true;
+  const keywords = CATEGORY_KEYWORDS[category];
+  const haystack = haystackFor(post);
+  if (category === "Music" && (post.has_sound || post.music_track_title)) {
+    return true;
+  }
+  return keywords.some((keyword) => haystack.includes(keyword));
+}
+
+function engagementScore(post: Post): number {
+  return (
+    (post.view_count ?? 0) +
+    (post.like_count ?? 0) * 3 +
+    (post.comment_count ?? 0) * 2 +
+    (post.repost_count ?? 0) * 2
+  );
+}
 
 export default function Search() {
   const [searchText, setSearchText] = useState("");
   const [searchTab, setSearchTab] = useState<SearchTab>("users");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState<Category>("All");
 
   // Explore grid state (default view)
   const [explorePosts, setExplorePosts] = useState<Post[]>([]);
@@ -77,6 +189,18 @@ export default function Search() {
     setRefreshing(true);
     fetchExplorePosts();
   };
+
+  const filteredExplorePosts = useMemo(() => {
+    const matched = explorePosts.filter((post) =>
+      postMatchesCategory(post, selectedCategory)
+    );
+    if (selectedCategory === "Trending") {
+      return [...matched].sort(
+        (a, b) => engagementScore(b) - engagementScore(a)
+      );
+    }
+    return matched;
+  }, [explorePosts, selectedCategory]);
 
   // Search logic debounce
   useEffect(() => {
@@ -116,7 +240,7 @@ export default function Search() {
       if (searchLoading) {
         return (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color={colors.blue[600]} />
           </View>
         );
       }
@@ -125,7 +249,7 @@ export default function Search() {
         if (userResults.length === 0 && searched) {
           return (
             <View className="flex-1 items-center justify-center px-10">
-              <Ionicons name="people-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="people-outline" size={48} color={colors.slate[300]} />
               <Text className="mt-4 text-base font-semibold text-slate-800">
                 No people found
               </Text>
@@ -146,6 +270,8 @@ export default function Search() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`View profile of ${item.full_name || item.username || "user"}`}
                 className="flex-row items-center gap-3.5 rounded-2xl bg-white px-4 py-3 mb-2.5 border border-slate-200/80 shadow-sm"
                 onPress={() =>
                   router.push({
@@ -184,7 +310,7 @@ export default function Search() {
                   ) : null}
                 </View>
 
-                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
               </TouchableOpacity>
             )}
           />
@@ -194,7 +320,7 @@ export default function Search() {
         if (postResults.length === 0 && searched) {
           return (
             <View className="flex-1 items-center justify-center px-10">
-              <Ionicons name="images-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="images-outline" size={48} color={colors.slate[300]} />
               <Text className="mt-4 text-base font-semibold text-slate-800">
                 No posts found
               </Text>
@@ -215,6 +341,8 @@ export default function Search() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={item.caption ? `Open post: ${item.caption}` : "Open post"}
                 onPress={() =>
                   router.push({
                     pathname: "/(pages)/viewPost",
@@ -235,7 +363,7 @@ export default function Search() {
     if (exploreLoading && !refreshing) {
       return (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={colors.blue[600]} />
         </View>
       );
     }
@@ -243,7 +371,7 @@ export default function Search() {
     if (explorePosts.length === 0) {
       return (
         <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="compass-outline" size={54} color="#CBD5E1" />
+          <Ionicons name="compass-outline" size={54} color={colors.slate[300]} />
           <Text className="mt-4 text-lg font-bold text-slate-900">
             Explore Content
           </Text>
@@ -254,10 +382,25 @@ export default function Search() {
       );
     }
 
+    if (filteredExplorePosts.length === 0) {
+      return (
+        <View className="flex-1 items-center justify-center px-10">
+          <Ionicons name="funnel-outline" size={48} color={colors.slate[300]} />
+          <Text className="mt-4 text-lg font-bold text-slate-900">
+            No {selectedCategory} posts
+          </Text>
+          <Text className="mt-1 text-center text-sm text-slate-500">
+            Nothing in this category yet. Try another filter or be the first to
+            share.
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <FlatList
-        key="explore-posts-list"
-        data={explorePosts}
+        key={`explore-posts-list-${selectedCategory}`}
+        data={filteredExplorePosts}
         keyExtractor={(item) => item.id}
         numColumns={3}
         showsVerticalScrollIndicator={false}
@@ -265,12 +408,14 @@ export default function Search() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#2563EB"
+            tintColor={colors.blue[600]}
           />
         }
         renderItem={({ item }) => (
           <TouchableOpacity
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={item.caption ? `Open post: ${item.caption}` : "Open post"}
             onPress={() =>
               router.push({
                 pathname: "/(pages)/viewPost",
@@ -291,20 +436,25 @@ export default function Search() {
       {/* Search Input Bar */}
       <View className="px-5 pt-3 pb-2 bg-white border-b border-slate-100 shadow-sm">
         <View className="flex-row items-center bg-slate-100 rounded-2xl px-4 py-2.5 border border-slate-200">
-          <Ionicons name="search-outline" size={20} color="#94A3B8" />
+          <Ionicons name="search-outline" size={20} color={colors.slate[400]} />
           <TextInput
             placeholder="Search creators, topics, captions..."
             className="flex-1 ml-3 text-base text-slate-800"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.slate[400]}
             value={searchText}
             onChangeText={setSearchText}
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
+            accessibilityLabel="Search creators, topics, and captions"
           />
           {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchText("")}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            <TouchableOpacity
+              onPress={() => setSearchText("")}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
             </TouchableOpacity>
           )}
         </View>
@@ -314,6 +464,9 @@ export default function Search() {
           <View className="flex-row mt-3 border-t border-slate-100 pt-2">
             <TouchableOpacity
               onPress={() => setSearchTab("users")}
+              accessibilityRole="tab"
+              accessibilityLabel="People results"
+              accessibilityState={{ selected: searchTab === "users" }}
               className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 border-b-2 ${
                 searchTab === "users" ? "border-blue-600" : "border-transparent"
               }`}
@@ -321,7 +474,7 @@ export default function Search() {
               <Ionicons
                 name="people-outline"
                 size={16}
-                color={searchTab === "users" ? "#2563EB" : "#64748B"}
+                color={searchTab === "users" ? colors.blue[600] : colors.slate[500]}
               />
               <Text
                 className={`text-sm font-bold ${
@@ -334,6 +487,9 @@ export default function Search() {
 
             <TouchableOpacity
               onPress={() => setSearchTab("posts")}
+              accessibilityRole="tab"
+              accessibilityLabel="Post results"
+              accessibilityState={{ selected: searchTab === "posts" }}
               className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 border-b-2 ${
                 searchTab === "posts" ? "border-blue-600" : "border-transparent"
               }`}
@@ -341,7 +497,7 @@ export default function Search() {
               <Ionicons
                 name="images-outline"
                 size={16}
-                color={searchTab === "posts" ? "#2563EB" : "#64748B"}
+                color={searchTab === "posts" ? colors.blue[600] : colors.slate[500]}
               />
               <Text
                 className={`text-sm font-bold ${
@@ -370,6 +526,9 @@ export default function Search() {
                   key={cat}
                   activeOpacity={0.7}
                   onPress={() => setSelectedCategory(cat)}
+                  accessibilityRole="tab"
+                  accessibilityLabel={`${cat} category`}
+                  accessibilityState={{ selected: active }}
                   className={`px-4 py-1.5 rounded-full ${
                     active
                       ? "bg-blue-600 shadow-sm"

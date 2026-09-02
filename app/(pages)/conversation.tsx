@@ -24,6 +24,7 @@ import { formatRelativeTime } from "@/lib/dateUtils";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -175,9 +176,11 @@ export default function Conversation() {
           <TouchableOpacity
             onPress={() => router.back()}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             className="p-1"
           >
-            <Ionicons name="arrow-back" size={24} color="#0F172A" />
+            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -230,9 +233,11 @@ export default function Conversation() {
               });
             }
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Conversation info"
           className="p-2"
         >
-          <Ionicons name="information-circle-outline" size={22} color="#64748B" />
+          <Ionicons name="information-circle-outline" size={22} color={colors.slate[500]} />
         </TouchableOpacity>
       </View>
 
@@ -244,7 +249,7 @@ export default function Conversation() {
       >
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color={colors.blue[600]} />
           </View>
         ) : (
           <FlatList
@@ -256,7 +261,7 @@ export default function Conversation() {
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             ListEmptyComponent={
               <View className="flex-1 items-center justify-center py-24 px-10">
-                <Ionicons name="chatbubbles-outline" size={48} color="#CBD5E1" />
+                <Ionicons name="chatbubbles-outline" size={48} color={colors.slate[300]} />
                 <Text className="text-base font-semibold text-slate-800 mt-4">
                   No messages yet
                 </Text>
@@ -328,9 +333,11 @@ export default function Conversation() {
               />
               <TouchableOpacity
                 onPress={() => setSelectedImage(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Remove selected photo"
                 className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5"
               >
-                <Ionicons name="close" size={14} color="#FFFFFF" />
+                <Ionicons name="close" size={14} color={colors.white} />
               </TouchableOpacity>
             </View>
             <Text className="text-xs text-slate-500 flex-1">
@@ -345,16 +352,18 @@ export default function Conversation() {
             onPress={handlePickImage}
             disabled={sending}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Attach photo"
             className="p-2 mr-1"
           >
-            <Ionicons name="image-outline" size={24} color="#64748B" />
+            <Ionicons name="image-outline" size={24} color={colors.slate[500]} />
           </TouchableOpacity>
 
           <View className="flex-1 flex-row items-center bg-slate-100 rounded-2xl px-4 py-2 mr-3 border border-slate-200">
             <TextInput
               placeholder="Send a message..."
               className="flex-1 text-sm text-slate-800 max-h-24"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.slate[400]}
               value={text}
               onChangeText={setText}
               multiline
@@ -366,17 +375,19 @@ export default function Conversation() {
             onPress={handleSend}
             disabled={(!text.trim() && !selectedImage) || sending}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
             className={`h-11 w-11 rounded-full items-center justify-center ${
               text.trim() || selectedImage ? "bg-blue-600" : "bg-slate-200"
             }`}
           >
             {sending ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Ionicons
                 name="send"
                 size={18}
-                color={text.trim() || selectedImage ? "#FFFFFF" : "#94A3B8"}
+                color={text.trim() || selectedImage ? colors.white : colors.slate[400]}
                 style={{ marginLeft: 2 }}
               />
             )}

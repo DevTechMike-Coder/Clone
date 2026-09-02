@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StoryRing as StoryRingType } from "@/services/storyService";
+import { colors, storyRingGradient, storyRingViewed } from "@/constants/theme";
 
 type Props = {
   ring: StoryRingType;
@@ -20,6 +21,8 @@ export default function StoryRing({ ring, isFirst, onCreateStory, onPress }: Pro
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={onCreateStory}
+        accessibilityRole="button"
+        accessibilityLabel="Add your story"
         className="items-center mr-4"
         style={{ width: 72 }}
       >
@@ -34,7 +37,7 @@ export default function StoryRing({ ring, isFirst, onCreateStory, onPress }: Pro
             ) : (
               <Image
                 source={require("@/assets/homeIcons/profileUser.png")}
-                style={{ width: 30, height: 30, tintColor: "#94A3B8" }}
+                style={{ width: 30, height: 30, tintColor: colors.slate[400] }}
                 resizeMode="contain"
               />
             )}
@@ -56,11 +59,13 @@ export default function StoryRing({ ring, isFirst, onCreateStory, onPress }: Pro
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`View ${ring.username}'s story`}
       className="items-center mr-4"
       style={{ width: 72 }}
     >
       <LinearGradient
-        colors={viewed ? ["#CBD5E1", "#CBD5E1"] : ["#F59E0B", "#EC4899", "#8B5CF6", "#3B82F6"]}
+        colors={viewed ? [...storyRingViewed] : [...storyRingGradient]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         className="w-[70px] h-[70px] rounded-full items-center justify-center"
@@ -75,7 +80,7 @@ export default function StoryRing({ ring, isFirst, onCreateStory, onPress }: Pro
           ) : (
             <Image
               source={require("@/assets/homeIcons/profileUser.png")}
-              style={{ width: 30, height: 30, tintColor: "#94A3B8" }}
+              style={{ width: 30, height: 30, tintColor: colors.slate[400] }}
               resizeMode="contain"
             />
           )}

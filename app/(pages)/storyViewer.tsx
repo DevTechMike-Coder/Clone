@@ -20,6 +20,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useAuth } from "@/context/AuthContext";
 import { storyService, Story, StoryRing } from "@/services/storyService";
 import Toast from "react-native-toast-message";
+import { colors } from "@/constants/theme";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const STORY_DURATION = 5; // seconds per image story; videos use their own length.
@@ -266,7 +267,7 @@ export default function StoryViewer() {
             }}
           >
             <Text
-              style={{ color: activeStory.text_color || "#FFFFFF" }}
+              style={{ color: activeStory.text_color || colors.white }}
               className="text-base font-semibold text-center"
             >
               {activeStory.caption}
@@ -357,11 +358,18 @@ export default function StoryViewer() {
                   setShowDeleteMenu(true);
                 }}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Story options"
               >
                 <Ionicons name="ellipsis-horizontal" size={26} color="white" />
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Close story"
+            >
               <Ionicons name="close" size={28} color="white" />
             </TouchableOpacity>
           </View>
@@ -395,12 +403,16 @@ export default function StoryViewer() {
         <TouchableOpacity
           hitSlop={10}
           onPress={() => Toast.show({ type: "success", text1: "Liked!" })}
+          accessibilityRole="button"
+          accessibilityLabel="Like story"
         >
           <Ionicons name="heart-outline" size={28} color="white" />
         </TouchableOpacity>
         <TouchableOpacity
           hitSlop={10}
           onPress={() => Toast.show({ type: "info", text1: "Share sheet coming soon" })}
+          accessibilityRole="button"
+          accessibilityLabel="Share story"
         >
           <Ionicons name="paper-plane-outline" size={26} color="white" />
         </TouchableOpacity>
