@@ -35,6 +35,9 @@ import TextOverlayModal from "./camera/TextOverlayModal";
 import MusicPickerModal from "./camera/MusicPickerModal";
 import DraggableTextOverlay from "./camera/DraggableTextOverlay";
 import { colors } from "@/constants/theme";
+import { useAuth } from "@/context/AuthContext";
+import { storyService } from "@/services/storyService";
+import Toast from "react-native-toast-message";
 
 type CaptureMode = "Photo" | "Video" | "Story";
 
@@ -69,6 +72,7 @@ export default function TestCamera({
 }: TestCameraProps) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { user } = useAuth();
 
   // Permissions
   const [camPermission, requestCamPermission] = useCameraPermissions();
@@ -120,6 +124,7 @@ export default function TestCamera({
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [capturedType, setCapturedType] = useState<"image" | "video">("image");
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
 
@@ -268,8 +273,52 @@ export default function TestCamera({
     }
   };
 
+  const publishStory = async () => {
+    if (!user) {
+      Toast.show({ type: "error", text1: "You must be signed in." });
+      return;
+    }
+    if (!capturedUri) return;
+
+    setPublishing(true);
+    try {
+      await storyService.createStory({
+        userId: user.id,
+        mediaUri: capturedUri,
+        mediaType: capturedType,
+        backgroundColor: colors.black,
+      });
+      Toast.show({ type: "success", text1: "Story added!" });
+
+      // Reset the capture and leave the camera so the story shows up in the feed.
+      setCapturedUri(null);
+      setCapturedType("image");
+      setTextOverlays([]);
+      if (onClose) {
+        onClose();
+      } else {
+        router.back();
+      }
+    } catch (e: any) {
+      console.error("Error publishing story:", e);
+      Toast.show({
+        type: "error",
+        text1: "Couldn't add story",
+        text2: e?.message ?? "Please try again.",
+      });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const handleContinue = () => {
     if (!capturedUri) return;
+
+    // In Story mode the capture becomes a story, not a post.
+    if (activeMode === "Story") {
+      publishStory();
+      return;
+    }
 
     setPendingPostData({
       mediaUri: capturedUri,
@@ -673,9 +722,16 @@ export default function TestCamera({
 
               <TouchableOpacity
                 onPress={handleContinue}
+                disabled={publishing}
                 className="h-12 flex-1 rounded-full bg-blue-600 items-center justify-center shadow-lg active:opacity-90"
               >
-                <Text className="text-white text-base font-bold">Next</Text>
+                {publishing ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white text-base font-bold">
+                    {activeMode === "Story" ? "Add to story" : "Next"}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </LinearGradient>
