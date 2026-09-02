@@ -1,18 +1,19 @@
-import React, { useCallback, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
   ActivityIndicator,
   RefreshControl,
-  TouchableOpacity,
+  ScrollView,
+  View,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
-import { router } from "expo-router";
-import StoryRing from "./StoryRing";
-import { storyService, StoryRing as StoryRingType } from "@/services/storyService";
-import { useAuth } from "@/context/AuthContext";
+
 import { colors } from "@/constants/theme";
+import { useAuth } from "@/context/AuthContext";
+import {
+  StoryRing as StoryRingType,
+  storyService,
+} from "@/services/storyService";
+import StoryRing from "./StoryRing";
 
 /**
  * Horizontal bar of Instagram-style story rings shown at the top of the home feed.
@@ -70,7 +71,7 @@ export default function StoriesBar() {
   }
 
   return (
-    <View className="bg-white border-b border-slate-100 py-3">
+    <View className="py-3">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
