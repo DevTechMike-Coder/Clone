@@ -287,6 +287,9 @@ export default function TestCamera({
         mediaUri: capturedUri,
         mediaType: capturedType,
         backgroundColor: colors.black,
+        // Keep any text the user added in the studio — otherwise the
+        // story plays back without it.
+        textOverlays,
       });
       Toast.show({ type: "success", text1: "Story added!" });
 

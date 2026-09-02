@@ -10,6 +10,7 @@ import {
   StatusBar,
   Modal,
   Alert,
+  StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
@@ -19,6 +20,10 @@ import { useFocusEffect } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useAuth } from "@/context/AuthContext";
 import { storyService, Story, StoryRing } from "@/services/storyService";
+import {
+  getOverlayContainerStyle,
+  getOverlayTextStyle,
+} from "@/components/camera/DraggableTextOverlay";
 import Toast from "react-native-toast-message";
 import { colors } from "@/constants/theme";
 
@@ -275,6 +280,34 @@ export default function StoryViewer() {
               {activeStory.caption}
             </Text>
           </LinearGradient>
+        )}
+
+        {/* Text overlays created in the camera studio. Rendered read-only
+            with the same styling/positions the editor used. */}
+        {!!(activeStory.text_overlays && activeStory.text_overlays.length > 0) && (
+          <View
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+            className="items-center justify-center"
+          >
+            {(activeStory.text_overlays ?? []).map((item) => (
+              <View
+                key={item.id}
+                style={{
+                  position: "absolute",
+                  alignSelf: "center",
+                  transform: [
+                    { translateX: item.x ?? 0 },
+                    { translateY: item.y ?? 0 },
+                  ],
+                }}
+              >
+                <View style={getOverlayContainerStyle(item)}>
+                  <Text style={getOverlayTextStyle(item)}>{item.text}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
         )}
       </TouchableOpacity>
 

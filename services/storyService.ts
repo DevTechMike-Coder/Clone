@@ -1,5 +1,6 @@
 import { File } from "expo-file-system";
 import { supabase } from "../lib/supabase";
+import type { TextOverlayItem } from "../store/pendingPost";
 
 export type Story = {
   id: string;
@@ -9,6 +10,8 @@ export type Story = {
   background_color?: string;
   caption?: string;
   text_color?: string;
+  /** Camera-studio text overlays, persisted as JSON. */
+  text_overlays?: TextOverlayItem[] | null;
   expires_at: string;
   created_at: string;
   view_count: number;
@@ -71,6 +74,8 @@ export const storyService = {
     caption?: string;
     backgroundColor?: string;
     textColor?: string;
+    /** Text the user added in the camera studio, kept with the story. */
+    textOverlays?: TextOverlayItem[];
   }): Promise<Story> {
     const media_url = await uploadStoryMedia(
       input.mediaUri,
@@ -87,6 +92,10 @@ export const storyService = {
         caption: input.caption,
         background_color: input.backgroundColor,
         text_color: input.textColor,
+        text_overlays:
+          input.textOverlays && input.textOverlays.length > 0
+            ? input.textOverlays
+            : null,
       })
       .select("*")
       .single();
