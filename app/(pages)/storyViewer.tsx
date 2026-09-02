@@ -11,6 +11,9 @@ import {
   Modal,
   Alert,
   StyleSheet,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
@@ -27,6 +30,8 @@ import {
 } from "@/components/camera/DraggableTextOverlay";
 import { CAMERA_FILTERS } from "@/components/camera/FilterPicker";
 import { stopAllSounds, useTrackSound } from "@/lib/useTrackSound";
+import { chatService } from "@/services/chatService";
+import { shareService } from "@/services/shareService";
 import Toast from "react-native-toast-message";
 import { colors } from "@/constants/theme";
 
@@ -112,6 +117,8 @@ export default function StoryViewer() {
   const [paused, setPaused] = useState(false);
   const [viewerWidth, setViewerWidth] = useState(SCREEN_W);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
 
   const progress = useRef(new Animated.Value(0)).current;
   const progressAnimRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -296,6 +303,44 @@ export default function StoryViewer() {
   const activeFilterObj = CAMERA_FILTERS.find(
     (f) => f.id === activeStory.filter_id,
   );
+
+  // Reply → lands in the owner's DM (reuses/creates the direct conversation).
+  const handleSendReply = async () => {
+    const trimmed = replyText.trim();
+    if (!trimmed || !activeRing || sendingReply || isOwn) return;
+    setSendingReply(true);
+    setPaused(true);
+    try {
+      const conversationId = await chatService.getOrCreateDirectConversation(
+        activeRing.user_id,
+      );
+      await chatService.sendMessage(conversationId, trimmed);
+      setReplyText("");
+      Toast.show({
+        type: "success",
+        text1: "Reply sent",
+        text2: `Delivered to @${activeRing.username} in messages.`,
+        visibilityTime: 2000,
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Couldn't send reply",
+        text2: error?.message || "Please try again.",
+      });
+    } finally {
+      setSendingReply(false);
+      setPaused(false);
+    }
+  };
+
+  const handleShareStory = () => {
+    if (!activeStory) return;
+    setPaused(true);
+    shareService
+      .shareStory(activeStory, activeRing?.username)
+      .finally(() => setPaused(false));
+  };
 
   return (
     <View className="flex-1 bg-black" onLayout={(e) => setViewerWidth(e.nativeEvent.layout.width)}>
@@ -494,47 +539,67 @@ export default function StoryViewer() {
         </View>
       </View>
 
-      {/* Reply bar */}
-      <View
+      {/* Reply bar (hidden on your own stories) */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{
           position: "absolute",
           left: 14,
           right: 14,
           bottom: insets.bottom + 18,
         }}
-        className="flex-row items-center gap-3"
       >
-        <TouchableOpacity
-          activeOpacity={0.8}
-          className="flex-1 h-11 rounded-full border border-white/60 items-center justify-center px-4 flex-row"
-          onPress={() => {
-            setPaused(true);
-            Toast.show({
-              type: "info",
-              text1: "Replies coming soon",
-            });
-            setTimeout(() => setPaused(false), 800);
-          }}
-        >
-          <Text className="text-white/80 text-sm font-semibold">Send message</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          hitSlop={10}
-          onPress={() => Toast.show({ type: "success", text1: "Liked!" })}
-          accessibilityRole="button"
-          accessibilityLabel="Like story"
-        >
-          <Ionicons name="heart-outline" size={28} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          hitSlop={10}
-          onPress={() => Toast.show({ type: "info", text1: "Share sheet coming soon" })}
-          accessibilityRole="button"
-          accessibilityLabel="Share story"
-        >
-          <Ionicons name="paper-plane-outline" size={26} color="white" />
-        </TouchableOpacity>
-      </View>
+        <View className="flex-row items-center gap-3">
+          {isOwn ? (
+            <View className="flex-1" />
+          ) : (
+            <View className="flex-1 h-11 rounded-full border border-white/60 px-4 flex-row items-center">
+              <TextInput
+                value={replyText}
+                onChangeText={setReplyText}
+                placeholder={`Reply to @${activeRing?.username ?? "story"}...`}
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                className="flex-1 text-white text-sm font-semibold"
+                onFocus={() => setPaused(true)}
+                onBlur={() => setPaused(false)}
+                onSubmitEditing={handleSendReply}
+                returnKeyType="send"
+                editable={!sendingReply}
+              />
+              {sendingReply ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                replyText.trim().length > 0 && (
+                  <TouchableOpacity
+                    onPress={handleSendReply}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Send reply"
+                  >
+                    <Ionicons name="send" size={18} color="white" />
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+          )}
+          <TouchableOpacity
+            hitSlop={10}
+            onPress={() => Toast.show({ type: "success", text1: "Liked!" })}
+            accessibilityRole="button"
+            accessibilityLabel="Like story"
+          >
+            <Ionicons name="heart-outline" size={28} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={10}
+            onPress={handleShareStory}
+            accessibilityRole="button"
+            accessibilityLabel="Share story"
+          >
+            <Ionicons name="paper-plane-outline" size={26} color="white" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
 
       {/* Delete confirmation modal */}
       <Modal
