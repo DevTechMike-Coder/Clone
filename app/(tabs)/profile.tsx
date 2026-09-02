@@ -21,6 +21,11 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
 import { pushNotificationService } from "@/services/pushNotificationService";
+import {
+  SavedAccountProfile,
+  accountService,
+} from "@/services/accountService";
+import AddAccountModal from "@/components/modal/AddAccountModal";
 import { useTheme } from "@/context/ThemeContext";
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
@@ -59,6 +64,46 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [privacySaving, setPrivacySaving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccountProfile[]>([]);
+  const [switchingAccountId, setSwitchingAccountId] = useState<string | null>(null);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
+
+  const handleSwitchAccount = async (userId: string) => {
+    if (switchingAccountId) return;
+    setSwitchingAccountId(userId);
+    try {
+      await accountService.switchToAccount(userId);
+      closeMenu();
+      Toast.show({ type: "success", text1: "Switched account" });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Couldn't switch",
+        text2: error?.message || "Please try again.",
+      });
+      // Refresh the list — a failed switch drops dead credentials.
+      accountService
+        .listAccountsWithProfiles()
+        .then(setSavedAccounts)
+        .catch(() => {});
+    } finally {
+      setSwitchingAccountId(null);
+    }
+  };
+
+  const handleForgetAccount = (userId: string) => {
+    Alert.alert("Remove account", "Remove this account from the switcher?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          await accountService.removeAccount(userId).catch(() => {});
+          setSavedAccounts((prev) => prev.filter((a) => a.userId !== userId));
+        },
+      },
+    ]);
+  };
   const [postMenuPost, setPostMenuPost] = useState<Post | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -129,6 +174,10 @@ export default function Profile() {
       // Remove this device's push token before the session ends — RLS only
       // allows the owner to delete their rows, so it must run pre-sign-out.
       await pushNotificationService.unregisterDevice().catch(() => {});
+      // Explicit sign-out also drops the account from the switcher.
+      if (authUser?.id) {
+        await accountService.removeAccount(authUser.id).catch(() => {});
+      }
       await authService.signOut();
       router.replace("/");
       Toast.show({
@@ -200,6 +249,11 @@ export default function Profile() {
 
   const openMenu = () => {
     setMenuOpen(true);
+    // Refresh the multi-account switcher each time the drawer opens
+    accountService
+      .listAccountsWithProfiles()
+      .then(setSavedAccounts)
+      .catch(() => setSavedAccounts([]));
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 300,
@@ -351,6 +405,79 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
           </TouchableOpacity>
 
+          {/* Multi-account switcher */}
+          {savedAccounts.length > 0 && (
+            <View className="mt-2 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <Text className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
+                Switch account
+              </Text>
+              {savedAccounts.map((account) => {
+                const isCurrent = account.userId === authUser?.id;
+                return (
+                  <TouchableOpacity
+                    key={account.userId}
+                    disabled={isCurrent || !!switchingAccountId}
+                    onPress={() => handleSwitchAccount(account.userId)}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Switch to ${account.username || account.email || "saved account"}`}
+                    className="flex-row items-center gap-3 py-2.5"
+                  >
+                    <View className="h-9 w-9 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
+                      {account.avatar_url ? (
+                        <Image
+                          source={{ uri: account.avatar_url }}
+                          className="h-full w-full"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Ionicons name="person" size={16} color={colors.slate[400]} />
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-slate-900 dark:text-slate-50" numberOfLines={1}>
+                        {account.full_name || account.username || account.email || "Account"}
+                      </Text>
+                      {!!(account.username || account.email) && (
+                        <Text className="text-xs text-slate-400" numberOfLines={1}>
+                          {account.username ? `@${account.username}` : account.email}
+                        </Text>
+                      )}
+                    </View>
+                    {switchingAccountId === account.userId ? (
+                      <ActivityIndicator size="small" color={colors.blue[600]} />
+                    ) : isCurrent ? (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.blue[600]} />
+                    ) : (
+                      <TouchableOpacity
+                        hitSlop={10}
+                        onPress={() => handleForgetAccount(account.userId)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Remove saved account"
+                      >
+                        <Ionicons name="close-circle-outline" size={20} color={colors.slate[300]} />
+                      </TouchableOpacity>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              <TouchableOpacity
+                onPress={() => setAddAccountOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Log into another account"
+                className="flex-row items-center gap-3 py-2.5"
+              >
+                <View className="h-9 w-9 rounded-full bg-blue-50 dark:bg-blue-950 items-center justify-center border border-blue-100 dark:border-blue-900">
+                  <Ionicons name="add" size={18} color={colors.blue[600]} />
+                </View>
+                <Text className="text-sm font-bold text-blue-600">
+                  Log into another account
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <TouchableOpacity
             onPress={handleSignOut}
             className="flex-row items-center justify-between py-4"
@@ -364,6 +491,11 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      <AddAccountModal
+        visible={addAccountOpen}
+        onClose={() => setAddAccountOpen(false)}
+      />
 
       {/* Header Row */}
       <View className="flex-row items-center justify-between px-5 py-4">

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { pushNotificationService } from "@/services/pushNotificationService";
+import { accountService } from "@/services/accountService";
 
 type AuthContextType = {
   session: Session | null;
@@ -49,6 +50,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Keep the multi-account switcher's token snapshot fresh — see
+        // services/accountService.ts for the rotation-safe design.
+        if (_event === "SIGNED_IN" || _event === "TOKEN_REFRESHED") {
+          accountService.rememberSession(session).catch(() => {});
+        }
       }
     );
 
