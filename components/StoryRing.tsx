@@ -1,8 +1,10 @@
-import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
-import { LinearGradient } from "@/components/StyledLinearGradient";
-import { StoryRing as StoryRingType } from "@/services/storyService";
 import { colors, storyRingGradient, storyRingViewed } from "@/constants/theme";
+import { StoryRing as StoryRingType } from "@/services/storyService";
+import { LinearGradient as RNLinearGradient } from "expo-linear-gradient";
+import { styled } from "nativewind";
+import { Image, Text, TouchableOpacity, View } from "react-native";
+
+const LinearGradient = styled(RNLinearGradient);
 
 type Props = {
   ring: StoryRingType;
@@ -15,7 +17,12 @@ type Props = {
  * Instagram-style story ring. A colourful gradient border around an avatar.
  * Viewed stories show a grey border; the first slot is the "Add Story" CTA.
  */
-export default function StoryRing({ ring, isFirst, onCreateStory, onPress }: Props) {
+export default function StoryRing({
+  ring,
+  isFirst,
+  onCreateStory,
+  onPress,
+}: Props) {
   if (isFirst) {
     return (
       <TouchableOpacity
@@ -43,10 +50,18 @@ export default function StoryRing({ ring, isFirst, onCreateStory, onPress }: Pro
             )}
           </View>
           <View className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-blue-600 items-center justify-center border-[2.5px] border-white">
-            <Text className="text-white text-base font-bold leading-none" style={{ marginTop: -1 }}>+</Text>
+            <Text
+              className="text-white text-base font-bold leading-none"
+              style={{ marginTop: -1 }}
+            >
+              +
+            </Text>
           </View>
         </View>
-        <Text numberOfLines={1} className="text-[11px] text-slate-700 mt-1.5 font-medium">
+        <Text
+          numberOfLines={1}
+          className="text-[11px] text-slate-700 mt-1.5 font-medium"
+        >
           Your story
         </Text>
       </TouchableOpacity>
@@ -86,7 +101,10 @@ export default function StoryRing({ ring, isFirst, onCreateStory, onPress }: Pro
           )}
         </View>
       </LinearGradient>
-      <Text numberOfLines={1} className="text-[11px] text-slate-700 mt-1.5 font-medium">
+      <Text
+        numberOfLines={1}
+        className="text-[11px] text-slate-700 mt-1.5 font-medium"
+      >
         {ring.username}
       </Text>
     </TouchableOpacity>
