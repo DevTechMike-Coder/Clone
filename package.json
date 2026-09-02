@@ -25,6 +25,7 @@
     "base64-arraybuffer": "^1.0.2",
     "clsx": "^2.1.1",
     "expo": "~57.0.19",
+    "expo-asset": "^57.0.16",
     "expo-audio": "~57.0.4",
     "expo-camera": "~57.0.4",
     "expo-constants": "~57.0.16",
