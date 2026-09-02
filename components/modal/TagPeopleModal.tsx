@@ -109,14 +109,14 @@ export default function TagPeopleModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 bg-black/60 justify-end"
       >
-        <View className="bg-white rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t border-slate-100 shadow-2xl">
+        <View className="bg-white dark:bg-slate-900 rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t border-slate-100 dark:border-slate-800 shadow-2xl">
           {/* Sheet Handle */}
           <View className="items-center mb-3">
             <View className="w-12 h-1.5 rounded-full bg-slate-300" />
           </View>
 
           {/* Header */}
-          <View className="flex-row items-center justify-between pb-3 border-b border-slate-100">
+          <View className="flex-row items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <TouchableOpacity
               onPress={onClose}
               accessibilityRole="button"
@@ -126,7 +126,7 @@ export default function TagPeopleModal({
               <Ionicons name="close" size={24} color={colors.slate[500]} />
             </TouchableOpacity>
 
-            <Text className="text-lg font-bold text-slate-900">
+            <Text className="text-lg font-bold text-slate-900 dark:text-slate-50">
               Tag People {selected.length > 0 ? `(${selected.length})` : ""}
             </Text>
 
@@ -139,7 +139,7 @@ export default function TagPeopleModal({
           </View>
 
           {/* Search Bar */}
-          <View className="flex-row items-center bg-slate-100 rounded-2xl px-3.5 py-2.5 my-3.5">
+          <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-2xl px-3.5 py-2.5 my-3.5">
             <Ionicons name="search" size={18} color={colors.slate[400]} />
             <TextInput
               placeholder="Search people to tag..."
@@ -147,7 +147,7 @@ export default function TagPeopleModal({
               value={search}
               onChangeText={setSearch}
               autoCapitalize="none"
-              className="flex-1 ml-2.5 text-sm text-slate-900"
+              className="flex-1 ml-2.5 text-sm text-slate-900 dark:text-slate-50"
             />
             {search.length > 0 && (
               <TouchableOpacity
@@ -172,7 +172,7 @@ export default function TagPeopleModal({
                   <TouchableOpacity
                     key={user.id}
                     onPress={() => toggleUser(user)}
-                    className="flex-row items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full"
+                    className="flex-row items-center gap-1.5 bg-blue-50 dark:bg-blue-950 border border-blue-200 px-3 py-1.5 rounded-full"
                   >
                     {user.avatar_url ? (
                       <Image
@@ -201,7 +201,7 @@ export default function TagPeopleModal({
           ) : results.length === 0 ? (
             <View className="flex-1 items-center justify-center py-12 gap-2">
               <Ionicons name="people-outline" size={40} color={colors.slate[300]} />
-              <Text className="text-sm font-semibold text-slate-500">
+              <Text className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                 {search ? "No users found" : "Search users by username or name"}
               </Text>
             </View>
@@ -219,7 +219,7 @@ export default function TagPeopleModal({
                     className="flex-row items-center justify-between py-3 border-b border-slate-50"
                   >
                     <View className="flex-row items-center gap-3 flex-1 mr-3">
-                      <View className="w-11 h-11 rounded-full bg-slate-100 overflow-hidden items-center justify-center border border-slate-200">
+                      <View className="w-11 h-11 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden items-center justify-center border border-slate-200 dark:border-slate-700">
                         {item.avatar_url ? (
                           <Image
                             source={{ uri: item.avatar_url }}
@@ -237,14 +237,14 @@ export default function TagPeopleModal({
 
                       <View className="flex-1">
                         <Text
-                          className="text-sm font-bold text-slate-900"
+                          className="text-sm font-bold text-slate-900 dark:text-slate-50"
                           numberOfLines={1}
                         >
                           @{item.username || "user"}
                         </Text>
                         {item.full_name && (
                           <Text
-                            className="text-xs text-slate-500"
+                            className="text-xs text-slate-500 dark:text-slate-400"
                             numberOfLines={1}
                           >
                             {item.full_name}
@@ -257,7 +257,7 @@ export default function TagPeopleModal({
                       className={`w-6 h-6 rounded-full items-center justify-center border ${
                         isSelected
                           ? "bg-blue-600 border-blue-600"
-                          : "border-slate-300 bg-white"
+                          : "border-slate-300 bg-white dark:bg-slate-900"
                       }`}
                     >
                       {isSelected && (

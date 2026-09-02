@@ -86,14 +86,14 @@ export default function LocationPickerModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 bg-black/60 justify-end"
       >
-        <View className="bg-white rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t border-slate-100 shadow-2xl">
+        <View className="bg-white dark:bg-slate-900 rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t border-slate-100 dark:border-slate-800 shadow-2xl">
           {/* Sheet Handle */}
           <View className="items-center mb-3">
             <View className="w-12 h-1.5 rounded-full bg-slate-300" />
           </View>
 
           {/* Header */}
-          <View className="flex-row items-center justify-between pb-3 border-b border-slate-100">
+          <View className="flex-row items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <TouchableOpacity
               onPress={onClose}
               accessibilityRole="button"
@@ -103,7 +103,7 @@ export default function LocationPickerModal({
               <Ionicons name="close" size={24} color={colors.slate[500]} />
             </TouchableOpacity>
 
-            <Text className="text-lg font-bold text-slate-900">Add Location</Text>
+            <Text className="text-lg font-bold text-slate-900 dark:text-slate-50">Add Location</Text>
 
             {selectedLocation ? (
               <TouchableOpacity onPress={handleClearLocation}>
@@ -115,14 +115,14 @@ export default function LocationPickerModal({
           </View>
 
           {/* Search Bar */}
-          <View className="flex-row items-center bg-slate-100 rounded-2xl px-3.5 py-2.5 my-3.5">
+          <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-2xl px-3.5 py-2.5 my-3.5">
             <Ionicons name="location-outline" size={18} color={colors.slate[400]} />
             <TextInput
               placeholder="Search city, place or landmark..."
               placeholderTextColor={colors.slate[400]}
               value={search}
               onChangeText={setSearch}
-              className="flex-1 ml-2.5 text-sm text-slate-900"
+              className="flex-1 ml-2.5 text-sm text-slate-900 dark:text-slate-50"
             />
             {search.length > 0 && (
               <TouchableOpacity
@@ -139,7 +139,7 @@ export default function LocationPickerModal({
           {search.trim().length > 0 && (
             <TouchableOpacity
               onPress={() => handlePickLocation(search.trim())}
-              className="flex-row items-center gap-3 p-3.5 bg-blue-50 border border-blue-200 rounded-2xl mb-3"
+              className="flex-row items-center gap-3 p-3.5 bg-blue-50 dark:bg-blue-950 border border-blue-200 rounded-2xl mb-3"
             >
               <View className="w-8 h-8 rounded-full bg-blue-600 items-center justify-center">
                 <Ionicons name="add" size={18} color="white" />
@@ -169,7 +169,7 @@ export default function LocationPickerModal({
                   className="flex-row items-center justify-between py-3.5 border-b border-slate-50"
                 >
                   <View className="flex-row items-center gap-3 flex-1 mr-3">
-                    <View className="w-10 h-10 rounded-2xl bg-slate-100 items-center justify-center border border-slate-200">
+                    <View className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
                       <Ionicons
                         name={item.type === "Beach" || item.type === "Island" ? "sunny-outline" : "business-outline"}
                         size={20}
@@ -179,12 +179,12 @@ export default function LocationPickerModal({
 
                     <View className="flex-1">
                       <Text
-                        className="text-sm font-bold text-slate-900"
+                        className="text-sm font-bold text-slate-900 dark:text-slate-50"
                         numberOfLines={1}
                       >
                         {item.name}
                       </Text>
-                      <Text className="text-xs text-slate-500">
+                      <Text className="text-xs text-slate-500 dark:text-slate-400">
                         {item.type} • {item.country}
                       </Text>
                     </View>

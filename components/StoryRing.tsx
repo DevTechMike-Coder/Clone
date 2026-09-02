@@ -34,7 +34,7 @@ export default function StoryRing({
         style={{ width: 72 }}
       >
         <View className="relative">
-          <View className="w-16 h-16 rounded-full bg-slate-200 items-center justify-center border-[2.5px] border-white overflow-hidden">
+          <View className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 items-center justify-center border-[2.5px] border-white overflow-hidden">
             {ring.avatar_url ? (
               <Image
                 source={{ uri: ring.avatar_url }}
@@ -60,7 +60,7 @@ export default function StoryRing({
         </View>
         <Text
           numberOfLines={1}
-          className="text-[11px] text-slate-700 mt-1.5 font-medium"
+          className="text-[11px] text-slate-700 dark:text-slate-200 mt-1.5 font-medium"
         >
           Your story
         </Text>
@@ -85,7 +85,7 @@ export default function StoryRing({
         end={{ x: 1, y: 1 }}
         className="w-[70px] h-[70px] rounded-full items-center justify-center"
       >
-        <View className="w-16 h-16 rounded-full bg-white items-center justify-center overflow-hidden">
+        <View className="w-16 h-16 rounded-full bg-white dark:bg-slate-900 items-center justify-center overflow-hidden">
           {ring.avatar_url ? (
             <Image
               source={{ uri: ring.avatar_url }}
@@ -103,7 +103,7 @@ export default function StoryRing({
       </LinearGradient>
       <Text
         numberOfLines={1}
-        className="text-[11px] text-slate-700 mt-1.5 font-medium"
+        className="text-[11px] text-slate-700 dark:text-slate-200 mt-1.5 font-medium"
       >
         {ring.username}
       </Text>

@@ -239,9 +239,9 @@ export default function ViewPost() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -266,10 +266,10 @@ export default function ViewPost() {
       ) : !post ? (
         <View className="flex-1 items-center justify-center px-10">
           <Ionicons name="alert-circle-outline" size={48} color={colors.slate[300]} />
-          <Text className="text-lg font-bold text-slate-900 mt-4">
+          <Text className="text-lg font-bold text-slate-900 dark:text-slate-50 mt-4">
             Post not found
           </Text>
-          <Text className="text-slate-500 text-center mt-2">
+          <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
             This post may have been removed or is unavailable.
           </Text>
         </View>
@@ -286,7 +286,7 @@ export default function ViewPost() {
           }
         >
           {/* Author Header */}
-          <View className="flex-row items-center justify-between px-5 py-4 bg-white">
+          <View className="flex-row items-center justify-between px-5 py-4 bg-white dark:bg-slate-900">
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() =>
@@ -297,7 +297,7 @@ export default function ViewPost() {
               }
               className="flex-row items-center gap-3"
             >
-              <View className="h-11 w-11 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+              <View className="h-11 w-11 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
                 {post.profiles?.avatar_url ? (
                   <Image
                     source={{ uri: post.profiles.avatar_url }}
@@ -314,7 +314,7 @@ export default function ViewPost() {
               </View>
 
               <View>
-                <Text className="text-base font-bold text-slate-900 leading-tight">
+                <Text className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
                   {post.profiles?.full_name || post.profiles?.username || "User"}
                 </Text>
                 <Text className="text-xs text-slate-400 mt-0.5">
@@ -326,21 +326,21 @@ export default function ViewPost() {
 
           {/* Caption */}
           {post.caption ? (
-            <View className="px-5 pb-3 bg-white">
-              <Text className="text-sm leading-5 text-slate-800">
+            <View className="px-5 pb-3 bg-white dark:bg-slate-900">
+              <Text className="text-sm leading-5 text-slate-800 dark:text-slate-100">
                 {post.caption}
               </Text>
             </View>
           ) : null}
 
           {/* Media Full Aspect */}
-          <View className="w-full aspect-square bg-slate-100 overflow-hidden">
+          <View className="w-full aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <PostDetailMedia post={post} />
           </View>
 
           {/* Attached Sound — also the control that plays it */}
           {(post.has_sound || post.music_track_title || post.music_track_audio_url) && (
-            <View className="px-5 py-3 bg-white border-b border-slate-100">
+            <View className="px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
               <SoundChip
                 variant="card"
                 trackKey={post.id}
@@ -353,7 +353,7 @@ export default function ViewPost() {
           )}
 
           {/* Action Bar */}
-          <View className="flex-row items-center justify-between px-5 py-4 bg-white border-b border-slate-100">
+          <View className="flex-row items-center justify-between px-5 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
             <View className="flex-row items-center gap-6">
               {/* Like */}
               <TouchableOpacity
@@ -372,7 +372,7 @@ export default function ViewPost() {
                 />
                 <Text
                   className={`text-sm font-medium ${
-                    post.is_liked ? "text-red-500" : "text-slate-700"
+                    post.is_liked ? "text-red-500" : "text-slate-700 dark:text-slate-200"
                   }`}
                 >
                   {post.like_count ?? 0}
@@ -393,7 +393,7 @@ export default function ViewPost() {
                   resizeMode="contain"
                   style={{ tintColor: colors.slate[900] }}
                 />
-                <Text className="text-sm font-medium text-slate-700">
+                <Text className="text-sm font-medium text-slate-700 dark:text-slate-200">
                   {post.comment_count ?? 0}
                 </Text>
               </TouchableOpacity>
@@ -415,7 +415,7 @@ export default function ViewPost() {
                 />
                 <Text
                   className={`text-sm font-medium ${
-                    post.is_reposted ? "text-emerald-600" : "text-slate-700"
+                    post.is_reposted ? "text-emerald-600" : "text-slate-700 dark:text-slate-200"
                   }`}
                 >
                   {post.repost_count ?? 0}

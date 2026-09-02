@@ -22,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { colors } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 const StyledImage = styled(Image);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -61,6 +62,11 @@ const CommentAvatar = ({ uri }: { uri?: string | null }) => {
 };
 
 const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
+  const { palette, colorScheme } = useTheme();
+  // Sheet-only extras: input fill that contrasts slightly with the sheet.
+  const tl = {
+    surfaceAlt: colorScheme === "dark" ? colors.slate[800] : colors.slate[50],
+  };
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -207,7 +213,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => handleUserPress(item.user_id)}
-            className="h-9 w-9 rounded-full bg-slate-100 overflow-hidden items-center justify-center border border-slate-200 mt-0.5"
+            className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden items-center justify-center border border-slate-200 dark:border-slate-700 mt-0.5"
           >
             <CommentAvatar uri={item.profiles?.avatar_url} />
           </TouchableOpacity>
@@ -219,7 +225,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 activeOpacity={0.7}
                 onPress={() => handleUserPress(item.user_id)}
               >
-                <Text className="text-sm font-bold text-slate-900">
+                <Text className="text-sm font-bold text-slate-900 dark:text-slate-50">
                   {username}
                 </Text>
               </TouchableOpacity>
@@ -228,7 +234,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
               </Text>
             </View>
 
-            <Text className="text-sm text-slate-800 mt-1 leading-5">
+            <Text className="text-sm text-slate-800 dark:text-slate-100 mt-1 leading-5">
               {item.content}
             </Text>
 
@@ -239,7 +245,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text className="text-xs font-bold text-slate-500">
+                <Text className="text-xs font-bold text-slate-500 dark:text-slate-400">
                   Reply
                 </Text>
               </TouchableOpacity>
@@ -267,7 +273,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
           <View className="pl-12 mt-2">
             {/* Render Nested Replies FIRST when expanded (Above the toggle) */}
             {isExpanded && (
-              <View className="mb-2 gap-3 pl-2 border-l border-slate-200">
+              <View className="mb-2 gap-3 pl-2 border-l border-slate-200 dark:border-slate-700">
                 {item.replies!.map((reply) => {
                   const replyUsername =
                     reply.profiles?.username || reply.profiles?.full_name || "user";
@@ -278,7 +284,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => handleUserPress(reply.user_id)}
-                        className="h-7 w-7 rounded-full bg-slate-100 overflow-hidden items-center justify-center border border-slate-200 mt-0.5"
+                        className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden items-center justify-center border border-slate-200 dark:border-slate-700 mt-0.5"
                       >
                         <CommentAvatar uri={reply.profiles?.avatar_url} />
                       </TouchableOpacity>
@@ -289,7 +295,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                             activeOpacity={0.7}
                             onPress={() => handleUserPress(reply.user_id)}
                           >
-                            <Text className="text-xs font-bold text-slate-900">
+                            <Text className="text-xs font-bold text-slate-900 dark:text-slate-50">
                               {replyUsername}
                             </Text>
                           </TouchableOpacity>
@@ -298,7 +304,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                           </Text>
                         </View>
 
-                        <Text className="text-xs text-slate-800 mt-0.5 leading-4">
+                        <Text className="text-xs text-slate-800 dark:text-slate-100 mt-0.5 leading-4">
                           {reply.content}
                         </Text>
 
@@ -307,7 +313,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                             onPress={() => handleReplyPress(item.id, replyUsername)}
                             activeOpacity={0.7}
                           >
-                            <Text className="text-[11px] font-bold text-slate-500">
+                            <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                               Reply
                             </Text>
                           </TouchableOpacity>
@@ -340,7 +346,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
               className="flex-row items-center gap-2 py-1"
             >
               <View className="w-6 h-[1px] bg-slate-300" />
-              <Text className="text-xs font-semibold text-slate-500">
+              <Text className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {isExpanded
                   ? "Hide replies"
                   : `View ${item.replies!.length} ${
@@ -378,6 +384,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
           style={[
             styles.sheetContainer,
             {
+              backgroundColor: palette.surface,
               transform: [{ translateY: slideAnim }],
               height: dynamicSheetHeight,
               marginBottom: keyboardHeight,
@@ -391,9 +398,9 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
             </View>
 
             {/* Header Title */}
-            <View className="flex-row items-center justify-between px-5 pb-3 pt-1 border-b border-slate-100">
+            <View className="flex-row items-center justify-between px-5 pb-3 pt-1 border-b border-slate-100 dark:border-slate-800">
               <View className="w-6" />
-              <Text className="text-base font-bold text-slate-900">
+              <Text className="text-base font-bold text-slate-900 dark:text-slate-50">
                 Comments
               </Text>
               <TouchableOpacity
@@ -422,7 +429,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 ListEmptyComponent={
                   <View className="items-center py-12 px-10">
                     <Ionicons name="chatbubbles-outline" size={42} color={colors.slate[300]} />
-                    <Text className="text-slate-500 font-medium text-sm mt-3 text-center">
+                    <Text className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-3 text-center">
                       No comments yet
                     </Text>
                     <Text className="text-slate-400 text-xs text-center mt-1">
@@ -435,8 +442,8 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
 
             {/* Replying Banner */}
             {replyingTo && (
-              <View className="flex-row items-center justify-between px-4 py-2 bg-slate-100 border-t border-slate-200">
-                <Text className="text-xs text-slate-600 font-medium">
+              <View className="flex-row items-center justify-between px-4 py-2 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                <Text className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                   Replying to <Text className="font-bold text-blue-600">@{replyingTo.username}</Text>
                 </Text>
                 <TouchableOpacity
@@ -452,7 +459,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
             )}
 
             {/* Comment Input Footer */}
-            <View className="flex-row items-center gap-3 px-4 py-3 border-t border-slate-100 bg-white">
+            <View className="flex-row items-center gap-3 px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <TextInput
                 ref={inputRef}
                 value={text}
@@ -464,7 +471,10 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 }
                 placeholderTextColor={colors.slate[400]}
                 multiline
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  { backgroundColor: tl.surfaceAlt, color: palette.text },
+                ]}
               />
               <TouchableOpacity
                 onPress={handleSubmit}
@@ -502,7 +512,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
   sheetContainer: {
-    backgroundColor: colors.white,
+    // backgroundColor applied inline (theme-aware) — keep layout only.
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: "hidden",
@@ -512,7 +522,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    backgroundColor: colors.slate[50],
+    // backgroundColor/color applied inline (theme-aware).
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,

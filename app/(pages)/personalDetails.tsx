@@ -7,14 +7,14 @@ const SafeAreaView = styled(RNSafeAreaView);
 
 export default function PersonalDetails() {
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 p-5">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 p-5">
       <View className="flex-row items-center justify-between px-5 py-4">
         {/* Back Button */}
         <TouchableOpacity
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          className="w-10 h-10 rounded-full border border-slate-100 items-center justify-center"
+          className="w-10 h-10 rounded-full border border-slate-100 dark:border-slate-800 items-center justify-center"
         >
           <Image
             source={require("@/assets/homeIcons/chevronleft.png")}
@@ -28,7 +28,7 @@ export default function PersonalDetails() {
           className="absolute left-0 right-0 items-center"
           pointerEvents="none"
         >
-          <Text className="text-lg font-bold text-slate-800 tracking-tight">
+          <Text className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">
             Personal Details
           </Text>
         </View>
@@ -38,7 +38,7 @@ export default function PersonalDetails() {
       </View>
 
       <View className="p-5">
-        <Text className="text-slate-500 text-center">
+        <Text className="text-slate-500 dark:text-slate-400 text-center">
             Personal details content will go here.
         </Text>
       </View>

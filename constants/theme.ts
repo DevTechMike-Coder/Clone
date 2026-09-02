@@ -27,6 +27,7 @@ export const colors = {
     700: "#334155",
     800: "#1E293B",
     900: "#0F172A",
+    950: "#020617",
   },
   red: {
     300: "#FCA5A5",
@@ -70,7 +71,7 @@ export const colors = {
 } as const;
 
 /** Semantic aliases for the props that show up on almost every screen. */
-export const palette = {
+const lightPalette = {
   primary: colors.blue[600],
   primaryDark: colors.blue[700],
   primaryLight: colors.blue[500],
@@ -84,6 +85,35 @@ export const palette = {
   success: colors.emerald[500],
   overlay: "rgba(15, 23, 42, 0.28)",
 } as const;
+
+/** Dark counterparts — used by `usePalette()` when the scheme is dark. */
+const darkPalette: { [K in keyof typeof lightPalette]: string } = {
+  primary: colors.blue[500],
+  primaryDark: colors.blue[600],
+  primaryLight: colors.blue[400],
+  text: colors.slate[50],
+  muted: colors.slate[400],
+  placeholder: colors.slate[500],
+  border: colors.slate[800],
+  surface: colors.slate[900],
+  background: colors.slate[950],
+  danger: colors.red[500],
+  success: colors.emerald[500],
+  overlay: "rgba(0, 0, 0, 0.55)",
+} as const;
+
+/**
+ * @deprecated Static light-scheme palette. Prefer `usePalette()` from
+ * `context/ThemeContext`, which switches with the active color scheme.
+ */
+export const palette = lightPalette;
+
+/** Value type shared by both palettes (literal types widened to string). */
+export type Palette = { [K in keyof typeof lightPalette]: string };
+export const palettes: Record<"light" | "dark", Palette> = {
+  light: lightPalette,
+  dark: darkPalette,
+};
 
 export const storyRingGradient = [
   colors.amber[500],

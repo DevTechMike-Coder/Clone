@@ -169,9 +169,9 @@ export default function Conversation() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-100 bg-white shadow-sm">
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
         <View className="flex-row items-center gap-3 flex-1">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -195,7 +195,7 @@ export default function Conversation() {
             }}
             className="flex-row items-center gap-3 flex-1"
           >
-            <View className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+            <View className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
               {otherUser?.avatar_url ? (
                 <Image
                   source={{ uri: otherUser.avatar_url }}
@@ -212,7 +212,7 @@ export default function Conversation() {
             </View>
 
             <View className="flex-1">
-              <Text className="text-base font-bold text-slate-900 leading-tight" numberOfLines={1}>
+              <Text className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight" numberOfLines={1}>
                 {otherUser?.full_name || otherUser?.username || "Chat"}
               </Text>
               {otherUser?.username && (
@@ -262,7 +262,7 @@ export default function Conversation() {
             ListEmptyComponent={
               <View className="flex-1 items-center justify-center py-24 px-10">
                 <Ionicons name="chatbubbles-outline" size={48} color={colors.slate[300]} />
-                <Text className="text-base font-semibold text-slate-800 mt-4">
+                <Text className="text-base font-semibold text-slate-800 dark:text-slate-100 mt-4">
                   No messages yet
                 </Text>
                 <Text className="text-slate-400 text-center text-xs mt-1">
@@ -283,12 +283,12 @@ export default function Conversation() {
                     className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl ${
                       isMe
                         ? "bg-blue-600 rounded-br-none"
-                        : "bg-white border border-slate-200/80 rounded-bl-none shadow-sm"
+                        : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-bl-none shadow-sm"
                     }`}
                   >
                     {/* Media Attachment */}
                     {item.media_url ? (
-                      <View className="w-56 h-56 rounded-xl overflow-hidden mb-1.5 bg-slate-100">
+                      <View className="w-56 h-56 rounded-xl overflow-hidden mb-1.5 bg-slate-100 dark:bg-slate-800">
                         <Image
                           source={{ uri: item.media_url }}
                           className="w-full h-full"
@@ -301,7 +301,7 @@ export default function Conversation() {
                     {item.content ? (
                       <Text
                         className={`text-sm leading-5 ${
-                          isMe ? "text-white" : "text-slate-800"
+                          isMe ? "text-white" : "text-slate-800 dark:text-slate-100"
                         }`}
                       >
                         {item.content}
@@ -324,8 +324,8 @@ export default function Conversation() {
 
         {/* Selected Image Preview (Before Sending) */}
         {selectedImage && (
-          <View className="px-4 py-2 bg-white border-t border-slate-100 flex-row items-center gap-3">
-            <View className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 relative">
+          <View className="px-4 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex-row items-center gap-3">
+            <View className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
               <Image
                 source={{ uri: selectedImage }}
                 className="w-full h-full"
@@ -340,14 +340,14 @@ export default function Conversation() {
                 <Ionicons name="close" size={14} color={colors.white} />
               </TouchableOpacity>
             </View>
-            <Text className="text-xs text-slate-500 flex-1">
+            <Text className="text-xs text-slate-500 dark:text-slate-400 flex-1">
               Photo ready to send. Add a caption below if you like.
             </Text>
           </View>
         )}
 
         {/* Input Bar */}
-        <View className="flex-row items-center px-4 py-3 bg-white border-t border-slate-100">
+        <View className="flex-row items-center px-4 py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
           <TouchableOpacity
             onPress={handlePickImage}
             disabled={sending}
@@ -359,10 +359,10 @@ export default function Conversation() {
             <Ionicons name="image-outline" size={24} color={colors.slate[500]} />
           </TouchableOpacity>
 
-          <View className="flex-1 flex-row items-center bg-slate-100 rounded-2xl px-4 py-2 mr-3 border border-slate-200">
+          <View className="flex-1 flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-2 mr-3 border border-slate-200 dark:border-slate-700">
             <TextInput
               placeholder="Send a message..."
-              className="flex-1 text-sm text-slate-800 max-h-24"
+              className="flex-1 text-sm text-slate-800 dark:text-slate-100 max-h-24"
               placeholderTextColor={colors.slate[400]}
               value={text}
               onChangeText={setText}
@@ -378,7 +378,7 @@ export default function Conversation() {
             accessibilityRole="button"
             accessibilityLabel="Send message"
             className={`h-11 w-11 rounded-full items-center justify-center ${
-              text.trim() || selectedImage ? "bg-blue-600" : "bg-slate-200"
+              text.trim() || selectedImage ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"
             }`}
           >
             {sending ? (

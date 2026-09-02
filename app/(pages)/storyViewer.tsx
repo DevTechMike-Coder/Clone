@@ -19,6 +19,7 @@ import { LinearGradient } from "@/components/StyledLinearGradient";
 import { useFocusEffect } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { storyService, Story, StoryRing } from "@/services/storyService";
 import {
   getOverlayContainerStyle,
@@ -101,6 +102,7 @@ function StorySound({
 export default function StoryViewer() {
   const insets = useSafeAreaInsets();
   const { user: authUser } = useAuth();
+  const { colorScheme } = useTheme();
   const params = useLocalSearchParams<{ initialUserId?: string }>();
 
   const [rings, setRings] = useState<StoryRing[]>([]);
@@ -194,9 +196,14 @@ export default function StoryViewer() {
 
   useFocusEffect(
     useCallback(() => {
+      // The viewer is always dark content, so the bar goes light-content
+      // while focused; restore the theme-appropriate style on exit.
       StatusBar.setBarStyle("light-content");
-      return () => StatusBar.setBarStyle("dark-content");
-    }, []),
+      return () =>
+        StatusBar.setBarStyle(
+          colorScheme === "dark" ? "light-content" : "dark-content"
+        );
+    }, [colorScheme]),
   );
 
   // Leaving the viewer silences any attached story sound (same pattern as
@@ -406,10 +413,10 @@ export default function StoryViewer() {
             return (
               <View
                 key={s.id}
-                className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden"
+                className="flex-1 h-[3px] bg-white dark:bg-slate-900/30 rounded-full overflow-hidden"
               >
                 {isPast ? (
-                  <View className="flex-1 bg-white" />
+                  <View className="flex-1 bg-white dark:bg-slate-900" />
                 ) : isActive ? (
                   <Animated.View
                     style={{
@@ -440,7 +447,7 @@ export default function StoryViewer() {
               });
             }}
           >
-            <View className="w-9 h-9 rounded-full bg-white/20 overflow-hidden border border-white/40">
+            <View className="w-9 h-9 rounded-full bg-white dark:bg-slate-900/20 overflow-hidden border border-white/40">
               {activeRing.avatar_url ? (
                 <Image
                   source={{ uri: activeRing.avatar_url }}
@@ -541,10 +548,10 @@ export default function StoryViewer() {
           onPress={() => setShowDeleteMenu(false)}
           className="flex-1 bg-black/50 items-center justify-center px-8"
         >
-          <View className="w-full bg-white rounded-2xl overflow-hidden">
+          <View className="w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden">
             <TouchableOpacity
               onPress={handleDeleteStory}
-              className="py-4 items-center border-b border-slate-100"
+              className="py-4 items-center border-b border-slate-100 dark:border-slate-800"
             >
               <Text className="text-red-500 font-bold">Delete</Text>
             </TouchableOpacity>
@@ -552,7 +559,7 @@ export default function StoryViewer() {
               onPress={() => setShowDeleteMenu(false)}
               className="py-4 items-center"
             >
-              <Text className="text-slate-700 font-semibold">Cancel</Text>
+              <Text className="text-slate-700 dark:text-slate-200 font-semibold">Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

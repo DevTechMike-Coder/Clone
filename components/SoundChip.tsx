@@ -68,7 +68,7 @@ export default function SoundChip({
         className={`${
           overlay
             ? "flex-row items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/15"
-            : "flex-row items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 self-start"
+            : "flex-row items-center gap-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5 self-start"
         } ${className}`}
       >
         <Ionicons
@@ -77,7 +77,7 @@ export default function SoundChip({
           color={overlay ? colors.sky[400] : colors.blue[600]}
         />
         <Text
-          className={`${overlay ? "text-white text-[11px] font-bold" : "text-xs font-bold text-slate-700"}`}
+          className={`${overlay ? "text-white text-[11px] font-bold" : "text-xs font-bold text-slate-700 dark:text-slate-200"}`}
           numberOfLines={1}
         >
           {label}
@@ -97,7 +97,7 @@ export default function SoundChip({
         className={
           overlay
             ? "flex-row items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/15 self-start max-w-[85%]"
-            : "flex-row items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 self-start max-w-full"
+            : "flex-row items-center gap-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5 self-start max-w-full"
         }
       >
         {isBuffering ? (
@@ -110,7 +110,7 @@ export default function SoundChip({
           />
         )}
         <Text
-          className={overlay ? "text-white text-[11px] font-bold" : "text-xs font-bold text-slate-700"}
+          className={overlay ? "text-white text-[11px] font-bold" : "text-xs font-bold text-slate-700 dark:text-slate-200"}
           numberOfLines={1}
         >
           {label}

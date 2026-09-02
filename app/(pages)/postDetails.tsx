@@ -138,13 +138,13 @@ const PostDetails = () => {
   const activeFilterObj = CAMERA_FILTERS.find((f) => f.id === filterId);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         {/* Top App Bar */}
-        <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+        <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
           <TouchableOpacity
             onPress={() => router.back()}
             accessibilityRole="button"
@@ -153,7 +153,7 @@ const PostDetails = () => {
           >
             <Ionicons name="chevron-back" size={26} color={colors.slate[900]} />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-slate-900">New Post</Text>
+          <Text className="text-lg font-bold text-slate-900 dark:text-slate-50">New Post</Text>
           <TouchableOpacity
             onPress={handlePost}
             disabled={loading}
@@ -170,7 +170,7 @@ const PostDetails = () => {
         <ScrollView className="flex-1 px-5 pt-5" showsVerticalScrollIndicator={false}>
           {/* Media Thumbnail & Caption Box */}
           <View className="flex-row gap-4">
-            <View className="w-28 h-36 rounded-2xl bg-slate-100 items-center justify-center overflow-hidden border border-slate-200 relative shadow-sm">
+            <View className="w-28 h-36 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 relative shadow-sm">
               {mediaUri ? (
                 <>
                   <Image
@@ -202,7 +202,7 @@ const PostDetails = () => {
                 numberOfLines={4}
                 value={caption}
                 onChangeText={setCaption}
-                className="text-base text-slate-900 pt-2 h-36"
+                className="text-base text-slate-900 dark:text-slate-50 pt-2 h-36"
                 textAlignVertical="top"
               />
             </View>
@@ -210,7 +210,7 @@ const PostDetails = () => {
 
           {/* Attached Sound Tag Pill */}
           {musicTrack && (
-            <View className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex-row items-center gap-3 shadow-sm">
+            <View className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 rounded-2xl flex-row items-center gap-3 shadow-sm">
               {musicTrack.coverUrl ? (
                 <Image
                   source={{ uri: musicTrack.coverUrl }}
@@ -223,10 +223,10 @@ const PostDetails = () => {
                 </View>
               )}
               <View className="flex-1">
-                <Text className="text-sm font-bold text-slate-900 leading-tight" numberOfLines={1}>
+                <Text className="text-sm font-bold text-slate-900 dark:text-slate-50 leading-tight" numberOfLines={1}>
                   {musicTrack.title}
                 </Text>
-                <Text className="text-xs text-slate-500">
+                <Text className="text-xs text-slate-500 dark:text-slate-400">
                   {musicTrack.artist}
                   {musicTrack.durationSeconds
                     ? ` • ${Math.floor(musicTrack.durationSeconds / 60)}:${String(
@@ -258,7 +258,7 @@ const PostDetails = () => {
 
           {/* Selected Location Pill */}
           {selectedLocation && (
-            <View className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex-row items-center justify-between">
+            <View className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 rounded-2xl flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5 flex-1 mr-2">
                 <View className="w-8 h-8 rounded-xl bg-emerald-600 items-center justify-center">
                   <Ionicons name="location" size={16} color="white" />
@@ -304,7 +304,7 @@ const PostDetails = () => {
                 {taggedUsers.map((user) => (
                   <View
                     key={user.id}
-                    className="flex-row items-center gap-1.5 bg-white border border-purple-200 px-3 py-1.5 rounded-full shadow-sm"
+                    className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-purple-200 px-3 py-1.5 rounded-full shadow-sm"
                   >
                     {user.avatar_url ? (
                       <Image
@@ -337,10 +337,10 @@ const PostDetails = () => {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setShowLocationModal(true)}
-              className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
+              className="flex-row items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"
             >
               <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
+                <View className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center">
                   <Ionicons
                     name="location-outline"
                     size={22}
@@ -348,7 +348,7 @@ const PostDetails = () => {
                   />
                 </View>
                 <View>
-                  <Text className="text-base font-semibold text-slate-800">
+                  <Text className="text-base font-semibold text-slate-800 dark:text-slate-100">
                     {selectedLocation ? "Change Location" : "Add Location"}
                   </Text>
                   <Text className="text-xs text-slate-400">
@@ -363,10 +363,10 @@ const PostDetails = () => {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setShowTagModal(true)}
-              className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
+              className="flex-row items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"
             >
               <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
+                <View className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center">
                   <Ionicons
                     name="person-outline"
                     size={22}
@@ -374,7 +374,7 @@ const PostDetails = () => {
                   />
                 </View>
                 <View>
-                  <Text className="text-base font-semibold text-slate-800">
+                  <Text className="text-base font-semibold text-slate-800 dark:text-slate-100">
                     {taggedUsers.length > 0
                       ? `Tagged People (${taggedUsers.length})`
                       : "Tag People"}

@@ -61,7 +61,7 @@ export default function Chat() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* --- Header Section --- */}
       <View className="flex-row items-center justify-between px-5 py-4">
         <TouchableOpacity
@@ -69,7 +69,7 @@ export default function Chat() {
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Find people"
-          className="w-10 h-10 items-center justify-center rounded-full bg-blue-50 border border-blue-100"
+          className="w-10 h-10 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-100"
         >
           <Image
             source={require("@/assets/homeIcons/add-user.png")}
@@ -87,7 +87,7 @@ export default function Chat() {
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="New message"
-          className="w-10 h-10 items-center justify-center rounded-full bg-slate-100"
+          className="w-10 h-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
         >
           <Ionicons name="create-outline" size={20} color={colors.slate[900]} />
         </TouchableOpacity>
@@ -95,11 +95,11 @@ export default function Chat() {
 
       {/* --- Search Bar Section --- */}
       <View className="px-5 pt-3 pb-2">
-        <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
+        <View className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 shadow-sm">
           <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
           <TextInput
             placeholder="Search conversations..."
-            className="flex-1 ml-3 text-base text-slate-800"
+            className="flex-1 ml-3 text-base text-slate-800 dark:text-slate-100"
             placeholderTextColor={colors.slate[400]}
             value={searchText}
             onChangeText={setSearchText}
@@ -124,10 +124,10 @@ export default function Chat() {
       ) : filteredConversations.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
           <Ionicons name="chatbubbles-outline" size={54} color={colors.slate[300]} />
-          <Text className="text-lg font-bold text-slate-900 mt-4">
+          <Text className="text-lg font-bold text-slate-900 dark:text-slate-50 mt-4">
             No messages yet
           </Text>
-          <Text className="text-slate-500 text-center text-sm mt-1 mb-6">
+          <Text className="text-slate-500 dark:text-slate-400 text-center text-sm mt-1 mb-6">
             Connect with friends and creators to start chatting!
           </Text>
           <TouchableOpacity
@@ -163,10 +163,10 @@ export default function Chat() {
                   },
                 })
               }
-              className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl bg-white border border-slate-200/70 shadow-sm"
+              className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/70 shadow-sm"
             >
               <View className="flex-row items-center gap-3.5 flex-1 pr-2">
-                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
                   {item.otherUser?.avatar_url ? (
                     <Image
                       source={{ uri: item.otherUser.avatar_url }}
@@ -184,7 +184,7 @@ export default function Chat() {
 
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-base font-bold text-slate-900 leading-tight">
+                    <Text className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
                       {item.otherUser?.full_name || item.otherUser?.username || "Direct Chat"}
                     </Text>
                     {item.lastMessage?.created_at && (
@@ -197,8 +197,8 @@ export default function Chat() {
                   <Text
                     className={`text-sm mt-1 leading-4 ${
                       item.unreadCount > 0
-                        ? "font-bold text-slate-900"
-                        : "text-slate-500"
+                        ? "font-bold text-slate-900 dark:text-slate-50"
+                        : "text-slate-500 dark:text-slate-400"
                     }`}
                     numberOfLines={1}
                   >

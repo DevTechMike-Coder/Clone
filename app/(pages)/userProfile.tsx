@@ -121,7 +121,7 @@ export default function UserProfile() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* Header Row */}
       <View className="flex-row items-center justify-between px-5 py-4">
         <View className="flex-row items-center gap-3">
@@ -145,7 +145,7 @@ export default function UserProfile() {
             <ActivityIndicator size="large" color={colors.blue[600]} />
           ) : (
             <>
-              <View className="w-24 h-24 rounded-full bg-white items-center justify-center border-2 border-blue-600 overflow-hidden">
+              <View className="w-24 h-24 rounded-full bg-white dark:bg-slate-900 items-center justify-center border-2 border-blue-600 overflow-hidden">
                 {profile?.avatar_url ? (
                   <Image
                     source={{ uri: profile.avatar_url }}
@@ -162,11 +162,11 @@ export default function UserProfile() {
               </View>
 
               <View className="items-center pt-2">
-                <Text className="text-lg font-semibold text-slate-900 tracking-tight">
+                <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight">
                   {profile?.full_name || "User"}
                 </Text>
                 {profile?.username && (
-                  <Text className="text-sm text-slate-500">
+                  <Text className="text-sm text-slate-500 dark:text-slate-400">
                     @{profile.username}
                   </Text>
                 )}
@@ -177,7 +177,7 @@ export default function UserProfile() {
 
         {/* Bio & Social Links */}
         <View className="p-5 flex-col items-center justify-center">
-          <Text className="text-base text-slate-500">
+          <Text className="text-base text-slate-500 dark:text-slate-400">
             {profile?.bio || "No bio"}
           </Text>
 
@@ -195,8 +195,8 @@ export default function UserProfile() {
         {/* Stats Row */}
         <View className="flex-row items-center justify-center gap-1 py-4">
           <View className="items-center px-3 py-1">
-            <Text className="text-2xl font-bold text-slate-800">{stats.postsCount}</Text>
-            <Text className="text-sm text-slate-500">Posts</Text>
+            <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.postsCount}</Text>
+            <Text className="text-sm text-slate-500 dark:text-slate-400">Posts</Text>
           </View>
 
           <View className="h-5 w-px bg-slate-300" />
@@ -217,8 +217,8 @@ export default function UserProfile() {
             }}
             className="items-center px-3 py-1"
           >
-            <Text className="text-2xl font-bold text-slate-800">{stats.followingCount}</Text>
-            <Text className="text-sm text-slate-500">Following</Text>
+            <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.followingCount}</Text>
+            <Text className="text-sm text-slate-500 dark:text-slate-400">Following</Text>
           </TouchableOpacity>
 
           <View className="h-5 w-px bg-slate-300" />
@@ -239,15 +239,15 @@ export default function UserProfile() {
             }}
             className="items-center px-3 py-1"
           >
-            <Text className="text-2xl font-bold text-slate-800">{stats.followersCount}</Text>
-            <Text className="text-sm text-slate-500">Followers</Text>
+            <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.followersCount}</Text>
+            <Text className="text-sm text-slate-500 dark:text-slate-400">Followers</Text>
           </TouchableOpacity>
 
           <View className="h-5 w-px bg-slate-300" />
 
           <View className="items-center px-3 py-1">
-            <Text className="text-2xl font-bold text-slate-800">{stats.likesCount}</Text>
-            <Text className="text-sm text-slate-500">Likes</Text>
+            <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.likesCount}</Text>
+            <Text className="text-sm text-slate-500 dark:text-slate-400">Likes</Text>
           </View>
         </View>
 
@@ -260,13 +260,13 @@ export default function UserProfile() {
               activeOpacity={0.8}
               className={`flex-1 h-11 rounded-xl items-center justify-center shadow-sm ${
                 isFollowing
-                  ? "bg-slate-100 border border-slate-300"
+                  ? "bg-slate-100 dark:bg-slate-800 border border-slate-300"
                   : "bg-blue-600"
               }`}
             >
               <Text
                 className={`font-bold ${
-                  isFollowing ? "text-slate-800" : "text-white"
+                  isFollowing ? "text-slate-800 dark:text-slate-100" : "text-white"
                 }`}
               >
                 {isFollowing ? "Following" : "Follow"}
@@ -296,19 +296,19 @@ export default function UserProfile() {
               }}
               disabled={messageLoading}
               activeOpacity={0.8}
-              className="flex-1 bg-white border border-slate-200 h-11 rounded-xl items-center justify-center shadow-sm"
+              className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 h-11 rounded-xl items-center justify-center shadow-sm"
             >
               {messageLoading ? (
                 <ActivityIndicator size="small" color={colors.blue[600]} />
               ) : (
-                <Text className="text-slate-900 font-bold">Message</Text>
+                <Text className="text-slate-900 dark:text-slate-50 font-bold">Message</Text>
               )}
             </TouchableOpacity>
           </View>
         )}
 
         {/* Tabs */}
-        <View className="flex-row border-b border-slate-200">
+        <View className="flex-row border-b border-slate-200 dark:border-slate-700">
           <TouchableOpacity
             onPress={() => setActiveTab("overview")}
             accessibilityRole="tab"
@@ -352,10 +352,10 @@ export default function UserProfile() {
           {profile?.is_private && !isOwnProfile && !isFollowing ? (
             <View className="items-center justify-center py-20 px-10">
               <Ionicons name="lock-closed-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
+              <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
                 This account is private
               </Text>
-              <Text className="text-slate-500 text-center mt-2">
+              <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
                 Follow this account to see their posts.
               </Text>
             </View>
@@ -374,7 +374,7 @@ export default function UserProfile() {
                             params: { postId: post.id },
                           })
                         }
-                        className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                        className="w-1/3 aspect-square border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800"
                       >
                         <PostGridThumbnail post={post} />
                       </TouchableOpacity>
@@ -383,10 +383,10 @@ export default function UserProfile() {
                 ) : (
                   <View className="items-center justify-center py-20 px-10">
                     <Ionicons name="document-text-outline" size={48} color={colors.slate[300]} />
-                    <Text className="text-lg font-semibold text-slate-900 mt-4">
+                    <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
                       No posts yet
                     </Text>
-                    <Text className="text-slate-500 text-center mt-2">
+                    <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
                       This user hasn&apos;t posted anything yet.
                     </Text>
                   </View>
@@ -406,7 +406,7 @@ export default function UserProfile() {
                             params: { postId: post.id },
                           })
                         }
-                        className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                        className="w-1/3 aspect-square border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800"
                       >
                         <PostGridThumbnail post={post} />
                       </TouchableOpacity>
@@ -415,10 +415,10 @@ export default function UserProfile() {
                 ) : (
                   <View className="items-center justify-center py-20 px-10">
                     <Ionicons name="repeat-outline" size={48} color={colors.slate[300]} />
-                    <Text className="text-lg font-semibold text-slate-900 mt-4">
+                    <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
                       No reposts yet
                     </Text>
-                    <Text className="text-slate-500 text-center mt-2">
+                    <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
                       This user hasn&apos;t reposted anything yet.
                     </Text>
                   </View>

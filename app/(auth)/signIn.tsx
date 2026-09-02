@@ -98,7 +98,7 @@ const SignIn = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1"
@@ -127,10 +127,10 @@ const SignIn = () => {
             <View className="flex-1 items-center justify-center py-8">
               <View className="w-full gap-6" style={{ maxWidth: 420 }}>
                 <View className="items-center gap-2">
-                  <Text className="text-2xl font-bold text-slate-950">
+                  <Text className="text-2xl font-bold text-slate-950 dark:text-white">
                     Access Your Account
                   </Text>
-                  <Text className="text-center text-slate-600">
+                  <Text className="text-center text-slate-600 dark:text-slate-300">
                     Welcome back, you&apos;ve been missed!
                   </Text>
                 </View>
@@ -144,7 +144,7 @@ const SignIn = () => {
                       autoCapitalize="none"
                       value={email}
                       onChangeText={setEmail}
-                      className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
+                      className="h-12 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-4 pr-12 text-slate-900 dark:text-slate-50"
                     />
 
                     <View className="relative w-full">
@@ -154,7 +154,7 @@ const SignIn = () => {
                         secureTextEntry={!showPassword}
                         value={password}
                         onChangeText={setPassword}
-                        className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
+                        className="h-12 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-4 pr-12 text-slate-900 dark:text-slate-50"
                       />
                       <TouchableOpacity
                         activeOpacity={0.8}
@@ -191,11 +191,11 @@ const SignIn = () => {
                   </TouchableOpacity>
 
                   <View className="w-full flex-row items-center gap-3">
-                    <View className="h-px flex-1 bg-slate-200" />
-                    <Text className="text-sm font-semibold text-slate-500">
+                    <View className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                    <Text className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                       OR
                     </Text>
-                    <View className="h-px flex-1 bg-slate-200" />
+                    <View className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
                   </View>
 
                   <View className="w-full flex-row items-center justify-center gap-4">
@@ -203,7 +203,7 @@ const SignIn = () => {
                       activeOpacity={0.85}
                       onPress={handleGoogleSignIn}
                       disabled={!!oauthLoading}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
+                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 bg-white dark:bg-slate-900"
                     >
                       {oauthLoading === "google" ? (
                         <ActivityIndicator size="small" color={colors.blue[600]} />
@@ -214,7 +214,7 @@ const SignIn = () => {
                             className="h-5 w-5"
                             resizeMode="contain"
                           />
-                          <Text className="text-base font-semibold text-slate-900">
+                          <Text className="text-base font-semibold text-slate-900 dark:text-slate-50">
                             Google
                           </Text>
                         </>
@@ -225,7 +225,7 @@ const SignIn = () => {
                       activeOpacity={0.85}
                       onPress={handleAppleSignIn}
                       disabled={!!oauthLoading}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
+                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 bg-white dark:bg-slate-900"
                     >
                       {oauthLoading === "apple" ? (
                         <ActivityIndicator size="small" color={colors.slate[900]} />
@@ -236,7 +236,7 @@ const SignIn = () => {
                             className="h-5 w-5"
                             resizeMode="contain"
                           />
-                          <Text className="text-base font-semibold text-slate-900">
+                          <Text className="text-base font-semibold text-slate-900 dark:text-slate-50">
                             Apple
                           </Text>
                         </>
@@ -245,7 +245,7 @@ const SignIn = () => {
                   </View>
 
                   <View className="flex-row items-center justify-center gap-2">
-                    <Text className="text-slate-600">
+                    <Text className="text-slate-600 dark:text-slate-300">
                       Don&apos;t have an account?
                     </Text>
                     <TouchableOpacity onPress={() => router.push("/signUp")}>

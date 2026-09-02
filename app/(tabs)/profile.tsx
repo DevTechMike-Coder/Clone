@@ -21,6 +21,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
 import { pushNotificationService } from "@/services/pushNotificationService";
+import { useTheme } from "@/context/ThemeContext";
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { bookmarkService } from "@/services/bookmarkService";
@@ -40,6 +41,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function Profile() {
   const { user: authUser } = useAuth();
+  const { palette } = useTheme();
   const targetUserId = authUser?.id;
   const isOwnProfile = true;
 
@@ -219,7 +221,7 @@ export default function Profile() {
   const closePostMenu = () => setPostMenuPost(null);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* Backdrop — closes menu when tapped */}
       {menuOpen && (
         <TouchableOpacity
@@ -244,7 +246,7 @@ export default function Profile() {
           right: 0,
           bottom: 0,
           width: "82%",
-          backgroundColor: colors.white,
+          backgroundColor: palette.surface,
           zIndex: 20,
           transform: [{ translateX: slideAnim }],
           shadowColor: colors.slate[900],
@@ -254,10 +256,10 @@ export default function Profile() {
           elevation: 20,
         }}
       >
-        <View className="px-5 pt-14 pb-4 flex-row items-center justify-between border-b border-slate-100">
+        <View className="px-5 pt-14 pb-4 flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800">
           <View className="flex-row items-center gap-3">
             <Ionicons name="settings-outline" size={22} color={colors.slate[900]} />
-            <Text className="text-lg font-bold text-slate-900 tracking-tight">
+            <Text className="text-lg font-bold text-slate-900 dark:text-slate-50 tracking-tight">
               Settings
             </Text>
           </View>
@@ -283,11 +285,11 @@ export default function Profile() {
 
           <TouchableOpacity
             onPress={() => router.push("/(pages)/accountCenter")}
-            className="flex-row items-center justify-between py-4 border-b border-slate-100"
+            className="flex-row items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800"
           >
             <View className="flex-row items-center gap-3">
               <Ionicons name="person-circle-outline" size={20} color={colors.slate[600]} />
-              <Text className="text-base text-slate-800">Accounts Center</Text>
+              <Text className="text-base text-slate-800 dark:text-slate-100">Accounts Center</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
           </TouchableOpacity>
@@ -300,7 +302,7 @@ export default function Profile() {
             <View className="flex-row items-center gap-3 flex-1 pr-3">
               <Ionicons name="lock-closed-outline" size={20} color={colors.slate[600]} />
               <View className="flex-1">
-                <Text className="text-base text-slate-800">Private account</Text>
+                <Text className="text-base text-slate-800 dark:text-slate-100">Private account</Text>
                 <Text className="text-xs text-slate-400 mt-0.5">
                   Only people who follow you can see your posts
                 </Text>
@@ -308,11 +310,11 @@ export default function Profile() {
             </View>
             <View
               className={`w-11 h-6 rounded-full justify-center ${
-                profile?.is_private ? "bg-blue-600" : "bg-slate-200"
+                profile?.is_private ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"
               }`}
             >
               <View
-                className={`w-5 h-5 rounded-full bg-white ${
+                className={`w-5 h-5 rounded-full bg-white dark:bg-slate-900 ${
                   profile?.is_private ? "self-end mr-0.5" : "self-start ml-0.5"
                 }`}
               />
@@ -322,7 +324,7 @@ export default function Profile() {
           <TouchableOpacity className="flex-row items-center justify-between py-4">
             <View className="flex-row items-center gap-3">
               <Ionicons name="notifications-outline" size={20} color={colors.slate[600]} />
-              <Text className="text-base text-slate-800">Notifications</Text>
+              <Text className="text-base text-slate-800 dark:text-slate-100">Notifications</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
           </TouchableOpacity>
@@ -417,7 +419,7 @@ export default function Profile() {
                     justifyContent: "center",
                   }}
                 >
-                  <View className="w-[96px] h-[96px] rounded-full bg-white items-center justify-center overflow-hidden">
+                  <View className="w-[96px] h-[96px] rounded-full bg-white dark:bg-slate-900 items-center justify-center overflow-hidden">
                     {profile?.avatar_url ? (
                       <Image
                         source={{ uri: profile.avatar_url }}
@@ -452,11 +454,11 @@ export default function Profile() {
             </View>
 
             <View className="items-center pt-2">
-              <Text className="text-lg font-semibold text-slate-900 tracking-tight">
+              <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight">
                 {profile?.full_name || authUser?.email?.split("@")[0] || "User"}
               </Text>
               {profile?.username && (
-                <Text className="text-sm text-slate-500">
+                <Text className="text-sm text-slate-500 dark:text-slate-400">
                   @{profile.username}
                 </Text>
               )}
@@ -473,7 +475,7 @@ export default function Profile() {
 
       {/* Bio & Social Links */}
       <View className="p-5 flex-col items-center justify-center">
-        <Text className="text-base text-slate-500">
+        <Text className="text-base text-slate-500 dark:text-slate-400">
           {profile?.bio || "No bio yet. Tap edit to add one!"}
         </Text>
 
@@ -493,17 +495,17 @@ export default function Profile() {
         <TouchableOpacity
           onPress={() => router.push("/(pages)/editProfile")}
           activeOpacity={0.8}
-          className="flex-1 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+          className="flex-1 h-11 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl items-center justify-center"
         >
-          <Text className="text-slate-900 font-bold">Edit Profile</Text>
+          <Text className="text-slate-900 dark:text-slate-50 font-bold">Edit Profile</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push("/(pages)/createNew")}
           activeOpacity={0.8}
-          className="flex-1 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+          className="flex-1 h-11 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl items-center justify-center"
         >
-          <Text className="text-slate-900 font-bold">New Post</Text>
+          <Text className="text-slate-900 dark:text-slate-50 font-bold">New Post</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -511,7 +513,7 @@ export default function Profile() {
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Share profile"
-          className="w-11 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+          className="w-11 h-11 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl items-center justify-center"
         >
           <Ionicons name="share-outline" size={20} color={colors.slate[900]} />
         </TouchableOpacity>
@@ -520,8 +522,8 @@ export default function Profile() {
       {/* Stats Row */}
       <View className="flex-row items-center justify-center gap-1 py-4">
         <View className="items-center px-3 py-1">
-          <Text className="text-2xl font-bold text-slate-800">{stats.postsCount}</Text>
-          <Text className="text-sm text-slate-500">Posts</Text>
+          <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.postsCount}</Text>
+          <Text className="text-sm text-slate-500 dark:text-slate-400">Posts</Text>
         </View>
 
         <View className="h-5 w-px bg-slate-300" />
@@ -542,8 +544,8 @@ export default function Profile() {
           }}
           className="items-center px-3 py-1"
         >
-          <Text className="text-2xl font-bold text-slate-800">{stats.followingCount}</Text>
-          <Text className="text-sm text-slate-500">Following</Text>
+          <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.followingCount}</Text>
+          <Text className="text-sm text-slate-500 dark:text-slate-400">Following</Text>
         </TouchableOpacity>
 
         <View className="h-5 w-px bg-slate-300" />
@@ -564,20 +566,20 @@ export default function Profile() {
           }}
           className="items-center px-3 py-1"
         >
-          <Text className="text-2xl font-bold text-slate-800">{stats.followersCount}</Text>
-          <Text className="text-sm text-slate-500">Followers</Text>
+          <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.followersCount}</Text>
+          <Text className="text-sm text-slate-500 dark:text-slate-400">Followers</Text>
         </TouchableOpacity>
 
         <View className="h-5 w-px bg-slate-300" />
 
         <View className="items-center px-3 py-1">
-          <Text className="text-2xl font-bold text-slate-800">{stats.likesCount}</Text>
-          <Text className="text-sm text-slate-500">Likes</Text>
+          <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.likesCount}</Text>
+          <Text className="text-sm text-slate-500 dark:text-slate-400">Likes</Text>
         </View>
       </View>
 
       {/* Tabs */}
-      <View className="flex-row border-b border-slate-200">
+      <View className="flex-row border-b border-slate-200 dark:border-slate-700">
         <TouchableOpacity
           onPress={() => setActiveTab("overview")}
           accessibilityRole="tab"
@@ -650,7 +652,7 @@ export default function Profile() {
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
+                  className="w-1/3 aspect-square border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 relative"
                 >
                   <PostGridThumbnail post={post} />
                   {deletingId === post.id && (
@@ -664,10 +666,10 @@ export default function Profile() {
           ) : (
             <View className="flex-1 items-center justify-center py-20 px-10">
               <Ionicons name="document-text-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
+              <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
                 No posts yet
               </Text>
-              <Text className="text-slate-500 text-center mt-2 mb-6">
+              <Text className="text-slate-500 dark:text-slate-400 text-center mt-2 mb-6">
                 Share your first moment with the world!
               </Text>
               {isOwnProfile && (
@@ -696,7 +698,7 @@ export default function Profile() {
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
+                  className="w-1/3 aspect-square border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 relative"
                 >
                   <PostGridThumbnail post={post} />
                 </TouchableOpacity>
@@ -705,10 +707,10 @@ export default function Profile() {
           ) : (
             <View className="flex-1 items-center justify-center py-20 px-10">
               <Ionicons name="repeat-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
+              <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
                 No reposts yet
               </Text>
-              <Text className="text-slate-500 text-center mt-2">
+              <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
                 Posts you repost will appear here on your profile.
               </Text>
             </View>
@@ -729,7 +731,7 @@ export default function Profile() {
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
+                  className="w-1/3 aspect-square border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 relative"
                 >
                   <PostGridThumbnail post={post} />
                 </TouchableOpacity>
@@ -738,10 +740,10 @@ export default function Profile() {
           ) : (
             <View className="flex-1 items-center justify-center py-20 px-10">
               <Ionicons name="bookmark-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
+              <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
                 No bookmarks yet
               </Text>
-              <Text className="text-slate-500 text-center mt-2">
+              <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
                 Save posts to watch or view them later.
               </Text>
             </View>
@@ -760,7 +762,7 @@ export default function Profile() {
           className="flex-1 bg-black/50 justify-end"
           onPress={closePostMenu}
         >
-          <Pressable className="bg-white rounded-t-3xl p-5 pb-8" onPress={(e) => e.stopPropagation()}>
+          <Pressable className="bg-white dark:bg-slate-900 rounded-t-3xl p-5 pb-8" onPress={(e) => e.stopPropagation()}>
             <View className="items-center mb-4">
               <View className="w-12 h-1 bg-slate-300 rounded-full" />
             </View>
@@ -768,14 +770,14 @@ export default function Profile() {
             {/* Post thumbnail */}
             {postMenuPost && (
               <View className="flex-row items-center gap-3 mb-4 px-2">
-                <View className="w-14 h-14 rounded-lg bg-slate-100 overflow-hidden">
+                <View className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden">
                   <PostGridThumbnail post={postMenuPost} />
                 </View>
                 <View className="flex-1">
-                  <Text numberOfLines={1} className="text-sm font-bold text-slate-900">
+                  <Text numberOfLines={1} className="text-sm font-bold text-slate-900 dark:text-slate-50">
                     {postMenuPost.caption || "Post"}
                   </Text>
-                  <Text className="text-xs text-slate-500">
+                  <Text className="text-xs text-slate-500 dark:text-slate-400">
                     {postMenuPost.media_type === "video" ? "Video" : "Photo"}
                   </Text>
                 </View>
@@ -801,7 +803,7 @@ export default function Profile() {
                       ],
                     );
                   }}
-                  className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+                  className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100 dark:border-slate-800"
                 >
                   <Ionicons name="trash-outline" size={22} color={colors.red[500]} />
                   <Text className="text-red-500 font-bold text-base">Delete post</Text>
@@ -818,10 +820,10 @@ export default function Profile() {
                     closePostMenu();
                   }
                 }}
-                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100 dark:border-slate-800"
               >
                 <Ionicons name="eye-outline" size={22} color={colors.slate[900]} />
-                <Text className="text-slate-800 font-semibold text-base">View post</Text>
+                <Text className="text-slate-800 dark:text-slate-100 font-semibold text-base">View post</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -837,10 +839,10 @@ export default function Profile() {
                   }
                   closePostMenu();
                 }}
-                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100 dark:border-slate-800"
               >
                 <Ionicons name="share-outline" size={22} color={colors.slate[900]} />
-                <Text className="text-slate-800 font-semibold text-base">Share post</Text>
+                <Text className="text-slate-800 dark:text-slate-100 font-semibold text-base">Share post</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -848,7 +850,7 @@ export default function Profile() {
                 className="flex-row items-center gap-3 py-4 px-2"
               >
                 <Ionicons name="close-circle-outline" size={22} color={colors.slate[500]} />
-                <Text className="text-slate-500 font-semibold text-base">Cancel</Text>
+                <Text className="text-slate-500 dark:text-slate-400 font-semibold text-base">Cancel</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

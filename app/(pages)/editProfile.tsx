@@ -19,19 +19,23 @@ import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
 import Toast from "react-native-toast-message";
 import { colors } from "@/constants/theme";
+import { usePalette } from "@/context/ThemeContext";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
-const BG = colors.slate[50];
-const SURFACE = colors.white;
-const BORDER = colors.slate[200];
-const TEXT_PRIMARY = colors.slate[900];
-const TEXT_MUTED = colors.slate[500];
-const PLACEHOLDER = colors.slate[400];
 const ACCENT = colors.blue[600];
 
 const EditProfile = () => {
   const { user } = useAuth();
+  // Scheme-aware semantic tokens (dark mode support) — these used to be
+  // module-level light-only constants.
+  const palette = usePalette();
+  const BG = palette.background;
+  const SURFACE = palette.surface;
+  const BORDER = palette.border;
+  const TEXT_PRIMARY = palette.text;
+  const TEXT_MUTED = palette.muted;
+  const PLACEHOLDER = palette.placeholder;
   const [image, setImage] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");

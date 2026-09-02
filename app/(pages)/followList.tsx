@@ -125,9 +125,9 @@ export default function FollowList() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -149,7 +149,7 @@ export default function FollowList() {
       </View>
 
       {/* Tabs */}
-      <View className="flex-row border-b border-slate-200 bg-white">
+      <View className="flex-row border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <TouchableOpacity
           onPress={() => setActiveTab("followers")}
           className={`flex-1 flex-row items-center justify-center gap-2 py-3.5 border-b-2 ${
@@ -160,19 +160,19 @@ export default function FollowList() {
         >
           <Text
             className={`font-bold text-sm ${
-              activeTab === "followers" ? "text-blue-600" : "text-slate-500"
+              activeTab === "followers" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             Followers
           </Text>
           <View
             className={`px-2 py-0.5 rounded-full ${
-              activeTab === "followers" ? "bg-blue-100" : "bg-slate-100"
+              activeTab === "followers" ? "bg-blue-100" : "bg-slate-100 dark:bg-slate-800"
             }`}
           >
             <Text
               className={`text-xs font-bold ${
-                activeTab === "followers" ? "text-blue-600" : "text-slate-500"
+                activeTab === "followers" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"
               }`}
             >
               {followers.length}
@@ -190,19 +190,19 @@ export default function FollowList() {
         >
           <Text
             className={`font-bold text-sm ${
-              activeTab === "following" ? "text-blue-600" : "text-slate-500"
+              activeTab === "following" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             Following
           </Text>
           <View
             className={`px-2 py-0.5 rounded-full ${
-              activeTab === "following" ? "bg-blue-100" : "bg-slate-100"
+              activeTab === "following" ? "bg-blue-100" : "bg-slate-100 dark:bg-slate-800"
             }`}
           >
             <Text
               className={`text-xs font-bold ${
-                activeTab === "following" ? "text-blue-600" : "text-slate-500"
+                activeTab === "following" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"
               }`}
             >
               {following.length}
@@ -213,11 +213,11 @@ export default function FollowList() {
 
       {/* Search Input */}
       <View className="px-5 pt-3 pb-2">
-        <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
+        <View className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 shadow-sm">
           <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
           <TextInput
             placeholder={`Search ${activeTab}...`}
-            className="flex-1 ml-3 text-base text-slate-800"
+            className="flex-1 ml-3 text-base text-slate-800 dark:text-slate-100"
             placeholderTextColor={colors.slate[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -244,10 +244,10 @@ export default function FollowList() {
       ) : filteredList.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
           <Ionicons name="people-outline" size={48} color={colors.slate[300]} />
-          <Text className="text-lg font-semibold text-slate-900 mt-4">
+          <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
             No {activeTab} yet
           </Text>
-          <Text className="text-slate-500 text-center mt-2">
+          <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
             {activeTab === "followers"
               ? "When someone follows this profile, they will appear here."
               : "When this profile follows creators, they will appear here."}
@@ -275,10 +275,10 @@ export default function FollowList() {
                   params: { userId: item.id },
                 })
               }
-              className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3.5 mb-2.5 border border-slate-200/70 shadow-sm"
+              className="flex-row items-center justify-between bg-white dark:bg-slate-900 rounded-2xl px-4 py-3.5 mb-2.5 border border-slate-200 dark:border-slate-700/70 shadow-sm"
             >
               <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+                <View className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
                   {item.avatar_url ? (
                     <Image
                       source={{ uri: item.avatar_url }}
@@ -295,14 +295,14 @@ export default function FollowList() {
                 </View>
 
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-slate-900 leading-tight">
+                  <Text className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
                     {item.full_name || item.username}
                   </Text>
                   <Text className="text-xs text-slate-400 mt-0.5">
                     @{item.username}
                   </Text>
                   {item.bio ? (
-                    <Text className="text-xs text-slate-500 mt-1" numberOfLines={1}>
+                    <Text className="text-xs text-slate-500 dark:text-slate-400 mt-1" numberOfLines={1}>
                       {item.bio}
                     </Text>
                   ) : null}
@@ -315,13 +315,13 @@ export default function FollowList() {
                 activeOpacity={0.7}
                 className={`px-4 py-1.5 rounded-xl items-center justify-center ${
                   item.is_following
-                    ? "bg-slate-100 border border-slate-300"
+                    ? "bg-slate-100 dark:bg-slate-800 border border-slate-300"
                     : "bg-blue-600"
                 }`}
               >
                 <Text
                   className={`text-xs font-bold ${
-                    item.is_following ? "text-slate-700" : "text-white"
+                    item.is_following ? "text-slate-700 dark:text-slate-200" : "text-white"
                   }`}
                 >
                   {item.is_following ? "Following" : "Follow"}

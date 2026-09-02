@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { router, Stack } from "expo-router";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import Toast from "react-native-toast-message";
 import AuthSplash from "@/components/AuthSplash";
 import {
@@ -54,9 +55,11 @@ function RootNavigation() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootNavigation />
-      <Toast />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootNavigation />
+        <Toast />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

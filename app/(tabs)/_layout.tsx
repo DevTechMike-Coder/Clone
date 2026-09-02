@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import AuthSplash from "@/components/AuthSplash";
 import { colors } from "@/constants/theme";
+import { usePalette } from "@/context/ThemeContext";
 
 const TabIcon = ({ focused, icon }: TabIconProps) => {
   return (
@@ -26,6 +27,7 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
 export default function TabLayout() {
   const { session, loading } = useAuth();
   const insets = useSafeAreaInsets();
+  const palette = usePalette();
 
   if (loading) {
     return <AuthSplash />;
@@ -47,8 +49,8 @@ export default function TabLayout() {
           marginHorizontal: 20,
           borderRadius: 20,
           borderTopWidth: 1,
-          borderColor: colors.slate[200],
-          backgroundColor: colors.white,
+          borderColor: palette.border,
+          backgroundColor: palette.surface,
           elevation: 6,
           shadowColor: colors.slate[900],
           shadowOffset: { width: 0, height: 8 },

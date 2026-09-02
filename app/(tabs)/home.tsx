@@ -109,7 +109,7 @@ export default function Index() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 p-5">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 p-5">
       <View className="flex-row items-center justify-between">
         <TouchableOpacity
           onPress={() => router.push("/createNew")}
@@ -158,7 +158,7 @@ export default function Index() {
             onPress={closeMenu}
           />
           <Animated.View
-            className="bg-white rounded-t-3xl border border-slate-100 p-6 pb-12"
+            className="bg-white dark:bg-slate-900 rounded-t-3xl border border-slate-100 dark:border-slate-800 p-6 pb-12"
             style={{
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
@@ -185,7 +185,7 @@ export default function Index() {
                   className="w-6 h-6"
                   resizeMode="contain"
                 />
-                <Text className="text-lg font-medium text-slate-800">
+                <Text className="text-lg font-medium text-slate-800 dark:text-slate-100">
                   View Profile
                 </Text>
               </TouchableOpacity>
@@ -199,7 +199,7 @@ export default function Index() {
                   className="w-6 h-6"
                   resizeMode="contain"
                 />
-                <Text className="text-lg font-medium text-slate-800">
+                <Text className="text-lg font-medium text-slate-800 dark:text-slate-100">
                   {selectedPost?.is_bookmarked ? "Remove Bookmark" : "Bookmark Post"}
                 </Text>
               </TouchableOpacity>
@@ -213,7 +213,7 @@ export default function Index() {
                   className="w-6 h-6"
                   resizeMode="contain"
                 />
-                <Text className="text-lg font-medium text-slate-800">
+                <Text className="text-lg font-medium text-slate-800 dark:text-slate-100">
                   Share Post
                 </Text>
               </TouchableOpacity>
@@ -227,7 +227,7 @@ export default function Index() {
                   className="w-6 h-6"
                   resizeMode="contain"
                 />
-                <Text className="text-lg font-medium text-slate-800">
+                <Text className="text-lg font-medium text-slate-800 dark:text-slate-100">
                   Not Interested
                 </Text>
               </TouchableOpacity>

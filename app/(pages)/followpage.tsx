@@ -117,9 +117,9 @@ const FollowPage = () => {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -137,11 +137,11 @@ const FollowPage = () => {
 
       {/* Search Bar */}
       <View className="px-5 pt-4 pb-2">
-        <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
+        <View className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 shadow-sm">
           <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
           <TextInput
             placeholder="Search suggested creators..."
-            className="flex-1 ml-3 text-base text-slate-800"
+            className="flex-1 ml-3 text-base text-slate-800 dark:text-slate-100"
             placeholderTextColor={colors.slate[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -175,10 +175,10 @@ const FollowPage = () => {
       ) : filteredUsers.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
           <Ionicons name="people-outline" size={48} color={colors.slate[300]} />
-          <Text className="text-lg font-semibold text-slate-900 mt-4">
+          <Text className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-4">
             No suggestions found
           </Text>
-          <Text className="text-slate-500 text-center mt-2">
+          <Text className="text-slate-500 dark:text-slate-400 text-center mt-2">
             Try searching for another user or check back later!
           </Text>
         </View>
@@ -204,11 +204,11 @@ const FollowPage = () => {
                   params: { userId: item.id },
                 })
               }
-              className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3.5 mb-3 border border-slate-200/70 shadow-sm"
+              className="flex-row items-center justify-between bg-white dark:bg-slate-900 rounded-2xl px-4 py-3.5 mb-3 border border-slate-200 dark:border-slate-700/70 shadow-sm"
             >
               {/* Avatar & User Details */}
               <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
                   {item.avatar_url ? (
                     <Image
                       source={{ uri: item.avatar_url }}
@@ -225,7 +225,7 @@ const FollowPage = () => {
                 </View>
 
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-slate-900 leading-tight">
+                  <Text className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
                     {item.full_name || item.username}
                   </Text>
                   <Text className="text-xs text-slate-400 mt-0.5">
@@ -233,7 +233,7 @@ const FollowPage = () => {
                   </Text>
                   {item.bio ? (
                     <Text
-                      className="text-xs text-slate-500 mt-1"
+                      className="text-xs text-slate-500 dark:text-slate-400 mt-1"
                       numberOfLines={1}
                     >
                       {item.bio}
@@ -249,13 +249,13 @@ const FollowPage = () => {
                 activeOpacity={0.7}
                 className={`px-4 py-2 rounded-xl items-center justify-center ${
                   item.is_following
-                    ? "bg-slate-100 border border-slate-300"
+                    ? "bg-slate-100 dark:bg-slate-800 border border-slate-300"
                     : "bg-blue-600"
                 }`}
               >
                 <Text
                   className={`text-xs font-bold ${
-                    item.is_following ? "text-slate-700" : "text-white"
+                    item.is_following ? "text-slate-700 dark:text-slate-200" : "text-white"
                   }`}
                 >
                   {item.is_following ? "Following" : "Follow"}
