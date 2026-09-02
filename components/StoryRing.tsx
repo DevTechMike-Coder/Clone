@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/StyledLinearGradient";
 import { StoryRing as StoryRingType } from "@/services/storyService";
 import { colors, storyRingGradient, storyRingViewed } from "@/constants/theme";
 

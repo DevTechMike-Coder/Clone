@@ -30,7 +30,7 @@ import { storyService } from "@/services/storyService";
 import Toast from "react-native-toast-message";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/StyledLinearGradient";
 import * as Haptics from "expo-haptics";
 import { colors, storyRingGradient } from "@/constants/theme";
 

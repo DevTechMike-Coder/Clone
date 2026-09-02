@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/StyledLinearGradient";
 import { useFocusEffect } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useAuth } from "@/context/AuthContext";

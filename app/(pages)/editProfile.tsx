@@ -14,7 +14,7 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/StyledLinearGradient";
 import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
 import Toast from "react-native-toast-message";
