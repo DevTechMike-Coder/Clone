@@ -295,6 +295,20 @@ export default function Profile() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            onPress={() => {
+              closeMenu();
+              router.push("/(pages)/insights");
+            }}
+            className="flex-row items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800"
+          >
+            <View className="flex-row items-center gap-3">
+              <Ionicons name="bar-chart-outline" size={20} color={colors.slate[600]} />
+              <Text className="text-base text-slate-800 dark:text-slate-100">Insights</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={handleTogglePrivate}
             disabled={privacySaving}
             className="flex-row items-center justify-between py-4"
@@ -321,7 +335,15 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-row items-center justify-between py-4">
+          <TouchableOpacity
+            onPress={() => {
+              closeMenu();
+              router.push("/(pages)/inbox");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Open notifications"
+            className="flex-row items-center justify-between py-4"
+          >
             <View className="flex-row items-center gap-3">
               <Ionicons name="notifications-outline" size={20} color={colors.slate[600]} />
               <Text className="text-base text-slate-800 dark:text-slate-100">Notifications</Text>
