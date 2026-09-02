@@ -262,7 +262,9 @@ export default function StoryViewer() {
               right: 0,
               bottom: 0,
               paddingHorizontal: 20,
-              paddingBottom: insets.bottom + 40,
+              // Keep the caption clear of the "Send message" reply bar
+              // (which sits at bottom: insets.bottom + 18, h-11 ≈ 44px tall).
+              paddingBottom: insets.bottom + 84,
               paddingTop: 60,
             }}
           >
