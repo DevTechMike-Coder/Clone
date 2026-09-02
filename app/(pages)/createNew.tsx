@@ -1,5 +1,5 @@
-import TestCamera from "@/components/TestCamera";
-import { router } from "expo-router";
+import TestCamera, { CaptureMode } from "@/components/TestCamera";
+import { router, useLocalSearchParams } from "expo-router";
 import { styled } from "nativewind";
 import React, { useState } from "react";
 import { Image, Pressable, View } from "react-native";
@@ -17,7 +17,16 @@ const FLASH_ICON: Record<FlashMode, keyof typeof Ionicons.glyphMap> = {
   auto: "flash-outline",
 };
 
+const VALID_MODES: CaptureMode[] = ["Photo", "Video", "Story"];
+
 const CreateNew = () => {
+  // Optional "mode" param lets callers deep-link straight into a capture mode,
+  // e.g. router.push({ pathname: "/(pages)/createNew", params: { mode: "Story" } })
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const initialMode: CaptureMode = VALID_MODES.includes(mode as CaptureMode)
+    ? (mode as CaptureMode)
+    : "Photo";
+
   const [flash, setFlash] = useState<FlashMode>("off");
   const [, setIsPreviewing] = useState(false);
 
@@ -31,6 +40,7 @@ const CreateNew = () => {
         onFlashCycle={cycleFlash}
         onClose={() => router.back()}
         onPreviewChange={setIsPreviewing}
+        initialMode={initialMode}
       />
     </View>
   );

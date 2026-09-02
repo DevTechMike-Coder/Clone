@@ -432,7 +432,12 @@ export default function Profile() {
               </TouchableOpacity>
               {/* Add story button — sits outside the story-ring tap target so it never triggers the viewer */}
               <TouchableOpacity
-                onPress={() => router.push("/(pages)/createStory")}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(pages)/createNew",
+                    params: { mode: "Story" },
+                  })
+                }
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel="Add story"

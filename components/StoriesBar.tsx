@@ -84,7 +84,12 @@ export default function StoriesBar() {
         <StoryRing
           ring={ownRing}
           isFirst
-          onCreateStory={() => router.push("/(pages)/createStory")}
+          onCreateStory={() =>
+            router.push({
+              pathname: "/(pages)/createNew",
+              params: { mode: "Story" },
+            })
+          }
           onPress={() => {
             if (me && me.stories.length > 0) {
               router.push({
@@ -92,7 +97,10 @@ export default function StoriesBar() {
                 params: { initialUserId: user?.id },
               });
             } else {
-              router.push("/(pages)/createStory");
+              router.push({
+                pathname: "/(pages)/createNew",
+                params: { mode: "Story" },
+              });
             }
           }}
         />

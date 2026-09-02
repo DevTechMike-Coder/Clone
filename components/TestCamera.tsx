@@ -39,13 +39,15 @@ import { useAuth } from "@/context/AuthContext";
 import { storyService } from "@/services/storyService";
 import Toast from "react-native-toast-message";
 
-type CaptureMode = "Photo" | "Video" | "Story";
+export type CaptureMode = "Photo" | "Video" | "Story";
 
 type TestCameraProps = {
   flash?: FlashMode;
   onFlashCycle?: () => void;
   onClose?: () => void;
   onPreviewChange?: (isPreviewing: boolean) => void;
+  /** Which capture mode the camera opens in (defaults to "Photo"). */
+  initialMode?: CaptureMode;
 };
 
 const MODES: CaptureMode[] = ["Photo", "Video", "Story"];
@@ -69,6 +71,7 @@ export default function TestCamera({
   onFlashCycle,
   onClose,
   onPreviewChange,
+  initialMode = "Photo",
 }: TestCameraProps) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -92,7 +95,7 @@ export default function TestCamera({
   };
 
   const [facing, setFacing] = useState<CameraType>("back");
-  const [activeMode, setActiveMode] = useState<CaptureMode>("Photo");
+  const [activeMode, setActiveMode] = useState<CaptureMode>(initialMode);
   const [speed, setSpeed] = useState<number>(1);
   const [countdownTimer, setCountdownTimer] = useState<number>(0);
   const [activeCountdown, setActiveCountdown] = useState<number | null>(null);
