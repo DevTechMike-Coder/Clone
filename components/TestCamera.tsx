@@ -23,7 +23,7 @@ import {
 } from "expo-camera";
 import type { CameraType, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/StyledLinearGradient";
 import * as Haptics from "expo-haptics";
 import {
   MusicTrackItem,
