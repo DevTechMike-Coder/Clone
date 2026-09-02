@@ -36,7 +36,9 @@ const CATEGORIES = [
 ] as const;
 
 type Category = (typeof CATEGORIES)[number];
-type SearchTab = "users" | "posts";
+type SearchTab = "users" | "posts" | "tags" | "places";
+type TagSuggestion = { tag: string; count: number };
+type PlaceSuggestion = { location: string; count: number };
 
 /**
  * Keyword bags used to filter the explore grid client-side. Posts have no
@@ -161,8 +163,18 @@ export default function Search() {
   // Search results
   const [userResults, setUserResults] = useState<ProfileSearchResult[]>([]);
   const [postResults, setPostResults] = useState<Post[]>([]);
+  const [tagResults, setTagResults] = useState<TagSuggestion[]>([]);
+  const [placeResults, setPlaceResults] = useState<PlaceSuggestion[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  // A tapped hashtag/place drills into a dedicated posts grid — the
+  // "#tag · N posts" header shows what the grid is scoped to.
+  const [scope, setScope] = useState<
+    { type: "tag" | "place"; value: string } | null
+  >(null);
+  const [scopePosts, setScopePosts] = useState<Post[]>([]);
+  const [scopeLoading, setScopeLoading] = useState(false);
 
   const fetchExplorePosts = useCallback(async () => {
     try {
@@ -202,12 +214,15 @@ export default function Search() {
     return matched;
   }, [explorePosts, selectedCategory]);
 
-  // Search logic debounce
+  // Search logic debounce — people + posts + hashtags + places in parallel.
   useEffect(() => {
     const trimmed = searchText.trim();
     if (!trimmed) {
       setUserResults([]);
       setPostResults([]);
+      setTagResults([]);
+      setPlaceResults([]);
+      setScope(null);
       setSearched(false);
       setSearchLoading(false);
       return;
@@ -216,12 +231,16 @@ export default function Search() {
     const timer = setTimeout(async () => {
       try {
         setSearchLoading(true);
-        const [users, posts] = await Promise.all([
+        const [users, posts, tags, places] = await Promise.all([
           profileService.searchProfiles(trimmed),
           postService.searchPosts(trimmed),
+          postService.getHashtagSuggestions(trimmed),
+          postService.getLocationSuggestions(trimmed),
         ]);
         setUserResults(users);
         setPostResults(posts);
+        setTagResults(tags);
+        setPlaceResults(places);
       } catch (error) {
         console.error("Search error:", error);
       } finally {
@@ -233,6 +252,32 @@ export default function Search() {
     return () => clearTimeout(timer);
   }, [searchText]);
 
+  // Drill into a hashtag/place: dedicated grid below the header chip.
+  useEffect(() => {
+    if (!scope) {
+      setScopePosts([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setScopeLoading(true);
+      try {
+        const posts =
+          scope.type === "tag"
+            ? await postService.searchPostsByHashtag(scope.value)
+            : await postService.searchPostsByLocation(scope.value);
+        if (!cancelled) setScopePosts(posts);
+      } catch (error) {
+        console.error("Scoped search error:", error);
+      } finally {
+        if (!cancelled) setScopeLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [scope]);
+
   const isSearching = searchText.trim().length > 0;
 
   const renderContent = () => {
@@ -242,6 +287,166 @@ export default function Search() {
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" color={colors.blue[600]} />
           </View>
+        );
+      }
+
+      // Drill-down grid for a tapped hashtag/place
+      if (scope) {
+        return (
+          <View className="flex-1">
+            <View className="flex-row items-center justify-between px-5 pb-2">
+              <Text className="text-base font-bold text-slate-900 dark:text-slate-50">
+                {scope.type === "tag" ? `#${scope.value}` : scope.value}
+                {scopePosts.length > 0
+                  ? ` · ${scopePosts.length} post${scopePosts.length === 1 ? "" : "s"}`
+                  : ""}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setScope(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Clear filter"
+                className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800"
+              >
+                <Text className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                  Back to results
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {scopeLoading ? (
+              <View className="flex-1 items-center justify-center">
+                <ActivityIndicator size="large" color={colors.blue[600]} />
+              </View>
+            ) : scopePosts.length === 0 ? (
+              <View className="flex-1 items-center justify-center px-10">
+                <Ionicons name="images-outline" size={48} color={colors.slate[300]} />
+                <Text className="mt-4 text-base font-semibold text-slate-800 dark:text-slate-100">
+                  No posts yet
+                </Text>
+                <Text className="mt-1 text-center text-xs text-slate-400">
+                  Be the first to post with this{" "}
+                  {scope.type === "tag" ? "hashtag" : "location"}.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                key={`scope-posts-${scope.type}-${scope.value}`}
+                data={scopePosts}
+                keyExtractor={(item) => item.id}
+                numColumns={3}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.caption ? `Open post: ${item.caption}` : "Open post"}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(pages)/viewPost",
+                        params: { postId: item.id },
+                      })
+                    }
+                    className="w-1/3 aspect-square border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800"
+                  >
+                    <PostGridThumbnail post={item} />
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        );
+      }
+
+      if (searchTab === "tags") {
+        if (tagResults.length === 0) {
+          return (
+            <View className="flex-1 items-center justify-center px-10">
+              <Ionicons name="pricetags-outline" size={48} color={colors.slate[300]} />
+              <Text className="mt-4 text-base font-semibold text-slate-800 dark:text-slate-100">
+                No hashtags found
+              </Text>
+              <Text className="mt-1 text-center text-xs text-slate-400">
+                Try a different tag, or add #hashtags to your captions.
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <FlatList
+            key="search-tags-list"
+            data={tagResults}
+            keyExtractor={(item) => item.tag}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ padding: 16 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`View hashtag ${item.tag}`}
+                onPress={() => setScope({ type: "tag", value: item.tag })}
+                className="flex-row items-center gap-3.5 rounded-2xl bg-white dark:bg-slate-900 px-4 py-3 mb-2.5 border border-slate-200 dark:border-slate-700/80 shadow-sm"
+              >
+                <View className="h-12 w-12 rounded-full bg-blue-50 dark:bg-blue-950 items-center justify-center border border-blue-100 dark:border-blue-900">
+                  <Ionicons name="pricetag" size={20} color={colors.blue[600]} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-bold text-slate-900 dark:text-slate-50">
+                    #{item.tag}
+                  </Text>
+                  <Text className="text-xs text-slate-400 mt-0.5">
+                    {item.count} post{item.count === 1 ? "" : "s"}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
+              </TouchableOpacity>
+            )}
+          />
+        );
+      }
+
+      if (searchTab === "places") {
+        if (placeResults.length === 0) {
+          return (
+            <View className="flex-1 items-center justify-center px-10">
+              <Ionicons name="location-outline" size={48} color={colors.slate[300]} />
+              <Text className="mt-4 text-base font-semibold text-slate-800 dark:text-slate-100">
+                No places found
+              </Text>
+              <Text className="mt-1 text-center text-xs text-slate-400">
+                No posts tagged with a matching location yet.
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <FlatList
+            key="search-places-list"
+            data={placeResults}
+            keyExtractor={(item) => item.location}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ padding: 16 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`View posts from ${item.location}`}
+                onPress={() => setScope({ type: "place", value: item.location })}
+                className="flex-row items-center gap-3.5 rounded-2xl bg-white dark:bg-slate-900 px-4 py-3 mb-2.5 border border-slate-200 dark:border-slate-700/80 shadow-sm"
+              >
+                <View className="h-12 w-12 rounded-full bg-emerald-50 dark:bg-emerald-950 items-center justify-center border border-emerald-100">
+                  <Ionicons name="location" size={20} color={colors.emerald[600]} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-bold text-slate-900 dark:text-slate-50">
+                    {item.location}
+                  </Text>
+                  <Text className="text-xs text-slate-400 mt-0.5">
+                    {item.count} post{item.count === 1 ? "" : "s"}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
+              </TouchableOpacity>
+            )}
+          />
         );
       }
 
@@ -505,6 +710,52 @@ export default function Search() {
                 }`}
               >
                 Posts ({postResults.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSearchTab("tags")}
+              accessibilityRole="tab"
+              accessibilityLabel="Hashtag results"
+              accessibilityState={{ selected: searchTab === "tags" }}
+              className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 border-b-2 ${
+                searchTab === "tags" ? "border-blue-600" : "border-transparent"
+              }`}
+            >
+              <Ionicons
+                name="pricetags-outline"
+                size={16}
+                color={searchTab === "tags" ? colors.blue[600] : colors.slate[500]}
+              />
+              <Text
+                className={`text-sm font-bold ${
+                  searchTab === "tags" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                Tags ({tagResults.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSearchTab("places")}
+              accessibilityRole="tab"
+              accessibilityLabel="Place results"
+              accessibilityState={{ selected: searchTab === "places" }}
+              className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 border-b-2 ${
+                searchTab === "places" ? "border-blue-600" : "border-transparent"
+              }`}
+            >
+              <Ionicons
+                name="location-outline"
+                size={16}
+                color={searchTab === "places" ? colors.blue[600] : colors.slate[500]}
+              />
+              <Text
+                className={`text-sm font-bold ${
+                  searchTab === "places" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                Places ({placeResults.length})
               </Text>
             </TouchableOpacity>
           </View>

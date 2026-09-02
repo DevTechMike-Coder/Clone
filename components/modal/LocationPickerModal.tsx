@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -11,6 +12,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import Toast from "react-native-toast-message";
+import { PlaceResult, locationService } from "@/services/locationService";
 import { colors } from "@/constants/theme";
 
 const POPULAR_LOCATIONS = [
@@ -45,28 +48,78 @@ export default function LocationPickerModal({
   onSelectLocation,
 }: LocationPickerModalProps) {
   const [search, setSearch] = useState("");
+  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setSearch("");
+      setResults([]);
     }
   }, [visible]);
 
-  const filteredLocations = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return POPULAR_LOCATIONS;
+  // Real place search (Photon / OpenStreetMap), debounced — replaces the
+  // old hardcoded 15-city filter. Rate-limit friendly: 350ms idle + cap.
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (!trimmed) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
 
-    return POPULAR_LOCATIONS.filter(
-      (loc) =>
-        loc.name.toLowerCase().includes(q) ||
-        loc.country.toLowerCase().includes(q)
-    );
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        setResults(await locationService.searchPlaces(trimmed));
+      } catch (error) {
+        console.warn("Place search failed:", error);
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
   }, [search]);
+
+  const filteredLocations = useMemo(() => {
+    // Offline/empty-query fallback suggestions only.
+    return POPULAR_LOCATIONS;
+  }, []);
 
   const handlePickLocation = (locName: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onSelectLocation(locName);
     onClose();
+  };
+
+  const handleUseCurrentLocation = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      Haptics.selectionAsync();
+      const place = await locationService.getCurrentPlace();
+      if (place) {
+        onSelectLocation(place);
+        onClose();
+      } else {
+        Toast.show({
+          type: "info",
+          text1: "Location unavailable",
+          text2: "Enable location services or pick a place below.",
+        });
+      }
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Couldn't get location",
+        text2: error?.message || "Please try again.",
+      });
+    } finally {
+      setLocating(false);
+    }
   };
 
   const handleClearLocation = () => {
@@ -135,6 +188,26 @@ export default function LocationPickerModal({
             )}
           </View>
 
+          {/* Use GPS */}
+          <TouchableOpacity
+            onPress={handleUseCurrentLocation}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Use current location"
+            className="flex-row items-center gap-3 py-2.5 mb-1"
+          >
+            <View className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950 items-center justify-center border border-blue-100 dark:border-blue-900">
+              {locating ? (
+                <ActivityIndicator size="small" color={colors.blue[600]} />
+              ) : (
+                <Ionicons name="navigate" size={18} color={colors.blue[600]} />
+              )}
+            </View>
+            <Text className="text-sm font-bold text-blue-600">
+              Use current location
+            </Text>
+          </TouchableOpacity>
+
           {/* Custom Typed Location Option */}
           {search.trim().length > 0 && (
             <TouchableOpacity
@@ -155,7 +228,69 @@ export default function LocationPickerModal({
             </TouchableOpacity>
           )}
 
-          {/* Popular Locations List */}
+          {/* Results: live geocoding matches, or popular fallback */}
+          {searching ? (
+            <ActivityIndicator
+              size="small"
+              color={colors.blue[600]}
+              className="my-6"
+            />
+          ) : search.trim().length > 0 ? (
+            <FlatList
+              data={results}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <Text className="text-sm text-slate-400 text-center py-6">
+                  No places found — use the custom tag above.
+                </Text>
+              }
+              renderItem={({ item }) => {
+                const isSelected = selectedLocation === item.label;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => handlePickLocation(item.label)}
+                    className="flex-row items-center justify-between py-3.5 border-b border-slate-50 dark:border-slate-800"
+                  >
+                    <View className="flex-row items-center gap-3 flex-1 mr-3">
+                      <View className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
+                        <Ionicons
+                          name="location-outline"
+                          size={20}
+                          color={colors.slate[600]}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text
+                          className="text-sm font-bold text-slate-900 dark:text-slate-50"
+                          numberOfLines={1}
+                        >
+                          {item.label}
+                        </Text>
+                        {!!item.detail && (
+                          <Text
+                            className="text-xs text-slate-500 dark:text-slate-400"
+                            numberOfLines={1}
+                          >
+                            {item.detail}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={22}
+                        color={colors.blue[600]}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          ) : (
           <FlatList
             data={filteredLocations}
             keyExtractor={(item) => item.id}
@@ -197,6 +332,7 @@ export default function LocationPickerModal({
               );
             }}
           />
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

@@ -74,6 +74,12 @@
       "expo-secure-store",
       "expo-status-bar",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to tag your current place on posts."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-foreground.png",

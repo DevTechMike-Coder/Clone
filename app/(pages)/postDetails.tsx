@@ -108,6 +108,7 @@ const PostDetails = () => {
         music_track_cover_url: musicTrack?.coverUrl,
         music_track_audio_url: musicTrack?.audioUrl,
         music_track_attribution: musicTrack?.attribution,
+        location: selectedLocation || null,
         duration_seconds: musicTrack?.durationSeconds,
         has_sound: Boolean(musicTrack),
       });

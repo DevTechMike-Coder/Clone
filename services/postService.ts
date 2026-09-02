@@ -11,6 +11,10 @@ export type Post = {
   media_type: "video" | "image";
   thumbnail_url?: string;
   caption?: string;
+  /** Structured location (20260902150000 migration); caption keeps the 📍 line for display. */
+  location?: string | null;
+  /** Lowercase hashtags, maintained by the caption trigger. */
+  hashtags?: string[];
   view_count: number;
   created_at: string;
   filter_id?: string;
@@ -165,6 +169,7 @@ export const postService = {
     music_track_attribution?: string;
     duration_seconds?: number;
     has_sound?: boolean;
+    location?: string | null;
   }) {
     const { user_id, media_url, media_type, caption, ...optionalMeta } = post;
 
@@ -191,6 +196,7 @@ export const postService = {
       music_track_attribution: optionalMeta.music_track_attribution,
       duration_seconds: optionalMeta.duration_seconds,
       has_sound: optionalMeta.has_sound,
+      location: optionalMeta.location ?? null,
     };
 
     const insertRow = (row: Record<string, unknown>) =>
@@ -376,6 +382,168 @@ export const postService = {
     }
 
     return mergeInteractionFlags(data ?? []);
+  },
+
+  /** Posts tagged with an exact hashtag (server-side, GIN-indexed). */
+  async searchPostsByHashtag(tag: string): Promise<Post[]> {
+    const normalized = tag.trim().replace(/^#/, "").toLowerCase();
+    if (!normalized) return [];
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select(
+        `
+        *,
+        profiles (
+          username,
+          full_name,
+          avatar_url
+        ),
+        comments(count),
+        likes(count),
+        reposts(count)
+      `
+      )
+      .contains("hashtags", [normalized])
+      .order("created_at", { ascending: false })
+      .limit(40);
+
+    if (error) {
+      // Column missing (migration not applied yet) → degrade to caption scan.
+      console.warn("Hashtag search fallback:", error.message);
+      return this.searchPosts(`#${normalized}`);
+    }
+
+    return mergeInteractionFlags(data ?? []);
+  },
+
+  /** Posts tagged with a place (ILIKE on the structured location column). */
+  async searchPostsByLocation(place: string): Promise<Post[]> {
+    const trimmed = place.trim();
+    if (!trimmed) return [];
+
+    const escaped = trimmed.replace(/[\\%_]/g, (char) => `\\${char}`);
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select(
+        `
+        *,
+        profiles (
+          username,
+          full_name,
+          avatar_url
+        ),
+        comments(count),
+        likes(count),
+        reposts(count)
+      `
+      )
+      .ilike("location", `%${escaped}%`)
+      .order("created_at", { ascending: false })
+      .limit(40);
+
+    if (error) {
+      // Column missing (migration not applied yet) → degrade to caption scan.
+      console.warn("Location search fallback:", error.message);
+      return this.searchPosts(trimmed);
+    }
+
+    return mergeInteractionFlags(data ?? []);
+  },
+
+  /**
+   * Hashtag suggestions for the search tab: scan recent captions that look
+   * like they contain a matching "#query", then count/aggregate the tags
+   * client-side. (PostgREST can't do partial matches inside text arrays,
+   * and posts tables here are small enough for a bounded scan.)
+   */
+  async getHashtagSuggestions(
+    query: string
+  ): Promise<{ tag: string; count: number }[]> {
+    const trimmed = query.trim().replace(/^#/, "").toLowerCase();
+    if (!trimmed) return [];
+
+    const escaped = trimmed.replace(/[\\%_]/g, (char) => `\\${char}`);
+    const { data, error } = await supabase
+      .from("posts")
+      .select("hashtags, caption")
+      .ilike("caption", `%#${escaped}%`)
+      .limit(200);
+
+    if (error) {
+      console.warn("Hashtag suggestions failed:", error.message);
+      return [];
+    }
+
+    const counts = new Map<string, number>();
+    for (const row of data ?? []) {
+      const tags: string[] =
+        Array.isArray((row as any).hashtags) && (row as any).hashtags.length
+          ? (row as any).hashtags
+          : // Pre-migration rows have no hashtags column — parse the caption.
+            Array.from(
+              String((row as any).caption ?? "").matchAll(/#([A-Za-z0-9_]+)/g)
+            ).map((m) => m[1].toLowerCase());
+      for (const tag of tags) {
+        if (tag.startsWith(trimmed)) {
+          counts.set(tag, (counts.get(tag) ?? 0) + 1);
+        }
+      }
+    }
+
+    return [...counts.entries()]
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
+  },
+
+  /** Place suggestions with usage counts (structured column + caption fallback). */
+  async getLocationSuggestions(
+    query: string
+  ): Promise<{ location: string; count: number }[]> {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+
+    const escaped = trimmed.replace(/[\\%_]/g, (char) => `\\${char}`);
+
+    // Structured column first…
+    const structured = await supabase
+      .from("posts")
+      .select("location")
+      .ilike("location", `%${escaped}%`)
+      .not("location", "is", null)
+      .limit(200);
+
+    const counts = new Map<string, number>();
+    if (!structured.error) {
+      for (const row of structured.data ?? []) {
+        const loc = (row as any).location as string | null;
+        if (loc) counts.set(loc, (counts.get(loc) ?? 0) + 1);
+      }
+    } else {
+      // …caption fallback: "📍 Place" lines (pre-migration posts).
+      const legacy = await supabase
+        .from("posts")
+        .select("caption")
+        .ilike("caption", `%📍 %${escaped}%`)
+        .limit(200);
+      for (const row of legacy.data ?? []) {
+        const line = String((row as any).caption ?? "")
+          .split("\n")
+          .find((l: string) => l.startsWith("📍 "));
+        if (!line) continue;
+        const loc = line.replace(/^📍\s*/, "").trim();
+        if (loc.toLowerCase().includes(trimmed.toLowerCase())) {
+          counts.set(loc, (counts.get(loc) ?? 0) + 1);
+        }
+      }
+    }
+
+    return [...counts.entries()]
+      .map(([location, count]) => ({ location, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
   },
 
   async deletePost(postId: string): Promise<void> {
