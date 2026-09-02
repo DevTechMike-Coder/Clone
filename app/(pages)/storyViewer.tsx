@@ -24,6 +24,8 @@ import {
   getOverlayContainerStyle,
   getOverlayTextStyle,
 } from "@/components/camera/DraggableTextOverlay";
+import { CAMERA_FILTERS } from "@/components/camera/FilterPicker";
+import { stopAllSounds, useTrackSound } from "@/lib/useTrackSound";
 import Toast from "react-native-toast-message";
 import { colors } from "@/constants/theme";
 
@@ -52,6 +54,48 @@ function StoryVideo({ uri, paused, onEnd }: { uri: string; paused: boolean; onEn
       nativeControls={false}
     />
   );
+}
+
+/**
+ * Auto-plays the sound attached to the story on screen.
+ *
+ * Mounted with key={story.id} so each story gets a fresh playback: when the
+ * user advances, this component unmounts and expo-audio releases the player,
+ * which is what stops the track (see the notes in lib/useTrackSound.ts about
+ * never touching the player from cleanups). The one-at-a-time bus there also
+ * keeps the story sound exclusive with any feed/post sound.
+ */
+function StorySound({
+  storyId,
+  audioUrl,
+  paused,
+}: {
+  storyId: string;
+  audioUrl: string;
+  paused: boolean;
+}) {
+  const { isPlaying, toggle, stop } = useTrackSound({
+    trackKey: storyId,
+    audioUrl,
+  });
+  const autoStarted = useRef(false);
+
+  useEffect(() => {
+    if (paused) {
+      stop();
+      return;
+    }
+    // Auto-play on mount; resume when the user un-pauses the story.
+    if (!autoStarted.current || !isPlaying) {
+      autoStarted.current = true;
+      toggle();
+    }
+    // toggle/stop/isPlaying are intentionally read from the latest render;
+    // the effect only re-runs when the pause state changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused]);
+
+  return null;
 }
 
 export default function StoryViewer() {
@@ -155,6 +199,12 @@ export default function StoryViewer() {
     }, []),
   );
 
+  // Leaving the viewer silences any attached story sound (same pattern as
+  // viewPost.tsx). The bus guarantees no stale track keeps playing.
+  useEffect(() => {
+    return () => stopAllSounds();
+  }, []);
+
   const handlePress = (e: any) => {
     if (!activeRing) return;
     const x = e.nativeEvent?.locationX ?? SCREEN_W / 2;
@@ -236,6 +286,9 @@ export default function StoryViewer() {
   }
 
   const isOwn = activeStory.user_id === authUser?.id;
+  const activeFilterObj = CAMERA_FILTERS.find(
+    (f) => f.id === activeStory.filter_id,
+  );
 
   return (
     <View className="flex-1 bg-black" onLayout={(e) => setViewerWidth(e.nativeEvent.layout.width)}>
@@ -255,6 +308,19 @@ export default function StoryViewer() {
           />
         ) : (
           <StoryVideo uri={activeStory.media_url} paused={paused} onEnd={advance} />
+        )}
+
+        {/* Filter tint picked in the camera studio. Same tint-overlay
+            approach as the studio preview: the uploaded media is the
+            unfiltered capture. */}
+        {activeFilterObj?.overlayColor && (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: activeFilterObj.overlayColor },
+            ]}
+            pointerEvents="none"
+          />
         )}
 
         {/* Caption Overlay */}
@@ -310,6 +376,16 @@ export default function StoryViewer() {
           </View>
         )}
       </TouchableOpacity>
+
+      {/* Attached sound — starts automatically, silences while paused. */}
+      {activeStory.has_sound && activeStory.music_track_audio_url ? (
+        <StorySound
+          key={activeStory.id}
+          storyId={activeStory.id}
+          audioUrl={activeStory.music_track_audio_url}
+          paused={paused}
+        />
+      ) : null}
 
       {/* Top HUD */}
       <View
