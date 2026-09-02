@@ -30,7 +30,11 @@ import {
   setPendingPostData,
   TextOverlayItem,
 } from "@/store/pendingPost";
-import FilterPicker, { CAMERA_FILTERS } from "./camera/FilterPicker";
+import FilterPicker, {
+  CAMERA_FILTERS,
+  FilterOverlay,
+} from "./camera/FilterPicker";
+import IntensitySlider from "./camera/IntensitySlider";
 import TextOverlayModal from "./camera/TextOverlayModal";
 import MusicPickerModal from "./camera/MusicPickerModal";
 import DraggableTextOverlay from "./camera/DraggableTextOverlay";
@@ -110,6 +114,7 @@ export default function TestCamera({
 
   // Creative Tools State
   const [selectedFilter, setSelectedFilter] = useState("none");
+  const [filterIntensity, setFilterIntensity] = useState(1);
   const [showFilterPicker, setShowFilterPicker] = useState(false);
   const [textOverlays, setTextOverlays] = useState<TextOverlayItem[]>([]);
   const [showTextModal, setShowTextModal] = useState(false);
@@ -296,6 +301,7 @@ export default function TestCamera({
         // Same for the picked filter and attached sound: without these the
         // story plays back plain and silent.
         filterId: selectedFilter !== "none" ? selectedFilter : undefined,
+        filterIntensity,
         musicTrack: selectedTrack,
       });
       Toast.show({ type: "success", text1: "Story added!" });
@@ -334,6 +340,7 @@ export default function TestCamera({
       mediaUri: capturedUri,
       mediaType: capturedType,
       filterId: selectedFilter !== "none" ? selectedFilter : undefined,
+      filterIntensity,
       textOverlays,
       musicTrack: selectedTrack,
       durationSeconds: selectedTrack?.durationSeconds,
@@ -439,7 +446,15 @@ export default function TestCamera({
     setIsOverTrash(false);
   };
 
-  const activeFilterObj = CAMERA_FILTERS.find((f) => f.id === selectedFilter);
+  const activeFilterObj = CAMERA_FILTERS.find(
+    (f) => f.id === selectedFilter && f.rgb != null
+  );
+
+  const handleSelectFilter = (filterId: string) => {
+    setSelectedFilter(filterId);
+    // New filter = fresh slider (back to full strength).
+    setFilterIntensity(1);
+  };
 
   // -------------------------------------------------------------
   // STUDIO PREVIEW SCREEN (AFTER CAPTURE)
@@ -458,16 +473,12 @@ export default function TestCamera({
             resizeMode="cover"
           />
 
-          {/* Applied Filter Tint Overlay */}
-          {activeFilterObj?.overlayColor && (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: activeFilterObj.overlayColor },
-              ]}
-              pointerEvents="none"
-            />
-          )}
+          {/* Applied Filter Overlay (tint + vignette, author's intensity) */}
+          <FilterOverlay
+            filterId={activeFilterObj?.id}
+            intensity={filterIntensity}
+            style={StyleSheet.absoluteFill}
+          />
         </Pressable>
 
         {/* Text / Sticker Overlays Layer */}
@@ -854,16 +865,12 @@ export default function TestCamera({
         onMountError={({ message }) => setMountError(message)}
       />
 
-      {/* Applied Filter Tint on live viewfinder */}
-      {activeFilterObj?.overlayColor && (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: activeFilterObj.overlayColor },
-          ]}
-          pointerEvents="none"
-        />
-      )}
+      {/* Applied Filter Overlay on live viewfinder (tint + vignette) */}
+      <FilterOverlay
+        filterId={activeFilterObj?.id}
+        intensity={filterIntensity}
+        style={StyleSheet.absoluteFill}
+      />
 
       {/* Countdown Visual Overlay */}
       {activeCountdown !== null && (
@@ -1085,8 +1092,14 @@ export default function TestCamera({
           <View className="mb-4 py-1.5 bg-black/50 border-y border-white/10">
             <FilterPicker
               selectedFilter={selectedFilter}
-              onSelectFilter={setSelectedFilter}
+              onSelectFilter={handleSelectFilter}
             />
+            {selectedFilter !== "none" && (
+              <IntensitySlider
+                value={filterIntensity}
+                onChange={setFilterIntensity}
+              />
+            )}
           </View>
         )}
 

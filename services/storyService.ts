@@ -14,6 +14,8 @@ export type Story = {
   text_overlays?: TextOverlayItem[] | null;
   /** Camera filter picked in the studio (rendered as a tint overlay). */
   filter_id?: string | null;
+  /** Composer slider strength (NULL/1 = full filter strength). */
+  filter_intensity?: number | null;
   /** Sound attached in the studio (mirrors the posts.music_track_* columns). */
   music_track_id?: string | null;
   music_track_title?: string | null;
@@ -88,6 +90,8 @@ export const storyService = {
     textOverlays?: TextOverlayItem[];
     /** Camera filter the user applied ("none"/undefined = plain). */
     filterId?: string;
+    /** Filter intensity from the composer slider (0.2–1; default 1). */
+    filterIntensity?: number;
     /** Sound the user attached in the studio. */
     musicTrack?: MusicTrackItem | null;
   }): Promise<Story> {
@@ -99,30 +103,44 @@ export const storyService = {
 
     const track = input.musicTrack ?? null;
 
-    const { data, error } = await supabase
+    const baseRow = {
+      user_id: input.userId,
+      media_url,
+      media_type: input.mediaType,
+      caption: input.caption,
+      background_color: input.backgroundColor,
+      text_color: input.textColor,
+      text_overlays:
+        input.textOverlays && input.textOverlays.length > 0
+          ? input.textOverlays
+          : null,
+      filter_id: input.filterId ?? null,
+      filter_intensity: input.filterIntensity ?? 1,
+      music_track_id: track?.id ?? null,
+      music_track_title: track?.title ?? null,
+      music_track_artist: track?.artist ?? null,
+      music_track_cover_url: track?.coverUrl ?? null,
+      music_track_audio_url: track?.audioUrl ?? null,
+      music_track_attribution: track?.attribution ?? null,
+      has_sound: Boolean(track),
+    };
+
+    let { data, error } = await supabase
       .from("stories")
-      .insert({
-        user_id: input.userId,
-        media_url,
-        media_type: input.mediaType,
-        caption: input.caption,
-        background_color: input.backgroundColor,
-        text_color: input.textColor,
-        text_overlays:
-          input.textOverlays && input.textOverlays.length > 0
-            ? input.textOverlays
-            : null,
-        filter_id: input.filterId ?? null,
-        music_track_id: track?.id ?? null,
-        music_track_title: track?.title ?? null,
-        music_track_artist: track?.artist ?? null,
-        music_track_cover_url: track?.coverUrl ?? null,
-        music_track_audio_url: track?.audioUrl ?? null,
-        music_track_attribution: track?.attribution ?? null,
-        has_sound: Boolean(track),
-      })
+      .insert(baseRow)
       .select("*")
       .single();
+
+    // If 20260902160000 hasn't been applied yet, retry without the new
+    // column so story publishing keeps working (filter renders full).
+    if (error && /column.*does not exist|unknown column/i.test(String(error.message))) {
+      const { filter_intensity: _drop, ...legacyRow } = baseRow;
+      ({ data, error } = await supabase
+        .from("stories")
+        .insert(legacyRow)
+        .select("*")
+        .single());
+    }
 
     if (error) {
       console.error("Error creating story:", error);

@@ -9,6 +9,7 @@ import { formatRelativeTime } from "@/lib/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { FilterOverlay } from "@/components/camera/FilterPicker";
 import SoundChip from "@/components/SoundChip";
 import StoriesBar from "@/components/StoriesBar";
 import { stopAllSounds } from "@/lib/useTrackSound";
@@ -119,7 +120,7 @@ const FeedMedia = ({
 
   if (hasError || !uri) {
     return (
-      <View className="h-full w-full items-center justify-center bg-slate-100 rounded-xl">
+      <View className="h-full w-full items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl">
         <Ionicons name="image-outline" size={44} color={colors.slate[400]} />
         <Text className="text-xs text-slate-400 mt-2 font-medium">Image unavailable</Text>
       </View>
@@ -599,7 +600,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             onPress={() => router.push({ pathname: "/(pages)/userProfile", params: { userId: item.user_id } })}
             accessibilityRole="button"
             accessibilityLabel={`View profile of ${item.profiles?.full_name || item.profiles?.username || "user"}`}
-            className="h-10 w-10 items-center justify-center rounded-full border border-slate-200"
+            className="h-10 w-10 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700"
           >
             <AvatarMedia uri={item.profiles?.avatar_url} />
           </TouchableOpacity>
@@ -607,7 +608,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             activeOpacity={0.7}
             onPress={() => router.push({ pathname: "/(pages)/userProfile", params: { userId: item.user_id } })}
           >
-            <Text className="text-sm font-bold text-slate-900">
+            <Text className="text-sm font-bold text-slate-900 dark:text-slate-50">
               {item.profiles?.full_name || "Anonymous"}
             </Text>
             <Text className="text-xs text-slate-400">
@@ -635,19 +636,25 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
       {/* Caption */}
       {item.caption && (
         <View className="px-5 mb-3">
-          <Text className="text-sm leading-5 text-slate-700">
+          <Text className="text-sm leading-5 text-slate-700 dark:text-slate-200">
             {item.caption}
           </Text>
         </View>
       )}
 
       {/* Media: Full Width Image / Video */}
-      <View className="relative w-full aspect-square bg-slate-100 overflow-hidden">
+      <View className="relative w-full aspect-square bg-slate-100 dark:bg-slate-800 dark:bg-slate-900 overflow-hidden">
         <FeedMedia
           uri={item.media_url}
           thumbnailUrl={item.thumbnail_url}
           mediaType={item.media_type}
           active={item.media_type === "video" && activeVideoId === item.id}
+        />
+
+        {/* Author's camera filter (tint + vignette) rendered at view time */}
+        <FilterOverlay
+          filterId={item.filter_id}
+          intensity={item.filter_intensity ?? 1}
         />
 
         {/* Attached Sound — the pill is also the play/stop control. */}
@@ -684,7 +691,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             />
             <Text
               className={`text-sm font-medium ${
-                item.is_liked ? "text-red-500" : "text-slate-600"
+                item.is_liked ? "text-red-500" : "text-slate-600 dark:text-slate-300"
               }`}
             >
               {item.like_count ?? 0}
@@ -705,7 +712,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
               contentFit="contain"
               style={{ tintColor: colors.slate[900] }}
             />
-            <Text className="text-sm font-medium text-slate-600">
+            <Text className="text-sm font-medium text-slate-600 dark:text-slate-300">
               {item.comment_count ?? 0}
             </Text>
           </TouchableOpacity>
@@ -727,7 +734,7 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
             />
             <Text
               className={`text-sm font-medium ${
-                item.is_reposted ? "text-emerald-600" : "text-slate-600"
+                item.is_reposted ? "text-emerald-600" : "text-slate-600 dark:text-slate-300"
               }`}
             >
               {item.repost_count ?? 0}

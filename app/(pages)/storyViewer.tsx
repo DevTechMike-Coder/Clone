@@ -28,7 +28,7 @@ import {
   getOverlayContainerStyle,
   getOverlayTextStyle,
 } from "@/components/camera/DraggableTextOverlay";
-import { CAMERA_FILTERS } from "@/components/camera/FilterPicker";
+import { CAMERA_FILTERS, FilterOverlay } from "@/components/camera/FilterPicker";
 import { stopAllSounds, useTrackSound } from "@/lib/useTrackSound";
 import { chatService } from "@/services/chatService";
 import { shareService } from "@/services/shareService";
@@ -301,7 +301,7 @@ export default function StoryViewer() {
 
   const isOwn = activeStory.user_id === authUser?.id;
   const activeFilterObj = CAMERA_FILTERS.find(
-    (f) => f.id === activeStory.filter_id,
+    (f) => f.id === activeStory.filter_id && f.rgb != null
   );
 
   // Reply → lands in the owner's DM (reuses/creates the direct conversation).
@@ -362,18 +362,14 @@ export default function StoryViewer() {
           <StoryVideo uri={activeStory.media_url} paused={paused} onEnd={advance} />
         )}
 
-        {/* Filter tint picked in the camera studio. Same tint-overlay
-            approach as the studio preview: the uploaded media is the
-            unfiltered capture. */}
-        {activeFilterObj?.overlayColor && (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: activeFilterObj.overlayColor },
-            ]}
-            pointerEvents="none"
-          />
-        )}
+        {/* Filter picked in the camera studio (tint + vignette at the
+            author's intensity). The uploaded media is unfiltered; the
+            overlay renders at view time. */}
+        <FilterOverlay
+          filterId={activeFilterObj?.id}
+          intensity={activeStory.filter_intensity ?? 1}
+          style={StyleSheet.absoluteFill}
+        />
 
         {/* Caption Overlay */}
         {!!activeStory.caption && (

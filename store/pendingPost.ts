@@ -44,6 +44,8 @@ export type PendingPostData = {
   mediaUri: string;
   mediaType: "image" | "video";
   filterId?: string;
+  /** Filter strength chosen with the composer slider (0.2–1; 1 = full). */
+  filterIntensity?: number;
   textOverlays?: TextOverlayItem[];
   musicTrack?: MusicTrackItem | null;
   durationSeconds?: number;

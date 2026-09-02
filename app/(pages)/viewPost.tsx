@@ -14,6 +14,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Post, postService } from "@/services/postService";
+import { FilterOverlay } from "@/components/camera/FilterPicker";
 import { likeService } from "@/services/likeService";
 import { bookmarkService } from "@/services/bookmarkService";
 import { repostService } from "@/services/repostService";
@@ -73,17 +74,24 @@ function VideoPostMedia({ post }: { post: Post }) {
 }
 
 function PostDetailMedia({ post }: { post: Post }) {
-  if (post.media_type !== "video") {
-    return (
-      <Image
-        source={{ uri: post.media_url }}
-        className="w-full h-full"
-        resizeMode="cover"
+  return (
+    <View className="w-full h-full">
+      {post.media_type !== "video" ? (
+        <Image
+          source={{ uri: post.media_url }}
+          className="w-full h-full"
+          resizeMode="cover"
+        />
+      ) : (
+        <VideoPostMedia post={post} />
+      )}
+      {/* Author's camera filter, same rendering as the composer preview */}
+      <FilterOverlay
+        filterId={post.filter_id}
+        intensity={post.filter_intensity ?? 1}
       />
-    );
-  }
-
-  return <VideoPostMedia post={post} />;
+    </View>
+  );
 }
 
 export default function ViewPost() {

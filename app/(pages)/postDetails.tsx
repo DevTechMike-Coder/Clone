@@ -20,7 +20,7 @@ import {
   getPendingPostData,
   clearPendingPostData,
 } from "@/store/pendingPost";
-import { CAMERA_FILTERS } from "@/components/camera/FilterPicker";
+import { FilterOverlay } from "@/components/camera/FilterPicker";
 import { ProfileSearchResult } from "@/services/profileService";
 import TagPeopleModal from "@/components/modal/TagPeopleModal";
 import LocationPickerModal from "@/components/modal/LocationPickerModal";
@@ -34,6 +34,7 @@ const PostDetails = () => {
   const mediaUri = postData?.mediaUri ?? "";
   const mediaType = postData?.mediaType ?? "image";
   const filterId = postData?.filterId;
+  const filterIntensity = postData?.filterIntensity ?? 1;
   const musicTrack = postData?.musicTrack;
 
   const [caption, setCaption] = useState("");
@@ -102,6 +103,7 @@ const PostDetails = () => {
         media_type: mediaType,
         caption: finalCaption,
         filter_id: filterId,
+        filter_intensity: filterId ? filterIntensity : null,
         music_track_id: musicTrack?.id,
         music_track_title: musicTrack?.title,
         music_track_artist: musicTrack?.artist,
@@ -136,7 +138,6 @@ const PostDetails = () => {
     setTaggedUsers((prev) => prev.filter((u) => u.id !== userId));
   };
 
-  const activeFilterObj = CAMERA_FILTERS.find((f) => f.id === filterId);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
@@ -179,12 +180,10 @@ const PostDetails = () => {
                     style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
                   />
-                  {activeFilterObj?.overlayColor && (
-                    <View
-                      className="absolute inset-0"
-                      style={{ backgroundColor: activeFilterObj.overlayColor }}
-                    />
-                  )}
+                  <FilterOverlay
+                    filterId={filterId}
+                    intensity={filterIntensity}
+                  />
                   {mediaType === "video" && (
                     <View className="absolute bottom-2 right-2 bg-black/60 px-1.5 py-0.5 rounded-md">
                       <Ionicons name="videocam" size={12} color="white" />

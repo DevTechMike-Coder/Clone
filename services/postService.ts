@@ -18,6 +18,7 @@ export type Post = {
   view_count: number;
   created_at: string;
   filter_id?: string;
+  filter_intensity?: number | null;
   music_track_id?: string;
   music_track_title?: string;
   music_track_artist?: string;
@@ -170,6 +171,7 @@ export const postService = {
     duration_seconds?: number;
     has_sound?: boolean;
     location?: string | null;
+    filter_intensity?: number | null;
   }) {
     const { user_id, media_url, media_type, caption, ...optionalMeta } = post;
 
@@ -197,6 +199,7 @@ export const postService = {
       duration_seconds: optionalMeta.duration_seconds,
       has_sound: optionalMeta.has_sound,
       location: optionalMeta.location ?? null,
+      filter_intensity: optionalMeta.filter_intensity ?? null,
     };
 
     const insertRow = (row: Record<string, unknown>) =>
