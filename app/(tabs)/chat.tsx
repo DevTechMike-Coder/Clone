@@ -63,7 +63,7 @@ export default function Chat() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       {/* --- Header Section --- */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+      <View className="flex-row items-center justify-between px-5 py-4">
         <TouchableOpacity
           onPress={() => router.push("/(pages)/followpage")}
           activeOpacity={0.7}
