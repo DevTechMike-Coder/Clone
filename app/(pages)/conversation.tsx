@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -17,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import {
   ChatMessage,
+  ConversationDetails,
   chatService,
 } from "@/services/chatService";
 import { profileService } from "@/services/profileService";
@@ -37,6 +39,7 @@ export default function Conversation() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [otherUser, setOtherUser] = useState<any>(null);
+  const [details, setDetails] = useState<ConversationDetails | null>(null);
   const [text, setText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,12 +50,14 @@ export default function Conversation() {
     if (!conversationId) return;
     try {
       setLoading(true);
-      const [msgs, profile] = await Promise.all([
+      const [msgs, profile, convDetails] = await Promise.all([
         chatService.getMessages(conversationId),
         otherUserId ? profileService.getProfile(otherUserId) : Promise.resolve(null),
+        chatService.getConversationDetails(conversationId),
       ]);
       setMessages(msgs);
       if (profile) setOtherUser(profile);
+      setDetails(convDetails);
 
       // Mark messages as read
       await chatService.markMessagesAsRead(conversationId);
@@ -186,6 +191,16 @@ export default function Conversation() {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => {
+              if (details?.is_group) {
+                const memberLines = details.participants
+                  .map((p) => `${p.full_name || p.username} (@${p.username})`)
+                  .join("\n");
+                Alert.alert(
+                  details.name || "Group members",
+                  memberLines || "Just you for now"
+                );
+                return;
+              }
               if (otherUserId) {
                 router.push({
                   pathname: "/(pages)/userProfile",
@@ -195,30 +210,49 @@ export default function Conversation() {
             }}
             className="flex-row items-center gap-3 flex-1"
           >
-            <View className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
-              {otherUser?.avatar_url ? (
-                <Image
-                  source={{ uri: otherUser.avatar_url }}
-                  className="h-full w-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <Image
-                  source={require("@/assets/homeIcons/profileUser.png")}
-                  className="h-6 w-6"
-                  resizeMode="contain"
-                />
-              )}
-            </View>
+            {details?.is_group ? (
+              <View className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-950 items-center justify-center border border-blue-100 dark:border-blue-900">
+                <Ionicons name="people" size={20} color={colors.blue[600]} />
+              </View>
+            ) : (
+              <View className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
+                {otherUser?.avatar_url ? (
+                  <Image
+                    source={{ uri: otherUser.avatar_url }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Image
+                    source={require("@/assets/homeIcons/profileUser.png")}
+                    className="h-6 w-6"
+                    resizeMode="contain"
+                  />
+                )}
+              </View>
+            )}
 
             <View className="flex-1">
               <Text className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight" numberOfLines={1}>
-                {otherUser?.full_name || otherUser?.username || "Chat"}
+                {details?.is_group
+                  ? details.name ||
+                    details.participants
+                      .map((p) => p.full_name || p.username)
+                      .slice(0, 3)
+                      .join(", ") ||
+                    "Group chat"
+                  : otherUser?.full_name || otherUser?.username || "Chat"}
               </Text>
-              {otherUser?.username && (
+              {details?.is_group ? (
                 <Text className="text-xs text-slate-400">
-                  @{otherUser.username}
+                  {details.participants.length + 1} members
                 </Text>
+              ) : (
+                otherUser?.username && (
+                  <Text className="text-xs text-slate-400">
+                    @{otherUser.username}
+                  </Text>
+                )
               )}
             </View>
           </TouchableOpacity>
@@ -226,6 +260,16 @@ export default function Conversation() {
 
         <TouchableOpacity
           onPress={() => {
+            if (details?.is_group) {
+              const memberLines = details.participants
+                .map((p) => `${p.full_name || p.username} (@${p.username})`)
+                .join("\n");
+              Alert.alert(
+                details.name || "Group members",
+                memberLines || "Just you for now"
+              );
+              return;
+            }
             if (otherUserId) {
               router.push({
                 pathname: "/(pages)/userProfile",
@@ -286,6 +330,13 @@ export default function Conversation() {
                         : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-bl-none shadow-sm"
                     }`}
                   >
+                    {/* Group bubbles name their sender */}
+                    {details?.is_group && !isMe && item.sender?.username && (
+                      <Text className="text-[11px] font-bold text-blue-600 mb-1">
+                        {item.sender.username}
+                      </Text>
+                    )}
+
                     {/* Media Attachment */}
                     {item.media_url ? (
                       <View className="w-56 h-56 rounded-xl overflow-hidden mb-1.5 bg-slate-100 dark:bg-slate-800">

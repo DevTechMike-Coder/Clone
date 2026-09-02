@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -17,16 +18,73 @@ import {
   ConversationItem,
   chatService,
 } from "@/services/chatService";
+import NewGroupModal from "@/components/modal/NewGroupModal";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import { colors } from "@/constants/theme";
+import { usePalette } from "@/context/ThemeContext";
+import { ConversationParticipant } from "@/services/chatService";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
+/** Overlapping member avatars for group rows; generic icon as fallback. */
+function ConversationAvatar({
+  participants,
+}: {
+  participants?: ConversationParticipant[];
+}) {
+  const list = (participants || []).filter((p) => p.avatar_url).slice(0, 2);
+
+  if (list.length === 0) {
+    return (
+      <View className="h-13 w-13 rounded-full bg-blue-50 dark:bg-blue-950 items-center justify-center border border-blue-100 dark:border-blue-900">
+        <Ionicons name="people" size={22} color={colors.blue[600]} />
+      </View>
+    );
+  }
+
+  return (
+    <View className="h-13 w-13">
+      {list.map((p, index) => (
+        <View
+          key={p.id}
+          className="absolute rounded-full overflow-hidden border-2 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800"
+          style={{
+            width: 34,
+            height: 34,
+            top: index === 0 ? 0 : 18,
+            left: index === 0 ? 0 : 18,
+            zIndex: list.length - index,
+          }}
+        >
+          <Image
+            source={{ uri: p.avatar_url! }}
+            className="h-full w-full"
+            resizeMode="cover"
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function Chat() {
+  const palette = usePalette();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [showNewGroup, setShowNewGroup] = useState(false);
+
+  const handleCreatePress = () => {
+    Alert.alert("Start a conversation", undefined, [
+      {
+        text: "New message",
+        onPress: () => router.push("/(pages)/followpage"),
+      },
+      { text: "New group", onPress: () => setShowNewGroup(true) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -51,13 +109,32 @@ export default function Chat() {
     fetchConversations();
   };
 
+  const conversationTitle = (c: ConversationItem): string => {
+    if (c.is_group) {
+      if (c.name) return c.name;
+      const names = (c.otherParticipants || []).map(
+        (p) => p.full_name || p.username
+      );
+      return names.slice(0, 3).join(", ") || "Group chat";
+    }
+    return c.otherUser?.full_name || c.otherUser?.username || "Direct Chat";
+  };
+
   const filteredConversations = conversations.filter((c) => {
     const q = searchText.toLowerCase().trim();
     if (!q) return true;
+    const title = conversationTitle(c).toLowerCase();
+    const groupName = c.name?.toLowerCase() || "";
     const name = c.otherUser?.full_name?.toLowerCase() || "";
     const username = c.otherUser?.username?.toLowerCase() || "";
     const lastMsg = c.lastMessage?.content?.toLowerCase() || "";
-    return name.includes(q) || username.includes(q) || lastMsg.includes(q);
+    return (
+      title.includes(q) ||
+      groupName.includes(q) ||
+      name.includes(q) ||
+      username.includes(q) ||
+      lastMsg.includes(q)
+    );
   });
 
   return (
@@ -83,15 +160,27 @@ export default function Chat() {
         </Text>
 
         <TouchableOpacity
-          onPress={() => router.push("/(pages)/followpage")}
+          onPress={handleCreatePress}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="New message"
+          accessibilityLabel="New message or group"
           className="w-10 h-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
         >
-          <Ionicons name="create-outline" size={20} color={colors.slate[900]} />
+          <Ionicons name="create-outline" size={20} color={palette.text} />
         </TouchableOpacity>
       </View>
+
+      <NewGroupModal
+        visible={showNewGroup}
+        onClose={() => setShowNewGroup(false)}
+        onCreated={(conversationId) => {
+          fetchConversations();
+          router.push({
+            pathname: "/(pages)/conversation",
+            params: { conversationId },
+          });
+        }}
+      />
 
       {/* --- Search Bar Section --- */}
       <View className="px-5 pt-3 pb-2">
@@ -166,26 +255,30 @@ export default function Chat() {
               className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/70 shadow-sm"
             >
               <View className="flex-row items-center gap-3.5 flex-1 pr-2">
-                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
-                  {item.otherUser?.avatar_url ? (
-                    <Image
-                      source={{ uri: item.otherUser.avatar_url }}
-                      className="h-full w-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require("@/assets/homeIcons/profileUser.png")}
-                      className="h-7 w-7"
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
+                {item.is_group ? (
+                  <ConversationAvatar participants={item.otherParticipants} />
+                ) : (
+                  <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 items-center justify-center border border-slate-200 dark:border-slate-700">
+                    {item.otherUser?.avatar_url ? (
+                      <Image
+                        source={{ uri: item.otherUser.avatar_url }}
+                        className="h-full w-full"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Image
+                        source={require("@/assets/homeIcons/profileUser.png")}
+                        className="h-7 w-7"
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+                )}
 
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
-                      {item.otherUser?.full_name || item.otherUser?.username || "Direct Chat"}
+                      {conversationTitle(item)}
                     </Text>
                     {item.lastMessage?.created_at && (
                       <Text className="text-[11px] text-slate-400">

@@ -46,19 +46,31 @@ const withSignedMedia = async (message: ChatMessage): Promise<ChatMessage> => ({
   media_url: await resolveChatMediaUrl(message.media_url),
 });
 
+export type ConversationParticipant = {
+  id: string;
+  username: string;
+  full_name?: string | null;
+  avatar_url?: string | null;
+};
+
 export type ConversationItem = {
   id: string;
   is_group: boolean;
   name: string | null;
   created_at: string;
-  otherUser?: {
-    id: string;
-    username: string;
-    full_name?: string | null;
-    avatar_url?: string | null;
-  };
+  otherUser?: ConversationParticipant;
+  /** All OTHER participants (groups) — for avatar stacks and subtitles. */
+  otherParticipants?: ConversationParticipant[];
   lastMessage?: ChatMessage | null;
   unreadCount: number;
+};
+
+export type ConversationDetails = {
+  id: string;
+  is_group: boolean;
+  name: string | null;
+  created_at: string;
+  participants: ConversationParticipant[];
 };
 
 export const chatService = {
@@ -141,9 +153,26 @@ export const chatService = {
       (conv: any) => {
         const parts = participantsByConv.get(conv.id) || [];
         const otherParticipant = parts.find((p) => p.user_id !== user.id);
-        const otherProfile = Array.isArray(otherParticipant?.profiles)
-          ? otherParticipant?.profiles[0]
-          : otherParticipant?.profiles;
+
+        const toParticipant = (p: any): ConversationParticipant | null => {
+          const profile = Array.isArray(p?.profiles) ? p.profiles[0] : p?.profiles;
+          return profile
+            ? {
+                id: profile.id,
+                username: profile.username,
+                full_name: profile.full_name,
+                avatar_url: profile.avatar_url,
+              }
+            : null;
+        };
+
+        const otherProfile = toParticipant(otherParticipant);
+        const otherParticipants = conv.is_group
+          ? parts
+              .filter((p) => p.user_id !== user.id)
+              .map(toParticipant)
+              .filter((p): p is ConversationParticipant => p !== null)
+          : undefined;
 
         const convMessages = messagesByConv.get(conv.id) || [];
         const lastMsg = convMessages[0] || null;
@@ -157,14 +186,8 @@ export const chatService = {
           is_group: conv.is_group,
           name: conv.name,
           created_at: conv.created_at,
-          otherUser: otherProfile
-            ? {
-                id: otherProfile.id,
-                username: otherProfile.username,
-                full_name: otherProfile.full_name,
-                avatar_url: otherProfile.avatar_url,
-              }
-            : undefined,
+          otherUser: otherProfile ?? undefined,
+          otherParticipants,
           lastMessage: lastMsg,
           unreadCount,
         };
@@ -200,6 +223,80 @@ export const chatService = {
     }
 
     return data as string;
+  },
+
+  async createGroupConversation(
+    name: string,
+    memberIds: string[]
+  ): Promise<string> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("You must be logged in to create a group");
+
+    const { data, error } = await supabase.rpc("create_group_conversation", {
+      group_name: name,
+      member_ids: memberIds,
+    });
+
+    if (error) {
+      console.error("Error creating group conversation:", error);
+      throw error;
+    }
+
+    return data as string;
+  },
+
+  /** Conversation metadata + other participants (group headers, member lists). */
+  async getConversationDetails(
+    conversationId: string
+  ): Promise<ConversationDetails | null> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const [convRes, partsRes] = await Promise.all([
+      supabase
+        .from("conversations")
+        .select("id, is_group, name, created_at")
+        .eq("id", conversationId)
+        .maybeSingle(),
+      supabase
+        .from("conversation_participants")
+        .select(
+          `
+          user_id,
+          profiles:user_id (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
+        `
+        )
+        .eq("conversation_id", conversationId)
+        .neq("user_id", user.id),
+    ]);
+
+    if (convRes.error) throw convRes.error;
+    if (!convRes.data) return null;
+
+    const participants: ConversationParticipant[] = (partsRes.data || [])
+      .map((p: any): ConversationParticipant | null => {
+        const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+        return profile
+          ? {
+              id: profile.id,
+              username: profile.username,
+              full_name: profile.full_name,
+              avatar_url: profile.avatar_url,
+            }
+          : null;
+      })
+      .filter((p): p is ConversationParticipant => p !== null);
+
+    return { ...(convRes.data as any), participants };
   },
 
   async getMessages(conversationId: string): Promise<ChatMessage[]> {
