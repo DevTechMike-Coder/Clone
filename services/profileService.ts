@@ -1,5 +1,6 @@
 import { File } from 'expo-file-system';
 import { supabase } from '../lib/supabase';
+import { moderationService } from './moderationService';
 
 export type ProfileSearchResult = {
   id: string;
@@ -98,6 +99,10 @@ export const profileService = {
     const { data, error } = await request;
 
     if (error) throw error;
-    return (data ?? []) as ProfileSearchResult[];
+
+    // Hide users in a block relationship (either direction) from results.
+    const blocked = new Set(await moderationService.getBlockedUserIds());
+    const rows = (data ?? []) as ProfileSearchResult[];
+    return blocked.size ? rows.filter((r) => !blocked.has(r.id)) : rows;
   }
 };

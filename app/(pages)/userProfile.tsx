@@ -1,6 +1,8 @@
 import { styled } from "nativewind";
 import {
+  Alert,
   Image,
+  Modal,
   Text,
   View,
   TouchableOpacity,
@@ -19,6 +21,8 @@ import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { repostService } from "@/services/repostService";
 import { followService, UserStats } from "@/services/followService";
 import { chatService } from "@/services/chatService";
+import { moderationService } from "@/services/moderationService";
+import ReportSheet from "@/components/modal/ReportSheet";
 import { useState, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -47,23 +51,29 @@ export default function UserProfile() {
   const [messageLoading, setMessageLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "repeat">("overview");
+  const [overflowOpen, setOverflowOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     if (!userId) return;
     try {
       setLoading(true);
-      const [profileData, userPosts, userReposts, userStats, followingStatus] = await Promise.all([
+      const [profileData, userPosts, userReposts, userStats, followingStatus, blockedStatus] = await Promise.all([
         profileService.getProfile(userId),
         postService.getPostsByUser(userId),
         repostService.getRepostedPosts(userId),
         followService.getUserStats(userId),
         followService.checkIsFollowing(userId),
+        moderationService.isBlocked(userId),
       ]);
       setProfile(profileData);
       setPosts(userPosts);
       setReposts(userReposts);
       setStats(userStats);
       setIsFollowing(followingStatus);
+      setIsBlocked(blockedStatus);
     } catch (error) {
       console.error("Error fetching profile:", error);
     } finally {
@@ -76,6 +86,53 @@ export default function UserProfile() {
       fetchProfile();
     }, [fetchProfile])
   );
+
+  const handleBlockToggle = async () => {
+    if (!userId || blockLoading) return;
+    const username = profile?.username ?? "this user";
+
+    const doToggle = async () => {
+      setBlockLoading(true);
+      try {
+        if (isBlocked) {
+          await moderationService.unblockUser(userId);
+          setIsBlocked(false);
+          Toast.show({ type: "success", text1: `Unblocked @${username}` });
+          fetchProfile();
+        } else {
+          await moderationService.blockUser(userId);
+          setIsBlocked(true);
+          Toast.show({
+            type: "success",
+            text1: `Blocked @${username}`,
+            text2: "You won't see each other's content anymore.",
+          });
+          router.back();
+        }
+      } catch (error: any) {
+        Toast.show({
+          type: "error",
+          text1: "Action failed",
+          text2: error?.message || "Please try again.",
+        });
+      } finally {
+        setBlockLoading(false);
+      }
+    };
+
+    if (isBlocked) {
+      doToggle();
+    } else {
+      Alert.alert(
+        "Block user",
+        `Block @${username}? They won't be able to find your profile or posts, and you'll stop seeing theirs.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Block", style: "destructive", onPress: doToggle },
+        ]
+      );
+    }
+  };
 
   const handleToggleFollow = async () => {
     if (!userId || isOwnProfile || followLoading) return;
@@ -304,8 +361,90 @@ export default function UserProfile() {
                 <Text className="text-slate-900 dark:text-slate-50 font-bold">Message</Text>
               )}
             </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setOverflowOpen(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="More actions"
+              className="h-11 w-11 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl items-center justify-center shadow-sm"
+            >
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={20}
+                color={colors.slate[500]}
+              />
+            </TouchableOpacity>
           </View>
         )}
+
+        {/* More-actions sheet: Report / Block */}
+        <Modal
+          transparent
+          visible={overflowOpen}
+          animationType="fade"
+          onRequestClose={() => setOverflowOpen(false)}
+        >
+          <View className="flex-1 bg-black/45 justify-end">
+            <TouchableOpacity
+              style={{ flex: 1 }}
+              activeOpacity={1}
+              onPress={() => setOverflowOpen(false)}
+              accessibilityLabel="Dismiss actions"
+            />
+            <View className="bg-white dark:bg-slate-900 rounded-t-3xl border border-slate-100 dark:border-slate-800 px-6 pt-4 pb-10">
+              <View className="items-center mb-4">
+                <View className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
+              </View>
+
+              <TouchableOpacity
+                className="flex-row items-center gap-4 py-3"
+                onPress={() => {
+                  setOverflowOpen(false);
+                  setReportOpen(true);
+                }}
+              >
+                <Ionicons name="flag-outline" size={22} color={colors.red[500]} />
+                <Text className="text-base font-medium text-slate-800 dark:text-slate-100">
+                  Report @{profile?.username ?? "user"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-row items-center gap-4 py-3"
+                onPress={() => {
+                  setOverflowOpen(false);
+                  handleBlockToggle();
+                }}
+              >
+                <Ionicons
+                  name={isBlocked ? "person-add-outline" : "person-remove-outline"}
+                  size={22}
+                  color={colors.red[500]}
+                />
+                <Text className="text-base font-medium text-red-500">
+                  {isBlocked ? "Unblock" : "Block"} @
+                  {profile?.username ?? "user"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setOverflowOpen(false)}
+                className="mt-3 h-12 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
+              >
+                <Text className="font-semibold text-slate-700 dark:text-slate-200">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <ReportSheet
+          visible={reportOpen}
+          userId={userId}
+          onClose={() => setReportOpen(false)}
+        />
 
         {/* Tabs */}
         <View className="flex-row border-b border-slate-200 dark:border-slate-700">

@@ -1,6 +1,7 @@
 import "@/global.css";
 import React, { useState, useRef } from "react";
 import {
+  Alert,
   Image,
   Text,
   TouchableOpacity,
@@ -8,6 +9,9 @@ import {
   Animated,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/constants/theme";
+import { usePalette } from "@/context/ThemeContext";
 import {
   SafeAreaView as RNSafeAreaView,
   useSafeAreaInsets,
@@ -15,9 +19,12 @@ import {
 import { styled } from "nativewind";
 import { router, useNavigation } from "expo-router";
 import IndexVideoFeed from "@/components/IndexVideoFeed";
+import ReportSheet from "@/components/modal/ReportSheet";
 import { Post } from "@/services/postService";
 import { bookmarkService } from "@/services/bookmarkService";
 import { shareService } from "@/services/shareService";
+import { moderationService } from "@/services/moderationService";
+import { useAuth } from "@/context/AuthContext";
 import Toast from "react-native-toast-message";
 
 const SafeAreaView = styled(RNSafeAreaView);
@@ -25,8 +32,13 @@ const SafeAreaView = styled(RNSafeAreaView);
 export default function Index() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [reportPostId, setReportPostId] = useState<string | null>(null);
+  // Bump to remount the feed after a block, so the blocked user's posts go.
+  const [feedEpoch, setFeedEpoch] = useState(0);
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { user: authUser } = useAuth();
+  const palette = usePalette();
 
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -138,7 +150,7 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-      <IndexVideoFeed onOptionsPress={openMenu} />
+      <IndexVideoFeed key={feedEpoch} onOptionsPress={openMenu} />
 
       {/* Ellipsis Menu (fade from bottom animation) */}
       {isMenuOpen && (
@@ -218,6 +230,53 @@ export default function Index() {
                 </Text>
               </TouchableOpacity>
 
+              {selectedPost && selectedPost.user_id !== authUser?.id && (
+                <TouchableOpacity
+                  className="flex-row items-center gap-4"
+                  onPress={() => {
+                    const target = selectedPost;
+                    closeMenu();
+                    Alert.alert(
+                      "Block user",
+                      `Block @${target.profiles?.username ?? "this user"}? You'll no longer see each other's content.`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Block",
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              await moderationService.blockUser(target.user_id);
+                              setFeedEpoch((e) => e + 1);
+                              Toast.show({
+                                type: "success",
+                                text1: "User blocked",
+                                text2: "You won't see their posts anymore.",
+                              });
+                            } catch (error: any) {
+                              Toast.show({
+                                type: "error",
+                                text1: "Couldn't block user",
+                                text2: error?.message || "Please try again.",
+                              });
+                            }
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons
+                    name="person-remove-outline"
+                    size={24}
+                    color={colors.red[500]}
+                  />
+                  <Text className="text-lg font-medium text-red-500">
+                    Block @{selectedPost.profiles?.username ?? "user"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
                 className="flex-row items-center gap-4"
                 onPress={closeMenu}
@@ -234,19 +293,31 @@ export default function Index() {
 
               <TouchableOpacity
                 className="flex-row items-center gap-4"
-                onPress={closeMenu}
+                onPress={() => {
+                  const postId = selectedPost?.id;
+                  closeMenu();
+                  if (postId) setReportPostId(postId);
+                }}
               >
                 <Image
                   source={require("@/assets/homeIcons/warning.png")}
                   className="w-6 h-6"
                   resizeMode="contain"
                 />
-                <Text className="text-lg font-medium text-red-500">Report</Text>
+                <Text className="text-lg font-medium text-red-500">
+                  Report Post
+                </Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
       )}
+
+      <ReportSheet
+        visible={!!reportPostId}
+        postId={reportPostId ?? undefined}
+        onClose={() => setReportPostId(null)}
+      />
     </SafeAreaView>
   );
 }

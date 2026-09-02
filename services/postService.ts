@@ -2,6 +2,7 @@ import { File } from "expo-file-system";
 import { supabase } from "../lib/supabase";
 import { getAuthenticatedUserId } from "../lib/session";
 import { fetchPostInteractions } from "../lib/postInteractions";
+import { moderationService } from "./moderationService";
 
 export type Post = {
   id: string;
@@ -126,9 +127,19 @@ async function mergeInteractionFlags(
     .map((row) => row?.id)
     .filter((id): id is string => typeof id === "string" && id.length > 0);
 
-  const flags = await fetchPostInteractions(postIds);
+  // Posts from users in a block relationship (either direction) never
+  // reach the feed. Resolved via the SECURITY DEFINER RPC — see
+  // supabase/migrations/20260902140000_moderation.sql.
+  const [flags, blockedIds] = await Promise.all([
+    fetchPostInteractions(postIds),
+    moderationService.getBlockedUserIds(),
+  ]);
+  const blocked = new Set(blockedIds);
+  const visible = blocked.size
+    ? rows.filter((row) => !blocked.has(row?.user_id))
+    : rows;
 
-  return rows.map((post: any) => ({
+  return visible.map((post: any) => ({
     ...post,
     comment_count: post.comments?.[0]?.count ?? 0,
     like_count: post.likes?.[0]?.count ?? 0,
