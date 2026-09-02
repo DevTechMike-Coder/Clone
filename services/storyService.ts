@@ -1,5 +1,6 @@
 import { File } from "expo-file-system";
 import { supabase } from "../lib/supabase";
+import type { MusicTrackItem, TextOverlayItem } from "../store/pendingPost";
 
 export type Story = {
   id: string;
@@ -9,6 +10,18 @@ export type Story = {
   background_color?: string;
   caption?: string;
   text_color?: string;
+  /** Camera-studio text overlays, persisted as JSON. */
+  text_overlays?: TextOverlayItem[] | null;
+  /** Camera filter picked in the studio (rendered as a tint overlay). */
+  filter_id?: string | null;
+  /** Sound attached in the studio (mirrors the posts.music_track_* columns). */
+  music_track_id?: string | null;
+  music_track_title?: string | null;
+  music_track_artist?: string | null;
+  music_track_cover_url?: string | null;
+  music_track_audio_url?: string | null;
+  music_track_attribution?: string | null;
+  has_sound?: boolean;
   expires_at: string;
   created_at: string;
   view_count: number;
@@ -71,12 +84,20 @@ export const storyService = {
     caption?: string;
     backgroundColor?: string;
     textColor?: string;
+    /** Text the user added in the camera studio, kept with the story. */
+    textOverlays?: TextOverlayItem[];
+    /** Camera filter the user applied ("none"/undefined = plain). */
+    filterId?: string;
+    /** Sound the user attached in the studio. */
+    musicTrack?: MusicTrackItem | null;
   }): Promise<Story> {
     const media_url = await uploadStoryMedia(
       input.mediaUri,
       input.userId,
       input.mediaType,
     );
+
+    const track = input.musicTrack ?? null;
 
     const { data, error } = await supabase
       .from("stories")
@@ -87,6 +108,18 @@ export const storyService = {
         caption: input.caption,
         background_color: input.backgroundColor,
         text_color: input.textColor,
+        text_overlays:
+          input.textOverlays && input.textOverlays.length > 0
+            ? input.textOverlays
+            : null,
+        filter_id: input.filterId ?? null,
+        music_track_id: track?.id ?? null,
+        music_track_title: track?.title ?? null,
+        music_track_artist: track?.artist ?? null,
+        music_track_cover_url: track?.coverUrl ?? null,
+        music_track_audio_url: track?.audioUrl ?? null,
+        music_track_attribution: track?.attribution ?? null,
+        has_sound: Boolean(track),
       })
       .select("*")
       .single();

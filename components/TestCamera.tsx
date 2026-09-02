@@ -287,6 +287,13 @@ export default function TestCamera({
         mediaUri: capturedUri,
         mediaType: capturedType,
         backgroundColor: colors.black,
+        // Keep any text the user added in the studio — otherwise the
+        // story plays back without it.
+        textOverlays,
+        // Same for the picked filter and attached sound: without these the
+        // story plays back plain and silent.
+        filterId: selectedFilter !== "none" ? selectedFilter : undefined,
+        musicTrack: selectedTrack,
       });
       Toast.show({ type: "success", text1: "Story added!" });
 

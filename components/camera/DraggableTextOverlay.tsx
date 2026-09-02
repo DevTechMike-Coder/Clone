@@ -27,6 +27,96 @@ type DraggableTextOverlayProps = {
   isOverTrash?: boolean;
 };
 
+/**
+ * Typography styling for a text overlay, based on fontStyle.
+ * Shared between the camera editor (DraggableTextOverlay) and the
+ * read-only rendering in the story viewer so both look identical.
+ */
+export function getOverlayTextStyle(item: TextOverlayItem) {
+  const fontStyle = item.fontStyle || "bold";
+  const textAlign = item.textAlign || "center";
+  const fontSize = item.fontSize || 26;
+
+  let fontFamilyStyle: any = {
+    fontSize,
+    textAlign,
+    color: item.color,
+  };
+
+  switch (fontStyle) {
+    case "classic":
+      fontFamilyStyle.fontWeight = "600";
+      break;
+    case "bold":
+      fontFamilyStyle.fontWeight = "900";
+      fontFamilyStyle.letterSpacing = 0.5;
+      break;
+    case "neon":
+      fontFamilyStyle.fontWeight = "800";
+      fontFamilyStyle.textShadowColor = item.color;
+      fontFamilyStyle.textShadowOffset = { width: 0, height: 0 };
+      fontFamilyStyle.textShadowRadius = 14;
+      break;
+    case "typewriter":
+      fontFamilyStyle.fontFamily = "monospace";
+      fontFamilyStyle.fontWeight = "700";
+      break;
+    case "italic":
+      fontFamilyStyle.fontStyle = "italic";
+      fontFamilyStyle.fontWeight = "700";
+      break;
+    default:
+      fontFamilyStyle.fontWeight = "bold";
+  }
+
+  return fontFamilyStyle;
+}
+
+/**
+ * Background/bubble styling for a text overlay, based on bgMode.
+ * Shared with the story viewer (see getOverlayTextStyle).
+ */
+export function getOverlayContainerStyle(item: TextOverlayItem) {
+  const bgMode = item.bgMode || (item.bgColor ? "solid" : "transparent");
+
+  if (bgMode === "solid") {
+    return {
+      backgroundColor: item.bgColor || "rgba(0,0,0,0.7)",
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    };
+  }
+
+  if (bgMode === "frosted") {
+    return {
+      backgroundColor: "rgba(0, 0, 0, 0.45)",
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.25)",
+    };
+  }
+
+  if (bgMode === "outline") {
+    return {
+      backgroundColor: "transparent",
+      borderRadius: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderWidth: 2,
+      borderColor: item.color,
+    };
+  }
+
+  return {
+    backgroundColor: "transparent",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  };
+}
+
 export default function DraggableTextOverlay({
   item,
   isSelected,
@@ -117,87 +207,9 @@ export default function DraggableTextOverlay({
     })
   ).current;
 
-  // Typography styling based on fontStyle and bgMode
-  const getTextStyle = () => {
-    const fontStyle = item.fontStyle || "bold";
-    const textAlign = item.textAlign || "center";
-    const fontSize = item.fontSize || 26;
-
-    let fontFamilyStyle: any = {
-      fontSize,
-      textAlign,
-      color: item.color,
-    };
-
-    switch (fontStyle) {
-      case "classic":
-        fontFamilyStyle.fontWeight = "600";
-        break;
-      case "bold":
-        fontFamilyStyle.fontWeight = "900";
-        fontFamilyStyle.letterSpacing = 0.5;
-        break;
-      case "neon":
-        fontFamilyStyle.fontWeight = "800";
-        fontFamilyStyle.textShadowColor = item.color;
-        fontFamilyStyle.textShadowOffset = { width: 0, height: 0 };
-        fontFamilyStyle.textShadowRadius = 14;
-        break;
-      case "typewriter":
-        fontFamilyStyle.fontFamily = "monospace";
-        fontFamilyStyle.fontWeight = "700";
-        break;
-      case "italic":
-        fontFamilyStyle.fontStyle = "italic";
-        fontFamilyStyle.fontWeight = "700";
-        break;
-      default:
-        fontFamilyStyle.fontWeight = "bold";
-    }
-
-    return fontFamilyStyle;
-  };
-
-  const getContainerBgStyle = () => {
-    const bgMode = item.bgMode || (item.bgColor ? "solid" : "transparent");
-
-    if (bgMode === "solid") {
-      return {
-        backgroundColor: item.bgColor || "rgba(0,0,0,0.7)",
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-      };
-    }
-
-    if (bgMode === "frosted") {
-      return {
-        backgroundColor: "rgba(0, 0, 0, 0.45)",
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.25)",
-      };
-    }
-
-    if (bgMode === "outline") {
-      return {
-        backgroundColor: "transparent",
-        borderRadius: 16,
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderWidth: 2,
-        borderColor: item.color,
-      };
-    }
-
-    return {
-      backgroundColor: "transparent",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-    };
-  };
+  // Typography and bubble styling now live in the shared helpers above
+  // (getOverlayTextStyle / getOverlayContainerStyle) so the story viewer
+  // can render the exact same look read-only.
 
   return (
     <Animated.View
@@ -215,12 +227,12 @@ export default function DraggableTextOverlay({
     >
       <View
         style={[
-          getContainerBgStyle(),
+          getOverlayContainerStyle(item),
           isSelected && styles.selectedBorder,
           isOverTrash && styles.trashHighlight,
         ]}
       >
-        <Text style={getTextStyle()}>{item.text}</Text>
+        <Text style={getOverlayTextStyle(item)}>{item.text}</Text>
 
         {/* Selected Controls Overlay */}
         {isSelected && (
