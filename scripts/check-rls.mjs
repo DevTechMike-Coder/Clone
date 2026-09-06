@@ -420,112 +420,69 @@ function mockHealthySchema() {
   });
 
   const policies = [
-    // profiles — shell public, writes owner-only (documented decision)
-    P("profiles", "Public profile shells are readable", "select", "true", null, ["anon", "authenticated"]),
-    P("profiles", "Authenticated users can insert their own profiles", "insert", null, "auth.uid() = id"),
-    P("profiles", "Users can update own profile", "update", "auth.uid() = id", null),
-
-    // posts
-    P("posts", "Users can view visible posts", "select", "auth.uid() = user_id or public.can_view_post(id)", null),
-    P("posts", "Authenticated users can insert their own posts", "insert", null, "auth.uid() = user_id", ["authenticated"]),
-    P("posts", "Users can update own posts", "update", "auth.uid() = user_id", null),
-    P("posts", "Users can delete own posts", "delete", "auth.uid() = user_id", null),
-
-    // likes
-    P("likes", "Users can view likes on visible posts", "select", "public.can_view_post(post_id)", null),
-    P("likes", "Users can like visible posts", "insert", null, "auth.uid() = user_id and public.can_view_post(post_id)"),
-    P("likes", "Users can delete own likes", "delete", "auth.uid() = user_id", null),
-
-    // bookmarks
-    P("bookmarks", "Users can view own bookmarks", "select", "auth.uid() = user_id", null),
-    P("bookmarks", "Authenticated users can insert bookmarks", "insert", null, "auth.uid() = user_id"),
-    P("bookmarks", "Users can delete own bookmarks", "delete", "auth.uid() = user_id", null),
-
-    // reposts
-    P("reposts", "Users can view reposts on visible posts", "select", "public.can_view_post(post_id)", null),
-    P("reposts", "Users can repost visible posts", "insert", null, "auth.uid() = user_id and public.can_view_post(post_id)"),
-    P("reposts", "Users can delete own reposts", "delete", "auth.uid() = user_id", null),
-
-    // comments
-    P("comments", "Users can view comments on visible posts", "select", "public.can_view_post(post_id)", null),
-    P("comments", "Users can comment on visible posts", "insert", null, "auth.uid() = user_id and public.can_view_post(post_id)"),
-    P("comments", "Users can delete own comments", "delete", "auth.uid() = user_id", null),
-
-    // follows
-    P("follows", "Anyone can view follows", "select", "true", null),
-    P("follows", "Authenticated users can insert follows", "insert", null, "auth.uid() = follower_id"),
-    P("follows", "Users can delete own follows", "delete", "auth.uid() = follower_id", null),
-
-    // conversations — participant-only (regression guard target)
-    P("conversations", "Participants can view conversations", "select", "public.is_conversation_participant(id)", null),
-    P("conversations", "Authenticated users can create conversations", "insert", null, "auth.uid() is not null"),
-
-    // conversation_participants
-    P("conversation_participants", "Participants can view conversation members", "select", "public.is_conversation_participant(conversation_id)", null),
-    P("conversation_participants", "Users can add conversation participants", "insert", null, "auth.uid() is not null and (user_id = auth.uid() or public.is_conversation_participant(conversation_id))"),
-    P("conversation_participants", "Users can leave conversations", "delete", "auth.uid() = user_id", null),
-
-    // messages
-    P("messages", "Participants can view messages", "select", "public.is_conversation_participant(conversation_id)", null),
-    P("messages", "Participants can send messages", "insert", null, "auth.uid() = sender_id and public.is_conversation_participant(conversation_id)"),
-    P("messages", "Participants can update messages", "update", "public.is_conversation_participant(conversation_id)", "public.is_conversation_participant(conversation_id)"),
-
-    // notifications
-    P("notifications", "Users can view own notifications", "select", "auth.uid() = user_id", null),
-    P("notifications", "Authenticated users can insert notifications", "insert", null, "auth.uid() = from_user_id"),
-    P("notifications", "Users can update own notifications", "update", "auth.uid() = user_id", null),
-    P("notifications", "Users can delete own notifications", "delete", "auth.uid() = user_id", null),
-
-    // music_tracks — public catalog read, service-role write
-    P("music_tracks", "Anyone can read music tracks", "select", "true", null),
-    P("music_tracks", "Authenticated users can read music tracks", "select", "true", null, ["authenticated"]),
+    P("bookmarks", "Users can delete own bookmarks", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("bookmarks", "Authenticated users can insert bookmarks", "insert", null, "auth.uid()=user_id", ["public"]),
+    P("bookmarks", "Users can view own bookmarks", "select", "auth.uid()=user_id", null, ["public"]),
+    P("comments", "Users can delete own comments", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("comments", "Users can comment on visible posts", "insert", null, "(auth.uid()=user_id)and can_view_post(post_id)", ["public"]),
+    P("comments", "Users can view comments on visible posts", "select", "can_view_post(post_id)", null, ["public"]),
+    P("conversation_participants", "Users can leave conversations", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("conversation_participants", "Users can add conversation participants", "insert", null, "(auth.uid()is not null)and((user_id=auth.uid())or is_conversation_participant(conversation_id))", ["public"]),
+    P("conversation_participants", "Participants can view conversation members", "select", "is_conversation_participant(conversation_id)", null, ["public"]),
+    P("conversations", "Authenticated users can create conversations", "insert", null, "auth.uid()is not null", ["public"]),
+    P("conversations", "Participants can view conversations", "select", "is_conversation_participant(id)", null, ["public"]),
+    P("follows", "Users can delete own follows", "delete", "auth.uid()=follower_id", null, ["public"]),
+    P("follows", "Authenticated users can insert follows", "insert", null, "auth.uid()=follower_id", ["public"]),
+    P("follows", "Anyone can view follows", "select", "true", null, ["public"]),
+    P("likes", "Users can delete own likes", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("likes", "Users can like visible posts", "insert", null, "(auth.uid()=user_id)and can_view_post(post_id)", ["public"]),
+    P("likes", "Users can view likes on visible posts", "select", "can_view_post(post_id)", null, ["public"]),
+    P("messages", "Participants can send messages", "insert", null, "(auth.uid()=sender_id)and is_conversation_participant(conversation_id)", ["public"]),
+    P("messages", "Participants can view messages", "select", "is_conversation_participant(conversation_id)", null, ["public"]),
+    P("messages", "Participants can update messages", "update", "is_conversation_participant(conversation_id)", "is_conversation_participant(conversation_id)", ["public"]),
     P("music_tracks", "Service role can write music tracks", "all", "true", "true", ["service_role"]),
-
-    // stories
-    P("stories", "Stories are visible to followers and public users", "select",
-      "expires_at > now() and (auth.uid() = user_id or exists (select 1 from public.profiles p where p.id = user_id and p.is_private = false) or exists (select 1 from public.follows f where f.following_id = user_id and f.follower_id = auth.uid()))",
-      null),
-    P("stories", "Users can insert own stories", "insert", null, "auth.uid() = user_id"),
-    P("stories", "Users can update own stories", "update", "auth.uid() = user_id", null),
-    P("stories", "Users can delete own stories", "delete", "auth.uid() = user_id", null),
-
-    // story_views
-    P("story_views", "Story views are visible to story owner and viewer", "select",
-      "viewer_id = auth.uid() or exists (select 1 from public.stories s where s.id = story_id and s.user_id = auth.uid())",
-      null),
-    P("story_views", "Authenticated users can insert story views", "insert", null, "auth.uid() = viewer_id"),
-
-    // storage.objects — avatars
-    P("objects", "Avatar images are publicly accessible", "select", "bucket_id = 'avatars'", null, ["public"], "storage"),
-    P("objects", "Users can upload their own avatar", "insert", null, "bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can update their own avatar", "update", "bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text", "bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can delete their own avatar", "delete", "bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text", null, ["public"], "storage"),
-
-    // storage.objects — posts
-    P("objects", "Post images are publicly accessible", "select", "bucket_id = 'posts'", null, ["public"], "storage"),
-    P("objects", "Users can upload their own posts", "insert", null, "bucket_id = 'posts' and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can update their own posts", "update", "bucket_id = 'posts' and (storage.foldername(name))[1] = auth.uid()::text", "bucket_id = 'posts' and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can delete their own posts", "delete", "bucket_id = 'posts' and (storage.foldername(name))[1] = auth.uid()::text", null, ["public"], "storage"),
-
-    // storage.objects — chat (private)
-    P("objects", "Chat media is readable by participants", "select",
-      "bucket_id = 'chat' and auth.uid() is not null and ((storage.foldername(name))[1] = auth.uid()::text or exists (select 1 from public.messages m join public.conversation_participants cp on cp.conversation_id = m.conversation_id where cp.user_id = auth.uid() and m.media_url = name))",
-      null, ["public"], "storage"),
-    P("objects", "Users can upload their own chat media", "insert", null, "bucket_id = 'chat' and auth.uid() is not null and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can update their own chat media", "update", "bucket_id = 'chat' and (storage.foldername(name))[1] = auth.uid()::text", "bucket_id = 'chat' and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can delete their own chat media", "delete", "bucket_id = 'chat' and (storage.foldername(name))[1] = auth.uid()::text", null, ["public"], "storage"),
-
-    // storage.objects — sounds (public read, service write)
-    P("objects", "Sound files are publicly readable", "select", "bucket_id = 'sounds'", null, ["public"], "storage"),
-    P("objects", "Only the service role can upload sounds", "insert", null, "bucket_id = 'sounds'", ["service_role"], "storage"),
-    P("objects", "Only the service role can replace sounds", "update", "bucket_id = 'sounds'", "bucket_id = 'sounds'", ["service_role"], "storage"),
-    P("objects", "Only the service role can delete sounds", "delete", "bucket_id = 'sounds'", null, ["service_role"], "storage"),
-
-    // storage.objects — stories
-    P("objects", "Story media is publicly accessible", "select", "bucket_id = 'stories'", null, ["public"], "storage"),
-    P("objects", "Users can upload their own story media", "insert", null, "bucket_id = 'stories' and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can update their own story media", "update", "bucket_id = 'stories' and (storage.foldername(name))[1] = auth.uid()::text", "bucket_id = 'stories' and (storage.foldername(name))[1] = auth.uid()::text", ["public"], "storage"),
-    P("objects", "Users can delete their own story media", "delete", "bucket_id = 'stories' and (storage.foldername(name))[1] = auth.uid()::text", null, ["public"], "storage"),
+    P("music_tracks", "Anyone can read music tracks", "select", "true", null, ["public"]),
+    P("music_tracks", "Authenticated users can read music tracks", "select", "true", null, ["authenticated"]),
+    P("notifications", "Users can delete own notifications", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("notifications", "Authenticated users can insert notifications", "insert", null, "auth.uid()=from_user_id", ["public"]),
+    P("notifications", "Users can view own notifications", "select", "auth.uid()=user_id", null, ["public"]),
+    P("notifications", "Users can update own notifications", "update", "auth.uid()=user_id", null, ["public"]),
+    P("posts", "Users can delete own posts", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("posts", "Authenticated users can insert their own posts", "insert", null, "auth.uid()=user_id", ["authenticated"]),
+    P("posts", "Users can view visible posts", "select", "(auth.uid()=user_id)or can_view_post(id)", null, ["public"]),
+    P("posts", "Users can update own posts", "update", "auth.uid()=user_id", null, ["public"]),
+    P("profiles", "Authenticated users can insert their own profiles", "insert", null, "auth.uid()=id", ["public"]),
+    P("profiles", "Public profile shells are readable", "select", "true", null, ["anon","authenticated"]),
+    P("profiles", "Users can update own profile", "update", "auth.uid()=id", null, ["public"]),
+    P("reposts", "Users can delete own reposts", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("reposts", "Users can repost visible posts", "insert", null, "(auth.uid()=user_id)and can_view_post(post_id)", ["public"]),
+    P("reposts", "Users can view reposts on visible posts", "select", "can_view_post(post_id)", null, ["public"]),
+    P("stories", "Users can delete own stories", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("stories", "Users can insert own stories", "insert", null, "auth.uid()=user_id", ["public"]),
+    P("stories", "Stories are visible to followers and public users", "select", "(expires_at>now())and((auth.uid()=user_id)or(exists(select 1 from profiles p where((p.id=stories.user_id)and(p.is_private=false))))or(exists(select 1 from follows f where((f.following_id=stories.user_id)and(f.follower_id=auth.uid())))))", null, ["public"]),
+    P("stories", "Users can update own stories", "update", "auth.uid()=user_id", null, ["public"]),
+    P("story_views", "Authenticated users can insert story views", "insert", null, "auth.uid()=viewer_id", ["public"]),
+    P("story_views", "Story views are visible to story owner and viewer", "select", "(viewer_id=auth.uid())or(exists(select 1 from stories s where((s.id=story_views.story_id)and(s.user_id=auth.uid()))))", null, ["public"]),
+    P("objects", "Only the service role can delete sounds", "delete", "bucket_id='sounds'::text", null, ["service_role"], "storage"),
+    P("objects", "Users can delete their own avatar", "delete", "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", null, ["public"], "storage"),
+    P("objects", "Users can delete their own chat media", "delete", "(bucket_id='chat'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", null, ["public"], "storage"),
+    P("objects", "Users can delete their own posts", "delete", "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", null, ["public"], "storage"),
+    P("objects", "Users can delete their own story media", "delete", "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", null, ["public"], "storage"),
+    P("objects", "Only the service role can upload sounds", "insert", null, "bucket_id='sounds'::text", ["service_role"], "storage"),
+    P("objects", "Users can upload their own avatar", "insert", null, "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
+    P("objects", "Users can upload their own chat media", "insert", null, "(bucket_id='chat'::text)and(auth.uid()is not null)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
+    P("objects", "Users can upload their own posts", "insert", null, "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
+    P("objects", "Users can upload their own story media", "insert", null, "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
+    P("objects", "Avatar images are publicly accessible", "select", "bucket_id='avatars'::text", null, ["public"], "storage"),
+    P("objects", "Chat media is readable by participants", "select", "(bucket_id='chat'::text)and(auth.uid()is not null)and(((storage.foldername(name))[1]=(auth.uid())::text)or(exists(select 1 from(messages m join conversation_participants cp on((cp.conversation_id=m.conversation_id)))where((cp.user_id=auth.uid())and(m.media_url=objects.name)))))", null, ["public"], "storage"),
+    P("objects", "Post images are publicly accessible", "select", "bucket_id='posts'::text", null, ["public"], "storage"),
+    P("objects", "Sound files are publicly readable", "select", "bucket_id='sounds'::text", null, ["public"], "storage"),
+    P("objects", "Story media is publicly accessible", "select", "bucket_id='stories'::text", null, ["public"], "storage"),
+    P("objects", "Only the service role can replace sounds", "update", "bucket_id='sounds'::text", "bucket_id='sounds'::text", ["service_role"], "storage"),
+    P("objects", "Users can update their own avatar", "update", "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
+    P("objects", "Users can update their own chat media", "update", "(bucket_id='chat'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", "(bucket_id='chat'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
+    P("objects", "Users can update their own posts", "update", "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
+    P("objects", "Users can update their own story media", "update", "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)", ["public"], "storage"),
   ];
 
   const buckets = [
