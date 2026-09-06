@@ -299,5 +299,41 @@ export const authService = {
     if (error) throw error;
     return data;
   },
+
+  // Update User Metadata (e.g. phone, birthday, settings)
+  async updateUserMetadata(metadata: Record<string, any>) {
+    const { data, error } = await supabase.auth.updateUser({
+      data: metadata,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Log out of other sessions
+  async signOutOtherSessions() {
+    const { error } = await supabase.auth.signOut({ scope: "others" });
+    if (error) throw error;
+  },
+
+  // Export User Account Data
+  async exportUserData(userId: string) {
+    const [profileRes, postsRes, bookmarksRes, likesRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase.from("posts").select("id, caption, created_at, media_type").eq("user_id", userId),
+      supabase.from("bookmarks").select("id, post_id, created_at").eq("user_id", userId),
+      supabase.from("likes").select("id, post_id, created_at").eq("user_id", userId),
+    ]);
+
+    return {
+      exported_at: new Date().toISOString(),
+      user_id: userId,
+      profile: profileRes.data || null,
+      posts_count: postsRes.data?.length || 0,
+      posts: postsRes.data || [],
+      bookmarks_count: bookmarksRes.data?.length || 0,
+      likes_count: likesRes.data?.length || 0,
+    };
+  },
 };
+
 
