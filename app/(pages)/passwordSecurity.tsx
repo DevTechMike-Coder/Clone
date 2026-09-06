@@ -87,7 +87,7 @@ export default function PasswordSecurity() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
+      <View className="flex-row items-center justify-between px-5 py-3">
         <TouchableOpacity
           onPress={() => router.back()}
           accessibilityRole="button"
