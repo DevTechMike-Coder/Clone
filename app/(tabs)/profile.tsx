@@ -354,17 +354,6 @@ export default function Profile() {
             >
               <Ionicons name="share-social-outline" size={26} color={colors.slate[900]} />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(pages)/editProfile")}
-              accessibilityRole="button"
-              accessibilityLabel="Edit profile"
-            >
-              <Image
-                source={require("@/assets/homeIcons/pencil.png")}
-                className="w-8 h-8"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
 
             <TouchableOpacity
               onPress={openMenu}

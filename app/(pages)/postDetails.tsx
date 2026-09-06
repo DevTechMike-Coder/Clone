@@ -144,7 +144,7 @@ const PostDetails = () => {
         className="flex-1"
       >
         {/* Top App Bar */}
-        <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+        <View className="flex-row items-center justify-between px-5 py-4">
           <TouchableOpacity
             onPress={() => router.back()}
             accessibilityRole="button"
@@ -153,7 +153,6 @@ const PostDetails = () => {
           >
             <Ionicons name="chevron-back" size={26} color={colors.slate[900]} />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-slate-900">New Post</Text>
           <TouchableOpacity
             onPress={handlePost}
             disabled={loading}
