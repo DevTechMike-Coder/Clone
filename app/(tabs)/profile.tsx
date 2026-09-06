@@ -348,14 +348,6 @@ export default function Profile() {
         {isOwnProfile && (
           <View className="flex-row items-center gap-2">
             <TouchableOpacity
-              onPress={handleShareProfile}
-              accessibilityRole="button"
-              accessibilityLabel="Share profile"
-            >
-              <Ionicons name="share-social-outline" size={26} color={colors.slate[900]} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
               onPress={openMenu}
               accessibilityRole="button"
               accessibilityLabel="Open settings"
