@@ -2,113 +2,6 @@
   "$schema": "./rls_snapshot.schema.json",
   "description": "Expected end-state of RLS policies, storage bucket visibility, and security triggers after applying every migration in supabase/migrations. Regenerate with `node scripts/check-rls.mjs --update-snapshot` after an intentional, reviewed policy change.",
   "policies": {
-    "public.profiles": [
-      {
-        "name": "Authenticated users can insert their own profiles",
-        "cmd": "insert",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": null,
-        "with_check": "auth.uid()=id"
-      },
-      {
-        "name": "Public profile shells are readable",
-        "cmd": "select",
-        "roles": [
-          "anon",
-          "authenticated"
-        ],
-        "permissive": "permissive",
-        "using": "true",
-        "with_check": null
-      },
-      {
-        "name": "Users can update own profile",
-        "cmd": "update",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "auth.uid()=id",
-        "with_check": null
-      }
-    ],
-    "public.posts": [
-      {
-        "name": "Users can delete own posts",
-        "cmd": "delete",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "auth.uid()=user_id",
-        "with_check": null
-      },
-      {
-        "name": "Authenticated users can insert their own posts",
-        "cmd": "insert",
-        "roles": [
-          "authenticated"
-        ],
-        "permissive": "permissive",
-        "using": null,
-        "with_check": "auth.uid()=user_id"
-      },
-      {
-        "name": "Users can view visible posts",
-        "cmd": "select",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "auth.uid()=user_id or public.can_view_post(id)",
-        "with_check": null
-      },
-      {
-        "name": "Users can update own posts",
-        "cmd": "update",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "auth.uid()=user_id",
-        "with_check": null
-      }
-    ],
-    "public.likes": [
-      {
-        "name": "Users can delete own likes",
-        "cmd": "delete",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "auth.uid()=user_id",
-        "with_check": null
-      },
-      {
-        "name": "Users can like visible posts",
-        "cmd": "insert",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": null,
-        "with_check": "auth.uid()=user_id and public.can_view_post(post_id)"
-      },
-      {
-        "name": "Users can view likes on visible posts",
-        "cmd": "select",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "public.can_view_post(post_id)",
-        "with_check": null
-      }
-    ],
     "public.bookmarks": [
       {
         "name": "Users can delete own bookmarks",
@@ -141,38 +34,6 @@
         "with_check": null
       }
     ],
-    "public.reposts": [
-      {
-        "name": "Users can delete own reposts",
-        "cmd": "delete",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "auth.uid()=user_id",
-        "with_check": null
-      },
-      {
-        "name": "Users can repost visible posts",
-        "cmd": "insert",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": null,
-        "with_check": "auth.uid()=user_id and public.can_view_post(post_id)"
-      },
-      {
-        "name": "Users can view reposts on visible posts",
-        "cmd": "select",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "public.can_view_post(post_id)",
-        "with_check": null
-      }
-    ],
     "public.comments": [
       {
         "name": "Users can delete own comments",
@@ -192,7 +53,7 @@
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "auth.uid()=user_id and public.can_view_post(post_id)"
+        "with_check": "(auth.uid()=user_id)and can_view_post(post_id)"
       },
       {
         "name": "Users can view comments on visible posts",
@@ -201,7 +62,61 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "public.can_view_post(post_id)",
+        "using": "can_view_post(post_id)",
+        "with_check": null
+      }
+    ],
+    "public.conversation_participants": [
+      {
+        "name": "Users can leave conversations",
+        "cmd": "delete",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": null
+      },
+      {
+        "name": "Users can add conversation participants",
+        "cmd": "insert",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": null,
+        "with_check": "(auth.uid()is not null)and((user_id=auth.uid())or is_conversation_participant(conversation_id))"
+      },
+      {
+        "name": "Participants can view conversation members",
+        "cmd": "select",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "is_conversation_participant(conversation_id)",
+        "with_check": null
+      }
+    ],
+    "public.conversations": [
+      {
+        "name": "Authenticated users can create conversations",
+        "cmd": "insert",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": null,
+        "with_check": "auth.uid()is not null"
+      },
+      {
+        "name": "Participants can view conversations",
+        "cmd": "select",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "is_conversation_participant(id)",
         "with_check": null
       }
     ],
@@ -237,31 +152,9 @@
         "with_check": null
       }
     ],
-    "public.conversations": [
+    "public.likes": [
       {
-        "name": "Authenticated users can create conversations",
-        "cmd": "insert",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": null,
-        "with_check": "auth.uid()is not null"
-      },
-      {
-        "name": "Participants can view conversations",
-        "cmd": "select",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": "public.is_conversation_participant(id)",
-        "with_check": null
-      }
-    ],
-    "public.conversation_participants": [
-      {
-        "name": "Users can leave conversations",
+        "name": "Users can delete own likes",
         "cmd": "delete",
         "roles": [
           "public"
@@ -271,23 +164,23 @@
         "with_check": null
       },
       {
-        "name": "Users can add conversation participants",
+        "name": "Users can like visible posts",
         "cmd": "insert",
         "roles": [
           "public"
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "auth.uid()is not null and(user_id=auth.uid()or public.is_conversation_participant(conversation_id))"
+        "with_check": "(auth.uid()=user_id)and can_view_post(post_id)"
       },
       {
-        "name": "Participants can view conversation members",
+        "name": "Users can view likes on visible posts",
         "cmd": "select",
         "roles": [
           "public"
         ],
         "permissive": "permissive",
-        "using": "public.is_conversation_participant(conversation_id)",
+        "using": "can_view_post(post_id)",
         "with_check": null
       }
     ],
@@ -300,7 +193,7 @@
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "auth.uid()=sender_id and public.is_conversation_participant(conversation_id)"
+        "with_check": "(auth.uid()=sender_id)and is_conversation_participant(conversation_id)"
       },
       {
         "name": "Participants can view messages",
@@ -309,7 +202,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "public.is_conversation_participant(conversation_id)",
+        "using": "is_conversation_participant(conversation_id)",
         "with_check": null
       },
       {
@@ -319,8 +212,40 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "public.is_conversation_participant(conversation_id)",
-        "with_check": "public.is_conversation_participant(conversation_id)"
+        "using": "is_conversation_participant(conversation_id)",
+        "with_check": "is_conversation_participant(conversation_id)"
+      }
+    ],
+    "public.music_tracks": [
+      {
+        "name": "Service role can write music tracks",
+        "cmd": "all",
+        "roles": [
+          "service_role"
+        ],
+        "permissive": "permissive",
+        "using": "true",
+        "with_check": "true"
+      },
+      {
+        "name": "Anyone can read music tracks",
+        "cmd": "select",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "true",
+        "with_check": null
+      },
+      {
+        "name": "Authenticated users can read music tracks",
+        "cmd": "select",
+        "roles": [
+          "authenticated"
+        ],
+        "permissive": "permissive",
+        "using": "true",
+        "with_check": null
       }
     ],
     "public.notifications": [
@@ -365,35 +290,110 @@
         "with_check": null
       }
     ],
-    "public.music_tracks": [
+    "public.posts": [
       {
-        "name": "Service role can write music tracks",
-        "cmd": "all",
+        "name": "Users can delete own posts",
+        "cmd": "delete",
         "roles": [
-          "service_role"
+          "public"
         ],
         "permissive": "permissive",
-        "using": "true",
-        "with_check": "true"
+        "using": "auth.uid()=user_id",
+        "with_check": null
       },
       {
-        "name": "Anyone can read music tracks",
+        "name": "Authenticated users can insert their own posts",
+        "cmd": "insert",
+        "roles": [
+          "authenticated"
+        ],
+        "permissive": "permissive",
+        "using": null,
+        "with_check": "auth.uid()=user_id"
+      },
+      {
+        "name": "Users can view visible posts",
         "cmd": "select",
         "roles": [
           "public"
+        ],
+        "permissive": "permissive",
+        "using": "(auth.uid()=user_id)or can_view_post(id)",
+        "with_check": null
+      },
+      {
+        "name": "Users can update own posts",
+        "cmd": "update",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": null
+      }
+    ],
+    "public.profiles": [
+      {
+        "name": "Authenticated users can insert their own profiles",
+        "cmd": "insert",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": null,
+        "with_check": "auth.uid()=id"
+      },
+      {
+        "name": "Public profile shells are readable",
+        "cmd": "select",
+        "roles": [
+          "anon",
+          "authenticated"
         ],
         "permissive": "permissive",
         "using": "true",
         "with_check": null
       },
       {
-        "name": "Authenticated users can read music tracks",
-        "cmd": "select",
+        "name": "Users can update own profile",
+        "cmd": "update",
         "roles": [
-          "authenticated"
+          "public"
         ],
         "permissive": "permissive",
-        "using": "true",
+        "using": "auth.uid()=id",
+        "with_check": null
+      }
+    ],
+    "public.reposts": [
+      {
+        "name": "Users can delete own reposts",
+        "cmd": "delete",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": null
+      },
+      {
+        "name": "Users can repost visible posts",
+        "cmd": "insert",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": null,
+        "with_check": "(auth.uid()=user_id)and can_view_post(post_id)"
+      },
+      {
+        "name": "Users can view reposts on visible posts",
+        "cmd": "select",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "can_view_post(post_id)",
         "with_check": null
       }
     ],
@@ -425,7 +425,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "expires_at>now()and(auth.uid()=user_id or exists(select 1 from public.profiles p where p.id=user_id and p.is_private=false)or exists(select 1 from public.follows f where f.following_id=user_id and f.follower_id=auth.uid()))",
+        "using": "(expires_at>now())and((auth.uid()=user_id)or(exists(select 1 from profiles p where((p.id=stories.user_id)and(p.is_private=false))))or(exists(select 1 from follows f where((f.following_id=stories.user_id)and(f.follower_id=auth.uid())))))",
         "with_check": null
       },
       {
@@ -457,7 +457,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "viewer_id=auth.uid()or exists(select 1 from public.stories s where s.id=story_id and s.user_id=auth.uid())",
+        "using": "(viewer_id=auth.uid())or(exists(select 1 from stories s where((s.id=story_views.story_id)and(s.user_id=auth.uid()))))",
         "with_check": null
       }
     ],
@@ -469,7 +469,7 @@
           "service_role"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='sounds'",
+        "using": "bucket_id='sounds'::text",
         "with_check": null
       },
       {
@@ -479,7 +479,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='avatars' and(storage.foldername(name))[1]=auth.uid()::text",
+        "using": "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
         "with_check": null
       },
       {
@@ -489,7 +489,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='chat' and(storage.foldername(name))[1]=auth.uid()::text",
+        "using": "(bucket_id='chat'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
         "with_check": null
       },
       {
@@ -499,7 +499,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='posts' and(storage.foldername(name))[1]=auth.uid()::text",
+        "using": "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
         "with_check": null
       },
       {
@@ -509,7 +509,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='stories' and(storage.foldername(name))[1]=auth.uid()::text",
+        "using": "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
         "with_check": null
       },
       {
@@ -520,7 +520,7 @@
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "bucket_id='sounds'"
+        "with_check": "bucket_id='sounds'::text"
       },
       {
         "name": "Users can upload their own avatar",
@@ -530,7 +530,7 @@
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "bucket_id='avatars' and(storage.foldername(name))[1]=auth.uid()::text"
+        "with_check": "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)"
       },
       {
         "name": "Users can upload their own chat media",
@@ -540,7 +540,7 @@
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "bucket_id='chat' and auth.uid()is not null and(storage.foldername(name))[1]=auth.uid()::text"
+        "with_check": "(bucket_id='chat'::text)and(auth.uid()is not null)and((storage.foldername(name))[1]=(auth.uid())::text)"
       },
       {
         "name": "Users can upload their own posts",
@@ -550,7 +550,7 @@
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "bucket_id='posts' and(storage.foldername(name))[1]=auth.uid()::text"
+        "with_check": "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)"
       },
       {
         "name": "Users can upload their own story media",
@@ -560,7 +560,7 @@
         ],
         "permissive": "permissive",
         "using": null,
-        "with_check": "bucket_id='stories' and(storage.foldername(name))[1]=auth.uid()::text"
+        "with_check": "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)"
       },
       {
         "name": "Avatar images are publicly accessible",
@@ -569,7 +569,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='avatars'",
+        "using": "bucket_id='avatars'::text",
         "with_check": null
       },
       {
@@ -579,7 +579,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='chat' and auth.uid()is not null and((storage.foldername(name))[1]=auth.uid()::text or exists(select 1 from public.messages m join public.conversation_participants cp on cp.conversation_id=m.conversation_id where cp.user_id=auth.uid()and m.media_url=name))",
+        "using": "(bucket_id='chat'::text)and(auth.uid()is not null)and(((storage.foldername(name))[1]=(auth.uid())::text)or(exists(select 1 from(messages m join conversation_participants cp on((cp.conversation_id=m.conversation_id)))where((cp.user_id=auth.uid())and(m.media_url=objects.name)))))",
         "with_check": null
       },
       {
@@ -589,7 +589,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='posts'",
+        "using": "bucket_id='posts'::text",
         "with_check": null
       },
       {
@@ -599,7 +599,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='sounds'",
+        "using": "bucket_id='sounds'::text",
         "with_check": null
       },
       {
@@ -609,7 +609,7 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='stories'",
+        "using": "bucket_id='stories'::text",
         "with_check": null
       },
       {
@@ -619,8 +619,8 @@
           "service_role"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='sounds'",
-        "with_check": "bucket_id='sounds'"
+        "using": "bucket_id='sounds'::text",
+        "with_check": "bucket_id='sounds'::text"
       },
       {
         "name": "Users can update their own avatar",
@@ -629,8 +629,8 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='avatars' and(storage.foldername(name))[1]=auth.uid()::text",
-        "with_check": "bucket_id='avatars' and(storage.foldername(name))[1]=auth.uid()::text"
+        "using": "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
+        "with_check": "(bucket_id='avatars'::text)and((storage.foldername(name))[1]=(auth.uid())::text)"
       },
       {
         "name": "Users can update their own chat media",
@@ -639,8 +639,8 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='chat' and(storage.foldername(name))[1]=auth.uid()::text",
-        "with_check": "bucket_id='chat' and(storage.foldername(name))[1]=auth.uid()::text"
+        "using": "(bucket_id='chat'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
+        "with_check": "(bucket_id='chat'::text)and((storage.foldername(name))[1]=(auth.uid())::text)"
       },
       {
         "name": "Users can update their own posts",
@@ -649,8 +649,8 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='posts' and(storage.foldername(name))[1]=auth.uid()::text",
-        "with_check": "bucket_id='posts' and(storage.foldername(name))[1]=auth.uid()::text"
+        "using": "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
+        "with_check": "(bucket_id='posts'::text)and((storage.foldername(name))[1]=(auth.uid())::text)"
       },
       {
         "name": "Users can update their own story media",
@@ -659,8 +659,8 @@
           "public"
         ],
         "permissive": "permissive",
-        "using": "bucket_id='stories' and(storage.foldername(name))[1]=auth.uid()::text",
-        "with_check": "bucket_id='stories' and(storage.foldername(name))[1]=auth.uid()::text"
+        "using": "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)",
+        "with_check": "(bucket_id='stories'::text)and((storage.foldername(name))[1]=(auth.uid())::text)"
       }
     ]
   },
