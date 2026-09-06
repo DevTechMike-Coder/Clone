@@ -10,7 +10,11 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "seed:music": "node scripts/seed-music.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:rls": "node scripts/check-rls.mjs",
+    "check:rls:self-test": "node scripts/check-rls.mjs --self-test",
+    "check:rls:compare-snapshot": "node scripts/check-rls.mjs --compare-snapshot",
+    "check:rls:update-snapshot": "node scripts/check-rls.mjs --update-snapshot"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -68,7 +72,8 @@
     "eslint-config-expo": "~57.0.2",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "pg": "^8.13.1"
   },
   "overrides": {
     "lightningcss": "1.30.1"

@@ -338,7 +338,11 @@ export const postService = {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return [];
 
-    const escapedQuery = trimmedQuery.replace(/[\%_]/g, (char) => `\${char}`);
+    // Escape `%` and `_` so they are treated as literal characters by LIKE/ILIKE,
+    // not as wildcards. A single backslash is emitted, then the character. Without
+    // the double backslash the template literal would emit the literal string
+    // `${char}` (see the escaping fix in the review).
+    const escapedQuery = trimmedQuery.replace(/[\%_]/g, (char) => `\\${char}`);
 
     const { data, error } = await supabase
       .from("posts")

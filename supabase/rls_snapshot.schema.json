@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "./rls_snapshot.schema.json",
+  "title": "Clone — RLS end-state snapshot",
+  "description": "Expected end-state of RLS policies, storage bucket visibility, and security triggers after applying every migration in supabase/migrations. Regenerate with `node scripts/check-rls.mjs --update-snapshot` (or `npm run check:rls:update-snapshot`) after an intentional, reviewed policy change.",
+  "type": "object",
+  "required": ["policies", "buckets", "triggers"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "description": { "type": "string" },
+    "policies": {
+      "type": "object",
+      "description": "Keyed by '<schema>.<table>'. Each table maps to an array of policy descriptors.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["name", "cmd", "roles", "permissive", "using", "with_check"],
+          "properties": {
+            "name": { "type": "string" },
+            "cmd": { "type": "string", "enum": ["select", "insert", "update", "delete", "all"] },
+            "roles": { "type": "array", "items": { "type": "string" } },
+            "permissive": { "type": "string", "enum": ["permissive", "restrictive"] },
+            "using": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+            "with_check": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+          }
+        }
+      }
+    },
+    "buckets": {
+      "type": "object",
+      "description": "Storage bucket id -> whether the bucket is public-read.",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "triggers": {
+      "type": "object",
+      "description": "Security trigger name -> table it is attached to.",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}
