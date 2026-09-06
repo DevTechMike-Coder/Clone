@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -8,28 +8,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { colors } from "@/constants/theme";
-
-const POPULAR_LOCATIONS = [
-  { id: "1", name: "Lagos, Nigeria", country: "Nigeria", type: "City" },
-  { id: "2", name: "London, United Kingdom", country: "United Kingdom", type: "City" },
-  { id: "3", name: "New York, NY", country: "United States", type: "City" },
-  { id: "4", name: "Paris, France", country: "France", type: "City" },
-  { id: "5", name: "Tokyo, Japan", country: "Japan", type: "City" },
-  { id: "6", name: "Dubai, United Arab Emirates", country: "UAE", type: "City" },
-  { id: "7", name: "Los Angeles, CA", country: "United States", type: "City" },
-  { id: "8", name: "Toronto, ON", country: "Canada", type: "City" },
-  { id: "9", name: "Bali, Indonesia", country: "Indonesia", type: "Island" },
-  { id: "10", name: "Sydney, NSW", country: "Australia", type: "City" },
-  { id: "11", name: "Berlin, Germany", country: "Germany", type: "City" },
-  { id: "12", name: "Johannesburg, South Africa", country: "South Africa", type: "City" },
-  { id: "13", name: "Nairobi, Kenya", country: "Kenya", type: "City" },
-  { id: "14", name: "Miami Beach, FL", country: "United States", type: "Beach" },
-  { id: "15", name: "Santorini, Greece", country: "Greece", type: "Island" },
-];
+import { locationService, RealLocationItem } from "@/services/locationService";
 
 type LocationPickerModalProps = {
   visible: boolean;
@@ -45,23 +29,83 @@ export default function LocationPickerModal({
   onSelectLocation,
 }: LocationPickerModalProps) {
   const [search, setSearch] = useState("");
+  const [currentLocation, setCurrentLocation] = useState<RealLocationItem | null>(null);
+  const [loadingCurrent, setLoadingCurrent] = useState(false);
+  const [searchResults, setSearchResults] = useState<RealLocationItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  const debounceTimer = useRef<any>(null);
+
+  const handleFetchCurrentLocation = async () => {
+    setLoadingCurrent(true);
+    setPermissionDenied(false);
+    try {
+      const loc = await locationService.getCurrentLocation();
+      if (loc) {
+        setCurrentLocation(loc);
+      } else {
+        setPermissionDenied(true);
+      }
+    } catch {
+      setPermissionDenied(true);
+    } finally {
+      setLoadingCurrent(false);
+    }
+  };
 
   useEffect(() => {
+    let isMounted = true;
     if (visible) {
-      setSearch("");
+      (async () => {
+        try {
+          const loc = await locationService.getCurrentLocation();
+          if (isMounted) {
+            if (loc) {
+              setCurrentLocation(loc);
+              setPermissionDenied(false);
+            } else {
+              setPermissionDenied(true);
+            }
+          }
+        } catch {
+          if (isMounted) {
+            setPermissionDenied(true);
+          }
+        }
+      })();
     }
+    return () => {
+      isMounted = false;
+    };
   }, [visible]);
 
-  const filteredLocations = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return POPULAR_LOCATIONS;
+  // Handle live search
+  const handleSearchChange = (text: string) => {
+    setSearch(text);
 
-    return POPULAR_LOCATIONS.filter(
-      (loc) =>
-        loc.name.toLowerCase().includes(q) ||
-        loc.country.toLowerCase().includes(q)
-    );
-  }, [search]);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    debounceTimer.current = setTimeout(async () => {
+      const coords = currentLocation
+        ? { latitude: currentLocation.latitude!, longitude: currentLocation.longitude! }
+        : null;
+
+      const results = await locationService.searchLocations(trimmed, coords);
+      setSearchResults(results);
+      setSearching(false);
+    }, 350);
+  };
 
   const handlePickLocation = (locName: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -116,24 +160,98 @@ export default function LocationPickerModal({
 
           {/* Search Bar */}
           <View className="flex-row items-center bg-slate-100 rounded-2xl px-3.5 py-2.5 my-3.5">
-            <Ionicons name="location-outline" size={18} color={colors.slate[400]} />
+            <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
             <TextInput
-              placeholder="Search city, place or landmark..."
+              placeholder="Search city, neighborhood, or place..."
               placeholderTextColor={colors.slate[400]}
               value={search}
-              onChangeText={setSearch}
+              onChangeText={handleSearchChange}
               className="flex-1 ml-2.5 text-sm text-slate-900"
+              autoCorrect={false}
             />
-            {search.length > 0 && (
+            {searching ? (
+              <ActivityIndicator size="small" color={colors.blue[600]} />
+            ) : search.length > 0 ? (
               <TouchableOpacity
-                onPress={() => setSearch("")}
+                onPress={() => handleSearchChange("")}
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
               >
                 <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
+
+          {/* Current Real-Time GPS Location Row */}
+          {!search && (
+            <View className="mb-3">
+              <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 px-1">
+                Real-Time Location
+              </Text>
+
+              {loadingCurrent ? (
+                <View className="flex-row items-center gap-3 p-3.5 bg-blue-50/60 rounded-2xl border border-blue-100">
+                  <ActivityIndicator size="small" color={colors.blue[600]} />
+                  <Text className="text-sm font-medium text-blue-900">
+                    Detecting current GPS location...
+                  </Text>
+                </View>
+              ) : currentLocation ? (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => handlePickLocation(currentLocation.name)}
+                  className="flex-row items-center justify-between p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl"
+                >
+                  <View className="flex-row items-center gap-3 flex-1 mr-2">
+                    <View className="w-9 h-9 rounded-xl bg-emerald-600 items-center justify-center shadow-sm">
+                      <Ionicons name="navigate" size={18} color="white" />
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-1.5">
+                        <Text
+                          className="text-sm font-bold text-emerald-950"
+                          numberOfLines={1}
+                        >
+                          {currentLocation.name}
+                        </Text>
+                      </View>
+                      <Text
+                        className="text-xs text-emerald-700 mt-0.5"
+                        numberOfLines={1}
+                      >
+                        {currentLocation.subtitle} • Current Device Location
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="bg-emerald-600/10 px-2 py-1 rounded-full">
+                    <Text className="text-[10px] font-bold text-emerald-800">
+                      LIVE
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ) : permissionDenied ? (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleFetchCurrentLocation}
+                  className="flex-row items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-2xl"
+                >
+                  <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+                    <Ionicons name="location-outline" size={20} color={colors.slate[500]} />
+                    <View className="flex-1">
+                      <Text className="text-xs font-semibold text-slate-700">
+                        Enable location permission
+                      </Text>
+                      <Text className="text-[10px] text-slate-400">
+                        Tap to allow access to local real-time places
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-xs font-bold text-blue-600">Allow</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          )}
 
           {/* Custom Typed Location Option */}
           {search.trim().length > 0 && (
@@ -146,57 +264,80 @@ export default function LocationPickerModal({
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-bold text-blue-900">
-                  Use "{search.trim()}"
+                  {`Use "${search.trim()}"`}
                 </Text>
                 <Text className="text-xs text-blue-600">
-                  Add as custom location tag
+                  Tag custom location
                 </Text>
               </View>
             </TouchableOpacity>
           )}
 
-          {/* Popular Locations List */}
-          <FlatList
-            data={filteredLocations}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => {
-              const isSelected = selectedLocation === item.name;
-              return (
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => handlePickLocation(item.name)}
-                  className="flex-row items-center justify-between py-3.5 border-b border-slate-50"
-                >
-                  <View className="flex-row items-center gap-3 flex-1 mr-3">
-                    <View className="w-10 h-10 rounded-2xl bg-slate-100 items-center justify-center border border-slate-200">
+          {/* Search Results / Live Places List */}
+          {search.trim().length > 0 && searchResults.length === 0 && !searching ? (
+            <View className="py-8 items-center justify-center">
+              <Ionicons
+                name="location-outline"
+                size={36}
+                color={colors.slate[300]}
+              />
+              <Text className="text-sm font-semibold text-slate-600 mt-2">
+                {`No places found for "${search.trim()}"`}
+              </Text>
+              <Text className="text-xs text-slate-400 mt-0.5">
+                {'You can still tap "Use" above to tag this custom name.'}
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={searchResults}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                const isSelected = selectedLocation === item.name;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => handlePickLocation(item.name)}
+                    className="flex-row items-center justify-between py-3.5 border-b border-slate-100"
+                  >
+                    <View className="flex-row items-center gap-3 flex-1 mr-3">
+                      <View className="w-10 h-10 rounded-2xl bg-slate-100 items-center justify-center border border-slate-200">
+                        <Ionicons
+                          name="location-sharp"
+                          size={18}
+                          color={colors.slate[700]}
+                        />
+                      </View>
+
+                      <View className="flex-1">
+                        <Text
+                          className="text-sm font-bold text-slate-900"
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+                        <Text
+                          className="text-xs text-slate-500 mt-0.5"
+                          numberOfLines={1}
+                        >
+                          {item.subtitle}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {isSelected && (
                       <Ionicons
-                        name={item.type === "Beach" || item.type === "Island" ? "sunny-outline" : "business-outline"}
-                        size={20}
-                        color={colors.slate[600]}
+                        name="checkmark-circle"
+                        size={22}
+                        color={colors.blue[600]}
                       />
-                    </View>
-
-                    <View className="flex-1">
-                      <Text
-                        className="text-sm font-bold text-slate-900"
-                        numberOfLines={1}
-                      >
-                        {item.name}
-                      </Text>
-                      <Text className="text-xs text-slate-500">
-                        {item.type} • {item.country}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {isSelected && (
-                    <Ionicons name="checkmark-circle" size={22} color={colors.blue[600]} />
-                  )}
-                </TouchableOpacity>
-              );
-            }}
-          />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
