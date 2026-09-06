@@ -88,7 +88,10 @@ export const profileService = {
       return [] as ProfileSearchResult[];
     }
 
-    const escapedQuery = trimmedQuery.replace(/[\%_]/g, (char) => `\${char}`);
+    // Escape `%` and `_` so they are matched literally by ILIKE rather than treated
+    // as wildcards. The double backslash emits one literal backslash before the
+    // character; a single backslash would emit the literal string `${char}`.
+    const escapedQuery = trimmedQuery.replace(/[\%_]/g, (char) => `\\${char}`);
     const request = supabase
       .from('profiles')
       .select('id, username, full_name, avatar_url, bio')
