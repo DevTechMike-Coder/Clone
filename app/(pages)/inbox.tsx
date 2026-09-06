@@ -130,7 +130,7 @@ const Inbox = () => {
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+      <View className="flex-row items-center justify-between px-5 py-4">
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -147,7 +147,7 @@ const Inbox = () => {
       </View>
 
       {/* Filter Chips */}
-      <View className="flex-row px-5 py-3 gap-2 bg-white border-b border-slate-100">
+      <View className="flex-row px-5 py-3 gap-2">
         {(
           [
             { key: "all", label: "All" },
