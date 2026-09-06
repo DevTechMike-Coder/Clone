@@ -92,6 +92,26 @@ function normIncludes(expr, token) {
   return normalizeExpr(expr).includes(normalizeExpr(token));
 }
 
+// pg_policies.roles is name[]. node-postgres has no name[] parser, so it comes
+// back as the raw array-literal string "{public,authenticated}". Normalize
+// either representation (JS array or such a string) into an array of names.
+function normalizeRoles(raw) {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (raw == null) return [];
+  let s = String(raw).trim();
+  if (s === "") return [];
+  if (!s.startsWith("{")) return [s];
+  s = s.slice(1, -1); // drop outer braces
+  if (s === "") return [];
+  // unquote identifier elements ("a b" -> a b); the schema never uses them,
+  // but parse them anyway so role lists round-trip faithfully.
+  return s.split(",").map((el) => {
+    el = el.trim().replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+    if (el.startsWith('"') && el.endsWith('"')) return el.slice(1, -1);
+    return el;
+  });
+}
+
 // ----------------------------------------------------------------------------
 // The semantic assertion suite. `input` is a normalized model of the database
 // schema: the rows pg_policies/pg_trigger/pg_proc produce (see buildInput()).
@@ -260,7 +280,7 @@ export function buildInput({ policies, buckets, trigger, functions }) {
       name: p.policyname,
       cmd: String(p.cmd).toLowerCase(),
       permissive: p.permissive,
-      roles: Array.isArray(p.roles) ? p.roles.map(String) : String(p.roles || ""),
+      roles: normalizeRoles(p.roles),
       using: p.qual ?? null,
       with_check: p.with_check ?? null,
     })),
