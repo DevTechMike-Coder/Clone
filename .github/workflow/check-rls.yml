@@ -1,0 +1,65 @@
+# ============================================================================
+# RLS / security regression guard
+# ============================================================================
+# Replays the full migration chain against the Supabase local stack and asserts
+# the RLS security invariants the app depends on. Catches the class of bug that
+# already happened once: a later migration silently re-opening a policy (e.g.
+# 20260507000000_chat_policies.sql exposed conversations/messages to any
+# authenticated user before 20260828120000_security_hardening.sql fixed it).
+#
+#   step "assert RLS invariants"  -> scripts/check-rls.mjs   (hard gate)
+#   step "snapshot diff"          -> --compare-snapshot      (hard gate)
+#     The snapshot baseline is supabase/rls_snapshot.json. Regenerate it after an
+#     intentional, reviewed policy change:
+#       node scripts/check-rls.mjs --update-snapshot
+#     and inspect the diff before committing.
+# ============================================================================
+name: RLS security guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Boot Supabase local stack and apply migrations
+        run: |
+          supabase start
+          # --no-seed: the repo seeds its audio catalog via scripts/seed-music.mjs,
+          # not an SQL seed file; this job only needs the migration schema.
+          supabase db reset --no-seed
+
+      - name: Assert RLS invariants
+        run: |
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+            npm run check:rls
+
+      - name: Compare pg_policies against the expected snapshot
+        run: |
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+            npm run check:rls:compare-snapshot
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
