@@ -272,4 +272,32 @@ export const authService = {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
+
+  // Update Password
+  async updatePassword(newPassword: string) {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Update Email
+  async updateEmail(newEmail: string) {
+    const { data, error } = await supabase.auth.updateUser({
+      email: newEmail,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Send Password Reset Email
+  async resetPasswordForEmail(email: string) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: Linking.createURL("auth/callback"),
+    });
+    if (error) throw error;
+    return data;
+  },
 };
+
