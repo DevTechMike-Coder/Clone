@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Modal,
   TextInput,
@@ -16,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { authService } from "@/services/authService";
 import { colors } from "@/constants/theme";
 import Toast from "react-native-toast-message";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -37,6 +37,33 @@ export default function AccountOwnership() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  // Notification Modal State
+  const [notifyModal, setNotifyModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: "info" | "success" | "warning" | "error";
+    icon?: keyof typeof Ionicons.glyphMap;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showNotify = (config: Omit<typeof notifyModal, "visible">) => {
+    setNotifyModal({ ...config, visible: true });
+  };
+
+  const closeNotify = () => {
+    setNotifyModal((prev) => ({ ...prev, visible: false }));
+  };
+
   const handleOpenConfirm = () => {
     setConfirmModalVisible(true);
   };
@@ -56,16 +83,19 @@ export default function AccountOwnership() {
       } else {
         await authService.signOut();
         setConfirmModalVisible(false);
-        Alert.alert(
-          "Deletion Requested",
-          "Your account is now scheduled for permanent removal. All public profile data is immediately hidden.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/(auth)/signIn" as any),
-            },
-          ]
-        );
+        showNotify({
+          title: "Deletion Requested",
+          message:
+            "Your account is now scheduled for permanent removal. All public profile data is immediately hidden.",
+          type: "warning",
+          icon: "trash-bin-outline",
+          confirmText: "OK",
+          destructive: true,
+          onConfirm: () => {
+            closeNotify();
+            router.replace("/(auth)/signIn" as any);
+          },
+        });
       }
     } catch (err: any) {
       Toast.show({
@@ -344,6 +374,8 @@ export default function AccountOwnership() {
           </View>
         </View>
       </Modal>
+      {/* Custom Notification Modal */}
+      <NotificationModal {...notifyModal} />
     </SafeAreaView>
   );
 }

@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Switch,
   Platform,
-  Alert,
   Keyboard,
   Modal,
   Dimensions,
@@ -24,6 +23,7 @@ import { authService } from "@/services/authService";
 import { colors } from "@/constants/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -46,6 +46,33 @@ export default function PasswordSecurity() {
   const [signingOutOthers, setSigningOutOthers] = useState(false);
   const [checkingSecurity, setCheckingSecurity] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Notification Modal State
+  const [notifyModal, setNotifyModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: "info" | "success" | "warning" | "error";
+    icon?: keyof typeof Ionicons.glyphMap;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showNotify = (config: Omit<typeof notifyModal, "visible">) => {
+    setNotifyModal({ ...config, visible: true });
+  };
+
+  const closeNotify = () => {
+    setNotifyModal((prev) => ({ ...prev, visible: false }));
+  };
 
   // Dynamic keyboard listeners for both Android and iOS
   useEffect(() => {
@@ -159,10 +186,14 @@ export default function PasswordSecurity() {
     setSendingReset(true);
     try {
       await authService.resetPasswordForEmail(user.email);
-      Alert.alert(
-        "Reset Email Sent",
-        `We've sent a password reset link to ${user.email}. Check your email inbox to reset your password.`
-      );
+      showNotify({
+        title: "Reset Email Sent",
+        message: `We've sent a password reset link to ${user.email}. Check your email inbox to reset your password.`,
+        type: "success",
+        icon: "mail-unread-outline",
+        confirmText: "Got it",
+        onConfirm: closeNotify,
+      });
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -211,36 +242,36 @@ export default function PasswordSecurity() {
 
   // Log Out Other Sessions
   const handleSignOutOthers = () => {
-    Alert.alert(
-      "Log Out Other Sessions?",
-      "This will end all other active sessions and logins on other devices except this one.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Log Out Others",
-          style: "destructive",
-          onPress: async () => {
-            setSigningOutOthers(true);
-            try {
-              await authService.signOutOtherSessions();
-              Toast.show({
-                type: "success",
-                text1: "Sessions Cleared",
-                text2: "All other devices have been logged out.",
-              });
-            } catch (err: any) {
-              Toast.show({
-                type: "error",
-                text1: "Error",
-                text2: err?.message || "Failed to log out other sessions.",
-              });
-            } finally {
-              setSigningOutOthers(false);
-            }
-          },
-        },
-      ]
-    );
+    showNotify({
+      title: "Log Out Other Sessions?",
+      message: "This will end all other active sessions and logins on other devices except this one.",
+      type: "warning",
+      icon: "log-out-outline",
+      confirmText: "Log Out Others",
+      cancelText: "Cancel",
+      destructive: true,
+      onConfirm: async () => {
+        closeNotify();
+        setSigningOutOthers(true);
+        try {
+          await authService.signOutOtherSessions();
+          Toast.show({
+            type: "success",
+            text1: "Sessions Cleared",
+            text2: "All other devices have been logged out.",
+          });
+        } catch (err: any) {
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: err?.message || "Failed to log out other sessions.",
+          });
+        } finally {
+          setSigningOutOthers(false);
+        }
+      },
+      onCancel: closeNotify,
+    });
   };
 
   // Run Security Checkup
@@ -248,12 +279,16 @@ export default function PasswordSecurity() {
     setCheckingSecurity(true);
     setTimeout(() => {
       setCheckingSecurity(false);
-      Alert.alert(
-        "Security Checkup Complete",
-        `✓ Email Verified: ${user?.email || "Yes"}\n✓ Device Session: Active & Secure\n✓ Two-Factor Auth: ${
+      showNotify({
+        title: "Security Checkup",
+        message: `• Email Verified: ${user?.email || "Yes"}\n• Device Session: Active & Secure\n• Two-Factor Auth: ${
           twoFactorEnabled ? "Enabled" : "Recommended"
-        }\n\nYour account meets modern security standards.`
-      );
+        }\n\nYour account meets modern security standards.`,
+        type: "success",
+        icon: "shield-checkmark-outline",
+        confirmText: "Done",
+        onConfirm: closeNotify,
+      });
     }, 800);
   };
 
@@ -711,6 +746,8 @@ export default function PasswordSecurity() {
           </View>
         </View>
       </Modal>
+      {/* Custom Notification / Alert Modal */}
+      <NotificationModal {...notifyModal} />
     </SafeAreaView>
   );
 }

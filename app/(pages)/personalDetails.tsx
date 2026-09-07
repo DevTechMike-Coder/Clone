@@ -7,7 +7,6 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { styled } from "nativewind";
 import { router } from "expo-router";
@@ -19,6 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/authService";
 import { colors } from "@/constants/theme";
 import Toast from "react-native-toast-message";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -38,6 +38,33 @@ export default function PersonalDetails() {
   // Birthday state
   const [birthdayModalVisible, setBirthdayModalVisible] = useState(false);
   const [birthday, setBirthday] = useState(user?.user_metadata?.birthday || "");
+
+  // Notification Modal State
+  const [notifyModal, setNotifyModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: "info" | "success" | "warning" | "error";
+    icon?: keyof typeof Ionicons.glyphMap;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showNotify = (config: Omit<typeof notifyModal, "visible">) => {
+    setNotifyModal({ ...config, visible: true });
+  };
+
+  const closeNotify = () => {
+    setNotifyModal((prev) => ({ ...prev, visible: false }));
+  };
   const [savingBirthday, setSavingBirthday] = useState(false);
 
   const createdAtFormatted = user?.created_at
@@ -65,10 +92,14 @@ export default function PersonalDetails() {
       await authService.updateEmail(trimmed);
       setEmailModalVisible(false);
       setNewEmail("");
-      Alert.alert(
-        "Verification Email Sent",
-        `We've sent a confirmation link to ${trimmed}. Please check your inbox to complete the update.`
-      );
+      showNotify({
+        title: "Verification Email Sent",
+        message: `We've sent a confirmation link to ${trimmed}. Please check your inbox to complete the update.`,
+        type: "success",
+        icon: "mail-unread-outline",
+        confirmText: "Got it",
+        onConfirm: closeNotify,
+      });
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -158,11 +189,13 @@ export default function PersonalDetails() {
         text2: "Account ID copied to clipboard.",
       });
     } else {
-      Alert.alert("Your Account ID", user.id, [{ text: "OK" }]);
-      Toast.show({
+      showNotify({
+        title: "Your Account ID",
+        message: user.id,
         type: "info",
-        text1: "Account ID",
-        text2: user.id,
+        icon: "finger-print-outline",
+        confirmText: "Close",
+        onConfirm: closeNotify,
       });
     }
   };
@@ -592,6 +625,8 @@ export default function PersonalDetails() {
           </View>
         </View>
       </Modal>
+      {/* Custom Notification Modal */}
+      <NotificationModal {...notifyModal} />
     </SafeAreaView>
   );
 }

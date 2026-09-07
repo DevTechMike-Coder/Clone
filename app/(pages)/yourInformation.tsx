@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Modal,
 } from "react-native";
@@ -20,6 +19,7 @@ import { copyToClipboard } from "@/lib/safeClipboard";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import Toast from "react-native-toast-message";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -29,6 +29,33 @@ export default function YourInformation() {
   const [clearingSearches, setClearingSearches] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportedData, setExportedData] = useState<any>(null);
+
+  // Notification / Alert Modal State
+  const [notifyModal, setNotifyModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: "info" | "success" | "warning" | "error";
+    icon?: keyof typeof Ionicons.glyphMap;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showNotify = (config: Omit<typeof notifyModal, "visible">) => {
+    setNotifyModal({ ...config, visible: true });
+  };
+
+  const closeNotify = () => {
+    setNotifyModal((prev) => ({ ...prev, visible: false }));
+  };
 
   // App Permissions State
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
@@ -78,38 +105,38 @@ export default function YourInformation() {
 
   // Clear Search History
   const handleClearSearchHistory = () => {
-    Alert.alert(
-      "Clear Search History?",
-      "This will remove all recent searches and suggestions from your search history.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear All",
-          style: "destructive",
-          onPress: async () => {
-            setClearingSearches(true);
-            try {
-              await AsyncStorage.removeItem("recent_searches");
-              await AsyncStorage.removeItem("search_history");
-              await AsyncStorage.removeItem("@clone_recent_searches");
-              Toast.show({
-                type: "success",
-                text1: "Search History Cleared",
-                text2: "Your recent searches have been removed.",
-              });
-            } catch {
-              Toast.show({
-                type: "error",
-                text1: "Error",
-                text2: "Failed to clear search history.",
-              });
-            } finally {
-              setClearingSearches(false);
-            }
-          },
-        },
-      ]
-    );
+    showNotify({
+      title: "Clear Search History?",
+      message: "This will remove all recent searches and suggestions from your search history.",
+      type: "warning",
+      icon: "trash-outline",
+      confirmText: "Clear All",
+      cancelText: "Cancel",
+      destructive: true,
+      onConfirm: async () => {
+        closeNotify();
+        setClearingSearches(true);
+        try {
+          await AsyncStorage.removeItem("recent_searches");
+          await AsyncStorage.removeItem("search_history");
+          await AsyncStorage.removeItem("@clone_recent_searches");
+          Toast.show({
+            type: "success",
+            text1: "Search History Cleared",
+            text2: "Your recent searches have been removed.",
+          });
+        } catch {
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Failed to clear search history.",
+          });
+        } finally {
+          setClearingSearches(false);
+        }
+      },
+      onCancel: closeNotify,
+    });
   };
 
   // Download / Export User Information
@@ -143,11 +170,13 @@ export default function YourInformation() {
         text2: "Account data summary copied to clipboard.",
       });
     } else {
-      Alert.alert("Export Ready", "Account data compiled. Long-press the summary text to select and copy.", [{ text: "OK" }]);
-      Toast.show({
+      showNotify({
+        title: "Export Ready",
+        message: "Account data compiled. Long-press the summary text to select and copy.",
         type: "info",
-        text1: "Data Exported",
-        text2: "Summary ready to view and select.",
+        icon: "document-text-outline",
+        confirmText: "Got it",
+        onConfirm: closeNotify,
       });
     }
   };
@@ -460,10 +489,14 @@ export default function YourInformation() {
               <TouchableOpacity
                 onPress={() => {
                   setExportModalVisible(false);
-                  Alert.alert(
-                    "Download Scheduled",
-                    `A complete export bundle has also been queued for delivery to ${user?.email}.`
-                  );
+                  showNotify({
+                    title: "Download Scheduled",
+                    message: `A complete export bundle has also been queued for delivery to ${user?.email || "your registered email"}.`,
+                    type: "info",
+                    icon: "mail-outline",
+                    confirmText: "OK",
+                    onConfirm: closeNotify,
+                  });
                 }}
                 className="flex-1 py-3.5 rounded-xl bg-blue-600 items-center justify-center shadow-sm"
               >
@@ -475,6 +508,9 @@ export default function YourInformation() {
           </View>
         </View>
       </Modal>
+
+      {/* Notification / Confirmation Modal */}
+      <NotificationModal {...notifyModal} />
     </SafeAreaView>
   );
 }

@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Toast from "react-native-toast-message";
 import AuthSplash from "@/components/AuthSplash";
+import { toastConfig } from "@/components/ToastConfig";
 
 function RootNavigation() {
   const { loading } = useAuth();
@@ -17,7 +18,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <RootNavigation />
-      <Toast />
+      <Toast config={toastConfig} topOffset={54} />
     </AuthProvider>
   );
 }
