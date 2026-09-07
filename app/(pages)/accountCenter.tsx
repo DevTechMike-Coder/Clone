@@ -99,6 +99,15 @@ const AccountCenter = () => {
       route: "/(pages)/passwordSecurity",
     },
     {
+      id: "pushNotifications",
+      title: "Push notifications",
+      subtitle: "Followers, messages, stories, likes",
+      icon: "notifications-outline" as const,
+      iconColor: colors.orange[500],
+      iconBg: "#FFF7ED",
+      route: "/(pages)/pushNotifications",
+    },
+    {
       id: "yourInformation",
       title: "Your information & permissions",
       subtitle: "Search history, download your data",

@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { notificationService } from "./notificationService";
 
 export type SuggestedUser = {
   id: string;
@@ -52,12 +51,10 @@ export const followService = {
         .insert([{ follower_id: user.id, following_id: targetUserId }]);
       if (error) throw error;
 
-      // Send notification to followed user
-      await notificationService.createNotification({
-        userId: targetUserId,
-        type: "follow",
-      });
-
+      // The notification for the followed user is written by the
+      // `follows_notify` database trigger, not here. Doing it on the client
+      // meant the notification was lost whenever this device died between the
+      // two writes — see supabase/migrations/20260907130000.
       return { following: true };
     }
   },

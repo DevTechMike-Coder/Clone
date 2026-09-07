@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase";
 import { Post } from "./postService";
-import { notificationService } from "./notificationService";
 import { fetchPostInteractions } from "@/lib/postInteractions";
 
 export const repostService = {
@@ -32,25 +31,7 @@ export const repostService = {
         .insert([{ post_id: postId, user_id: user.id }]);
       if (error) throw error;
 
-      // Notify post author
-      try {
-        const { data: postData } = await supabase
-          .from("posts")
-          .select("user_id")
-          .eq("id", postId)
-          .single();
-
-        if (postData?.user_id) {
-          await notificationService.createNotification({
-            userId: postData.user_id,
-            type: "repost",
-            postId,
-          });
-        }
-      } catch (notifErr) {
-        console.warn("Could not notify post author of repost:", notifErr);
-      }
-
+      // Notification is derived in the database by the `reposts_notify` trigger.
       return { reposted: true };
     }
   },

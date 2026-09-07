@@ -205,6 +205,12 @@ export function runAssertions(input) {
     "conversations",
     "conversation_participants",
     "messages",
+    // Push delivery state. A push token is a delivery address for one user's
+    // device: an open INSERT would let any caller register a token against
+    // someone else's account and have that person's notifications delivered
+    // to them.
+    "push_tokens",
+    "notification_preferences",
   ];
   for (const table of ownerInsertTables) {
     const ins = inserts("public", table);
@@ -463,8 +469,15 @@ function mockHealthySchema() {
     P("music_tracks", "Service role can write music tracks", "all", "true", "true", ["service_role"]),
     P("music_tracks", "Anyone can read music tracks", "select", "true", null, ["public"]),
     P("music_tracks", "Authenticated users can read music tracks", "select", "true", null, ["authenticated"]),
+    P("notification_preferences", "Users can create own notification preferences", "insert", null, "auth.uid()=user_id", ["public"]),
+    P("notification_preferences", "Users can update own notification preferences", "update", "auth.uid()=user_id", "auth.uid()=user_id", ["public"]),
+    P("notification_preferences", "Users can view own notification preferences", "select", "auth.uid()=user_id", null, ["public"]),
     P("notifications", "Users can delete own notifications", "delete", "auth.uid()=user_id", null, ["public"]),
-    P("notifications", "Authenticated users can insert notifications", "insert", null, "auth.uid()=from_user_id", ["public"]),
+    // NOTE: the "Authenticated users can insert notifications" policy was
+    // DROPPED by 20260907130000_notification_triggers.sql. Notifications are
+    // now derived server-side by triggers, and leaving the policy in place
+    // would keep a "write an arbitrary notification for any user" primitive
+    // available to every authenticated caller. Deliberately absent below.
     P("notifications", "Users can view own notifications", "select", "auth.uid()=user_id", null, ["public"]),
     P("notifications", "Users can update own notifications", "update", "auth.uid()=user_id", null, ["public"]),
     P("posts", "Users can delete own posts", "delete", "auth.uid()=user_id", null, ["public"]),
@@ -474,6 +487,10 @@ function mockHealthySchema() {
     P("profiles", "Authenticated users can insert their own profiles", "insert", null, "auth.uid()=id", ["public"]),
     P("profiles", "Public profile shells are readable", "select", "true", null, ["anon","authenticated"]),
     P("profiles", "Users can update own profile", "update", "auth.uid()=id", null, ["public"]),
+    P("push_tokens", "Users can delete own push tokens", "delete", "auth.uid()=user_id", null, ["public"]),
+    P("push_tokens", "Users can register own push tokens", "insert", null, "auth.uid()=user_id", ["public"]),
+    P("push_tokens", "Users can update own push tokens", "update", "auth.uid()=user_id", "auth.uid()=user_id", ["public"]),
+    P("push_tokens", "Users can view own push tokens", "select", "auth.uid()=user_id", null, ["public"]),
     P("reposts", "Users can delete own reposts", "delete", "auth.uid()=user_id", null, ["public"]),
     P("reposts", "Users can repost visible posts", "insert", null, "(auth.uid()=user_id)and can_view_post(post_id)", ["public"]),
     P("reposts", "Users can view reposts on visible posts", "select", "can_view_post(post_id)", null, ["public"]),

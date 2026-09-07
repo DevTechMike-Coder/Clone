@@ -380,6 +380,19 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# ----------------------------------------------------------------------------
+# Push notification functions
+# ----------------------------------------------------------------------------
+# Both are called by Postgres (a trigger and pg_cron), neither of which can
+# mint a Supabase user JWT. They authenticate with the shared
+# PUSH_FUNCTION_TOKEN secret instead, so JWT verification must be off for
+# them — and only for them. Every other function keeps the default.
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.story-expiry-notifications]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

@@ -14,6 +14,7 @@ import { styled } from "nativewind";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { followService, SuggestedUser } from "@/services/followService";
+import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 import { colors } from "@/constants/theme";
@@ -23,6 +24,7 @@ const SafeAreaView = styled(RNSafeAreaView);
 type TabType = "followers" | "following";
 
 export default function FollowList() {
+  const { user: authUser } = useAuth();
   const { userId, initialTab, username } = useLocalSearchParams<{
     userId: string;
     initialTab?: TabType;
@@ -70,6 +72,10 @@ export default function FollowList() {
 
   const handleToggleFollow = async (user: SuggestedUser) => {
     if (togglingIds[user.id]) return;
+    // You can appear in someone else's follower list, so this is reachable
+    // — not just defensive. The service rejects it too, but that surfaces as
+    // an error toast after an optimistic flip, which reads as a bug.
+    if (authUser?.id && user.id === authUser.id) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const prevFollowing = user.is_following;
@@ -309,24 +315,26 @@ export default function FollowList() {
                 </View>
               </View>
 
-              <TouchableOpacity
-                onPress={() => handleToggleFollow(item)}
-                disabled={togglingIds[item.id]}
-                activeOpacity={0.7}
-                className={`px-4 py-1.5 rounded-xl items-center justify-center ${
-                  item.is_following
-                    ? "bg-slate-100 border border-slate-300"
-                    : "bg-blue-600"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-bold ${
-                    item.is_following ? "text-slate-700" : "text-white"
+              {item.id !== authUser?.id && (
+                <TouchableOpacity
+                  onPress={() => handleToggleFollow(item)}
+                  disabled={togglingIds[item.id]}
+                  activeOpacity={0.7}
+                  className={`px-4 py-1.5 rounded-xl items-center justify-center ${
+                    item.is_following
+                      ? "bg-slate-100 border border-slate-300"
+                      : "bg-blue-600"
                   }`}
                 >
-                  {item.is_following ? "Following" : "Follow"}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className={`text-xs font-bold ${
+                      item.is_following ? "text-slate-700" : "text-white"
+                    }`}
+                  >
+                    {item.is_following ? "Following" : "Follow"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           )}
         />
