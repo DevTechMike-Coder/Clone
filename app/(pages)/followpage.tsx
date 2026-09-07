@@ -14,6 +14,7 @@ import { styled } from "nativewind";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { followService, SuggestedUser } from "@/services/followService";
+import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 import { colors } from "@/constants/theme";
@@ -21,6 +22,7 @@ import { colors } from "@/constants/theme";
 const SafeAreaView = styled(RNSafeAreaView);
 
 const FollowPage = () => {
+  const { user: authUser } = useAuth();
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,6 +54,10 @@ const FollowPage = () => {
 
   const handleToggleFollow = async (user: SuggestedUser) => {
     if (togglingIds[user.id]) return;
+    // getSuggestedUsers() already excludes you, but the button should not
+    // depend on that staying true — a query change would silently reintroduce
+    // a "Follow" button on your own row.
+    if (authUser?.id && user.id === authUser.id) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -243,24 +249,26 @@ const FollowPage = () => {
               </View>
 
               {/* Follow Button */}
-              <TouchableOpacity
-                onPress={() => handleToggleFollow(item)}
-                disabled={togglingIds[item.id]}
-                activeOpacity={0.7}
-                className={`px-4 py-2 rounded-xl items-center justify-center ${
-                  item.is_following
-                    ? "bg-slate-100 border border-slate-300"
-                    : "bg-blue-600"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-bold ${
-                    item.is_following ? "text-slate-700" : "text-white"
+              {item.id !== authUser?.id && (
+                <TouchableOpacity
+                  onPress={() => handleToggleFollow(item)}
+                  disabled={togglingIds[item.id]}
+                  activeOpacity={0.7}
+                  className={`px-4 py-2 rounded-xl items-center justify-center ${
+                    item.is_following
+                      ? "bg-slate-100 border border-slate-300"
+                      : "bg-blue-600"
                   }`}
                 >
-                  {item.is_following ? "Following" : "Follow"}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className={`text-xs font-bold ${
+                      item.is_following ? "text-slate-700" : "text-white"
+                    }`}
+                  >
+                    {item.is_following ? "Following" : "Follow"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           )}
         />
