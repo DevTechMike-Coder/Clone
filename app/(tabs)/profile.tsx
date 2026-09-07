@@ -315,13 +315,6 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-row items-center justify-between py-4">
-            <View className="flex-row items-center gap-3">
-              <Ionicons name="notifications-outline" size={20} color={colors.slate[600]} />
-              <Text className="text-base text-slate-800">Notifications</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
-          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleSignOut}
