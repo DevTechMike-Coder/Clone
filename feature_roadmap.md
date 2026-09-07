@@ -21,7 +21,7 @@ Based on the current project structure (Expo with file-based routing), here is a
 ## 💬 Communication
 
 - **Real-time Messaging**: Instant chat with friends using WebSockets or Firebase.
-- **Direct Push Notifications**: Stay updated with likes, comments, and new messages even when the app is closed.
+- **Direct Push Notifications**: ✅ Done — follows, messages, comments, stories and story-expiry reminders are delivered to the device. See [PUSH_NOTIFICATIONS_SETUP.md](./PUSH_NOTIFICATIONS_SETUP.md).
 - **Media Sharing in Chat**: Send images and videos directly through direct messages.
 - **Group Chats**: Create rooms for multiple users to talk simultaneously.
 

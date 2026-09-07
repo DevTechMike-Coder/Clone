@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { notificationService } from "./notificationService";
 
 export const likeService = {
   toggleLike: async (postId: string) => {
@@ -33,21 +32,8 @@ export const likeService = {
         .insert([{ post_id: postId, user_id: user.id }]);
       if (error) throw error;
 
-      // Find post author and notify
-      const { data: postData } = await supabase
-        .from("posts")
-        .select("user_id")
-        .eq("id", postId)
-        .single();
-
-      if (postData?.user_id) {
-        await notificationService.createNotification({
-          userId: postData.user_id,
-          type: "like",
-          postId,
-        });
-      }
-
+      // Notification is derived in the database by the `likes_notify` trigger,
+      // which resolves the post author itself.
       return { liked: true };
     }
   },

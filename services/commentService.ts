@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { notificationService } from "./notificationService";
 
 export type Comment = {
   id: string;
@@ -93,25 +92,7 @@ export const commentService = {
       throw error;
     }
 
-    // Find post author and notify
-    try {
-      const { data: postData } = await supabase
-        .from("posts")
-        .select("user_id")
-        .eq("id", postId)
-        .single();
-
-      if (postData?.user_id) {
-        await notificationService.createNotification({
-          userId: postData.user_id,
-          type: "comment",
-          postId,
-        });
-      }
-    } catch (notifErr) {
-      console.warn("Could not notify post author of comment:", notifErr);
-    }
-
+    // Notification is derived in the database by the `comments_notify` trigger.
     return { ...data, replies: [] } as Comment;
   },
 };

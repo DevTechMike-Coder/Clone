@@ -1,6 +1,5 @@
 import { File } from "expo-file-system";
 import { supabase } from "@/lib/supabase";
-import { notificationService } from "./notificationService";
 
 const CHAT_BUCKET = "chat";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -271,25 +270,9 @@ export const chatService = {
       throw error;
     }
 
-    // Notify other participants in the conversation
-    try {
-      const { data: participants } = await supabase
-        .from("conversation_participants")
-        .select("user_id")
-        .eq("conversation_id", conversationId)
-        .neq("user_id", user.id);
-
-      if (participants && participants.length > 0) {
-        for (const p of participants) {
-          await notificationService.createNotification({
-            userId: p.user_id,
-            type: "message",
-          });
-        }
-      }
-    } catch (notifErr) {
-      console.warn("Could not notify recipient:", notifErr);
-    }
+    // Notification is derived in the database by the `messages_notify` trigger,
+    // which also coalesces a burst of messages into a single notification so
+    // the recipient gets one alert rather than one per message.
 
     const sender = Array.isArray(data.sender) ? data.sender[0] : data.sender;
     return withSignedMedia({

@@ -1,11 +1,30 @@
 import { supabase } from "@/lib/supabase";
 
+/**
+ * Notification types. Mirrors the `notifications_type_check` constraint in
+ * Postgres — keep the two in sync.
+ *
+ * `story` fires when someone you follow posts a story; `story_expiring` is the
+ * scheduled "watch it before it's gone" reminder, produced by a cron job
+ * rather than by a user action.
+ */
+export type NotificationType =
+  | "like"
+  | "comment"
+  | "follow"
+  | "repost"
+  | "message"
+  | "story"
+  | "story_expiring";
+
 export type NotificationItem = {
   id: string;
   user_id: string;
   from_user_id: string;
-  type: "like" | "comment" | "follow" | "repost" | "message";
+  type: NotificationType;
   post_id?: string | null;
+  story_id?: string | null;
+  conversation_id?: string | null;
   is_read: boolean;
   created_at: string;
   profiles?: {
@@ -19,6 +38,35 @@ export type NotificationItem = {
     media_type: "video" | "image";
     caption?: string;
   } | null;
+};
+
+/**
+ * Per-user push preferences.
+ *
+ * These gate the PUSH only — never the in-app inbox. Turning "Likes" off stops
+ * the phone buzzing; the row still appears here. Defaults match the column
+ * defaults in the migration: high-signal events on, high-volume ones off.
+ */
+export type NotificationPreferences = {
+  push_enabled: boolean;
+  push_follows: boolean;
+  push_comments: boolean;
+  push_messages: boolean;
+  push_stories: boolean;
+  push_story_expiry: boolean;
+  push_likes: boolean;
+  push_reposts: boolean;
+};
+
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  push_enabled: true,
+  push_follows: true,
+  push_comments: true,
+  push_messages: true,
+  push_stories: true,
+  push_story_expiry: true,
+  push_likes: false,
+  push_reposts: false,
 };
 
 export const notificationService = {
@@ -114,31 +162,71 @@ export const notificationService = {
     return count || 0;
   },
 
-  async createNotification(params: {
-    userId: string;
-    type: "like" | "comment" | "follow" | "repost" | "message";
-    postId?: string;
-  }) {
+  /**
+   * Load the current user's push preferences.
+   *
+   * Falls back to the defaults when no row exists yet. The row is created by a
+   * trigger on `profiles` insert and backfilled for existing accounts, so a
+   * miss here means the migration has not run rather than a data problem —
+   * returning defaults keeps the settings screen usable either way.
+   */
+  async getPreferences(): Promise<NotificationPreferences> {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return DEFAULT_NOTIFICATION_PREFERENCES;
 
-    // Do not notify self
-    if (user.id === params.userId) return;
-
-    const { error } = await supabase.from("notifications").insert([
-      {
-        user_id: params.userId,
-        from_user_id: user.id,
-        type: params.type,
-        post_id: params.postId || null,
-      },
-    ]);
+    const { data, error } = await supabase
+      .from("notification_preferences")
+      .select(
+        "push_enabled, push_follows, push_comments, push_messages, push_stories, push_story_expiry, push_likes, push_reposts",
+      )
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     if (error) {
-      // Non-critical, log warning only
-      console.warn("Failed to create notification:", error);
+      console.error("Error fetching notification preferences:", error);
+      return DEFAULT_NOTIFICATION_PREFERENCES;
     }
+
+    if (!data) return DEFAULT_NOTIFICATION_PREFERENCES;
+
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...(data as NotificationPreferences) };
+  },
+
+  /**
+   * Persist push preferences.
+   *
+   * Upsert rather than update: the row is normally created by the profile
+   * trigger, but upserting means the settings screen still works if it is
+   * missing (or if an account predates the backfill).
+   */
+  async updatePreferences(
+    prefs: Partial<NotificationPreferences>,
+  ): Promise<NotificationPreferences | null> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from("notification_preferences")
+      .upsert(
+        { user_id: user.id, ...prefs },
+        { onConflict: "user_id" },
+      )
+      .select(
+        "push_enabled, push_follows, push_comments, push_messages, push_stories, push_story_expiry, push_likes, push_reposts",
+      )
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error updating notification preferences:", error);
+      throw error;
+    }
+
+    if (!data) return null;
+
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...(data as NotificationPreferences) };
   },
 };

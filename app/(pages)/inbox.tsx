@@ -3,6 +3,7 @@ import {
   FlatList,
   Image,
   RefreshControl,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -22,7 +23,14 @@ import { colors } from "@/constants/theme";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
-type FilterType = "all" | "like" | "comment" | "follow" | "repost";
+type FilterType =
+  | "all"
+  | "like"
+  | "comment"
+  | "follow"
+  | "repost"
+  | "story"
+  | "message";
 
 const Inbox = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -57,6 +65,11 @@ const Inbox = () => {
 
   const filteredNotifications = notifications.filter((n) => {
     if (activeFilter === "all") return true;
+    // The expiry reminder is the same subject as the "new story" event, so the
+    // Stories chip shows both rather than hiding one behind a second chip.
+    if (activeFilter === "story") {
+      return n.type === "story" || n.type === "story_expiring";
+    }
     return n.type === activeFilter;
   });
 
@@ -84,6 +97,19 @@ const Inbox = () => {
         return (
           <View className="absolute -bottom-1 -right-1 bg-purple-500 rounded-full p-1 border-2 border-white">
             <Ionicons name="person" size={10} color={colors.white} />
+          </View>
+        );
+      case "story":
+      case "story_expiring":
+        return (
+          <View className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full p-1 border-2 border-white">
+            <Ionicons name="play" size={10} color={colors.white} />
+          </View>
+        );
+      case "message":
+        return (
+          <View className="absolute -bottom-1 -right-1 bg-sky-400 rounded-full p-1 border-2 border-white">
+            <Ionicons name="send" size={10} color={colors.white} />
           </View>
         );
       default:
@@ -118,12 +144,91 @@ const Inbox = () => {
             <Text className="font-bold text-slate-900">{name}</Text> started following you.
           </Text>
         );
+      case "message":
+        return (
+          <Text className="text-slate-800 text-sm">
+            <Text className="font-bold text-slate-900">{name}</Text> sent you a message.
+          </Text>
+        );
+      case "story":
+        return (
+          <Text className="text-slate-800 text-sm">
+            <Text className="font-bold text-slate-900">{name}</Text> posted a new story.
+          </Text>
+        );
+      case "story_expiring":
+        return (
+          <Text className="text-slate-800 text-sm">
+            <Text className="font-bold text-slate-900">{name}</Text>&apos;s story
+            expires soon.
+          </Text>
+        );
       default:
         return (
           <Text className="text-slate-800 text-sm">
             <Text className="font-bold text-slate-900">{name}</Text> sent you an update.
           </Text>
         );
+    }
+  };
+
+  /**
+   * Open what the notification is *about* rather than just the actor's
+   * profile: a like should land on the post, a story alert on the story.
+   *
+   * Falls back to the profile for follows, and for any notification whose
+   * target has since been deleted (posts cascade, and a dead link is worse
+   * than a generic one).
+   */
+  const openNotification = (item: NotificationItem) => {
+    switch (item.type) {
+      case "like":
+      case "comment":
+      case "repost":
+        if (item.post_id) {
+          router.push({
+            pathname: "/(pages)/viewPost",
+            params: { postId: item.post_id },
+          });
+          return;
+        }
+        break;
+
+      case "story":
+      case "story_expiring":
+        if (item.from_user_id) {
+          router.push({
+            pathname: "/(pages)/storyViewer",
+            params: { initialUserId: item.from_user_id },
+          });
+          return;
+        }
+        break;
+
+      case "message":
+        if (item.conversation_id) {
+          router.push({
+            pathname: "/(pages)/conversation",
+            params: {
+              conversationId: item.conversation_id,
+              ...(item.from_user_id
+                ? { otherUserId: item.from_user_id }
+                : {}),
+            },
+          });
+          return;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    if (item.from_user_id) {
+      router.push({
+        pathname: "/(pages)/userProfile",
+        params: { userId: item.from_user_id },
+      });
     }
   };
 
@@ -147,7 +252,12 @@ const Inbox = () => {
       </View>
 
       {/* Filter Chips */}
-      <View className="flex-row px-5 py-3 gap-2">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="px-5 py-3"
+        contentContainerStyle={{ gap: 8 }}
+      >
         {(
           [
             { key: "all", label: "All" },
@@ -155,6 +265,8 @@ const Inbox = () => {
             { key: "comment", label: "Comments" },
             { key: "follow", label: "Follows" },
             { key: "repost", label: "Reposts" },
+            { key: "story", label: "Stories" },
+            { key: "message", label: "Messages" },
           ] as { key: FilterType; label: string }[]
         ).map((tab) => (
           <TouchableOpacity
@@ -176,7 +288,7 @@ const Inbox = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Content */}
       {loading && !refreshing ? (
@@ -190,7 +302,8 @@ const Inbox = () => {
             No activity yet
           </Text>
           <Text className="text-slate-500 text-center mt-2">
-            When people like, comment, repost, or follow you, you&apos;ll see it here.
+            When people follow you, like or comment on your posts, message you,
+            or post a story, you&apos;ll see it here.
           </Text>
         </View>
       ) : (
@@ -209,14 +322,7 @@ const Inbox = () => {
           renderItem={({ item }) => (
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => {
-                if (item.from_user_id) {
-                  router.push({
-                    pathname: "/(pages)/userProfile",
-                    params: { userId: item.from_user_id },
-                  });
-                }
-              }}
+              onPress={() => openNotification(item)}
               className={`flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl border ${
                 item.is_read
                   ? "bg-white border-slate-100"

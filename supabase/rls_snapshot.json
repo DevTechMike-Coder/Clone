@@ -248,6 +248,38 @@
         "with_check": null
       }
     ],
+    "public.notification_preferences": [
+      {
+        "name": "Users can create own notification preferences",
+        "cmd": "insert",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": null,
+        "with_check": "auth.uid()=user_id"
+      },
+      {
+        "name": "Users can view own notification preferences",
+        "cmd": "select",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": null
+      },
+      {
+        "name": "Users can update own notification preferences",
+        "cmd": "update",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": "auth.uid()=user_id"
+      }
+    ],
     "public.notifications": [
       {
         "name": "Users can delete own notifications",
@@ -258,16 +290,6 @@
         "permissive": "permissive",
         "using": "auth.uid()=user_id",
         "with_check": null
-      },
-      {
-        "name": "Authenticated users can insert notifications",
-        "cmd": "insert",
-        "roles": [
-          "public"
-        ],
-        "permissive": "permissive",
-        "using": null,
-        "with_check": "auth.uid()=from_user_id"
       },
       {
         "name": "Users can view own notifications",
@@ -363,6 +385,48 @@
         "permissive": "permissive",
         "using": "auth.uid()=id",
         "with_check": null
+      }
+    ],
+    "public.push_tokens": [
+      {
+        "name": "Users can delete own push tokens",
+        "cmd": "delete",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": null
+      },
+      {
+        "name": "Users can register own push tokens",
+        "cmd": "insert",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": null,
+        "with_check": "auth.uid()=user_id"
+      },
+      {
+        "name": "Users can view own push tokens",
+        "cmd": "select",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": null
+      },
+      {
+        "name": "Users can update own push tokens",
+        "cmd": "update",
+        "roles": [
+          "public"
+        ],
+        "permissive": "permissive",
+        "using": "auth.uid()=user_id",
+        "with_check": "auth.uid()=user_id"
       }
     ],
     "public.reposts": [
