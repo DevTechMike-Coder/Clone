@@ -27,6 +27,7 @@ import { repostService } from "@/services/repostService";
 import { followService, UserStats } from "@/services/followService";
 import { authService } from "@/services/authService";
 import { storyService } from "@/services/storyService";
+import { notificationService } from "@/services/notificationService";
 import Toast from "react-native-toast-message";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -56,6 +57,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [privacySaving, setPrivacySaving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [postMenuPost, setPostMenuPost] = useState<Post | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -95,6 +97,25 @@ export default function Profile() {
     }, [fetchProfile])
   );
 
+  // Keep the unread badge on the settings row in sync — the inbox marks
+  // notifications as read on focus, so this refreshes when we come back.
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      notificationService
+        .getUnreadCount()
+        .then((count) => {
+          if (isMounted) setUnreadCount(count);
+        })
+        .catch((err) =>
+          console.error("Error loading unread notification count:", err)
+        );
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
+
   const handleTogglePrivate = async () => {
     if (!targetUserId || !profile || privacySaving) return;
     const nextValue = !profile.is_private;
@@ -119,6 +140,11 @@ export default function Profile() {
     } finally {
       setPrivacySaving(false);
     }
+  };
+
+  const handleOpenNotifications = () => {
+    closeMenu();
+    router.push("/(pages)/inbox");
   };
 
   const handleSignOut = async () => {
@@ -315,12 +341,26 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-row items-center justify-between py-4">
+          <TouchableOpacity
+            onPress={handleOpenNotifications}
+            accessibilityRole="button"
+            accessibilityLabel="Open notifications"
+            className="flex-row items-center justify-between py-4"
+          >
             <View className="flex-row items-center gap-3">
               <Ionicons name="notifications-outline" size={20} color={colors.slate[600]} />
               <Text className="text-base text-slate-800">Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
+            <View className="flex-row items-center gap-1.5">
+              {unreadCount > 0 && (
+                <View className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 items-center justify-center">
+                  <Text className="text-[11px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Text>
+                </View>
+              )}
+              <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
