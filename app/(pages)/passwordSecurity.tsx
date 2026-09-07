@@ -10,6 +10,9 @@ import {
   Switch,
   Platform,
   Alert,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { styled } from "nativewind";
 import { router } from "expo-router";
@@ -516,7 +519,19 @@ export default function PasswordSecurity() {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View className="flex-1 bg-black/60 items-center justify-end">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View className="flex-1 bg-black/60 items-center justify-end">
+          <ScrollView
+            className="w-full max-h-[90%]"
+            contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
           <View className="bg-white rounded-t-3xl p-6 w-full shadow-2xl">
             <View className="flex-row items-center justify-between mb-4">
               <View className="flex-row items-center gap-2.5">
@@ -619,7 +634,10 @@ export default function PasswordSecurity() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+          </ScrollView>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
