@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-  Modal,
   TextInput,
   ActivityIndicator,
   Switch,
@@ -512,17 +511,13 @@ export default function PasswordSecurity() {
         </View>
       </ScrollView>
 
-      {/* Change Password Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
-        >
+      {/* Change Password Sheet */}
+      {modalVisible && (
+        <View className="absolute inset-0 z-50">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="flex-1"
+          >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View className="flex-1 bg-black/60 items-center justify-end">
           <ScrollView
@@ -637,8 +632,9 @@ export default function PasswordSecurity() {
           </ScrollView>
             </View>
           </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+          </KeyboardAvoidingView>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
