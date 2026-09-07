@@ -143,6 +143,32 @@ export default function DraggableTextOverlay({
   const currentPos = useRef({ x: item.x ?? 0, y: item.y ?? 0 });
   const isDraggingRef = useRef(false);
 
+  // The PanResponder below is only created once (useRef), so its handlers are
+  // closures over the values from the first render. Any value that can change
+  // while an overlay exists (props/callbacks) must be mirrored into a ref that
+  // we update on every render and read inside the handlers — otherwise things
+  // like drag-and-release-to-delete read a stale `isOverTrash` of always false.
+  const latest = useRef({
+    isOverTrash,
+    onSelect,
+    onEdit,
+    onDelete,
+    onPositionChange,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+  });
+  latest.current = {
+    isOverTrash,
+    onSelect,
+    onEdit,
+    onDelete,
+    onPositionChange,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+  };
+
   useEffect(() => {
     currentPos.current = { x: item.x ?? 0, y: item.y ?? 0 };
     pan.setValue({ x: item.x ?? 0, y: item.y ?? 0 });
@@ -168,8 +194,8 @@ export default function DraggableTextOverlay({
           friction: 6,
         }).start();
 
-        onSelect();
-        onDragStart?.();
+        latest.current.onSelect();
+        latest.current.onDragStart?.();
       },
       onPanResponderMove: (e, gestureState) => {
         if (!isDraggingRef.current) {
@@ -182,7 +208,7 @@ export default function DraggableTextOverlay({
         }
         pan.x.setValue(gestureState.dx);
         pan.y.setValue(gestureState.dy);
-        onDragMove?.(gestureState.moveY);
+        latest.current.onDragMove?.(gestureState.moveY);
       },
       onPanResponderRelease: (_, gestureState) => {
         pan.flattenOffset();
@@ -196,12 +222,13 @@ export default function DraggableTextOverlay({
         const finalY = currentPos.current.y + gestureState.dy;
         currentPos.current = { x: finalX, y: finalY };
 
-        onPositionChange(item.id, finalX, finalY);
-        onDragEnd?.(isOverTrash);
+        latest.current.onPositionChange(item.id, finalX, finalY);
+        // Read the latest trash state (ref), not the stale first-render one.
+        latest.current.onDragEnd?.(latest.current.isOverTrash);
 
         // If it was just a tap without dragging, keep selected or open edit
         if (!isDraggingRef.current) {
-          onSelect();
+          latest.current.onSelect();
         }
       },
     })
