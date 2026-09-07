@@ -5,7 +5,6 @@ import {
   Animated,
   Image,
   Modal,
-  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -51,7 +50,11 @@ type TestCameraProps = {
 };
 
 const MODES: CaptureMode[] = ["Photo", "Video", "Story"];
-const SPEED_OPTIONS = [0.5, 1, 2, 3];
+const ZOOM_PRESETS = [
+  { label: "1x", zoom: 0 },
+  { label: "2x", zoom: 0.25 },
+  { label: "3x", zoom: 0.5 },
+];
 const TIMER_OPTIONS = [0, 3, 10];
 const QUICK_STICKERS = ["🔥", "❤️", "✨", "🚀", "💯", "⚡", "🎉", "🌴", "🎧", "👏", "👑", "🍕"];
 
@@ -65,6 +68,8 @@ const FLASH_ICON: Partial<Record<FlashMode, keyof typeof Ionicons.glyphMap>> = {
 
 const SHUTTER_OUTER = 82;
 const SHUTTER_INNER = 66;
+
+const generateUniqueId = () => Date.now().toString();
 
 export default function TestCamera({
   flash: externalFlash,
@@ -96,17 +101,18 @@ export default function TestCamera({
 
   const [facing, setFacing] = useState<CameraType>("back");
   const [activeMode, setActiveMode] = useState<CaptureMode>(initialMode);
-  const [speed, setSpeed] = useState<number>(1);
+  const [zoomIndex, setZoomIndex] = useState<number>(0);
+  const currentZoom = ZOOM_PRESETS[zoomIndex];
   const [countdownTimer, setCountdownTimer] = useState<number>(0);
   const [activeCountdown, setActiveCountdown] = useState<number | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [mountError, setMountError] = useState<string | null>(null);
+  const [, setMountError] = useState<string | null>(null);
 
   // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const recordIntervalRef = useRef<any>(null);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [pulseAnim] = useState(() => new Animated.Value(1));
 
   // Creative Tools State
   const [selectedFilter, setSelectedFilter] = useState("none");
@@ -381,7 +387,7 @@ export default function TestCamera({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const pos = getNextStaggerPosition();
     const newSticker: TextOverlayItem = {
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       text: emoji,
       color: colors.white,
       fontSize: 40,
@@ -849,6 +855,7 @@ export default function TestCamera({
         style={StyleSheet.absoluteFill}
         facing={facing}
         flash={flash}
+        zoom={currentZoom.zoom}
         mode={activeMode === "Video" ? "video" : "picture"}
         onCameraReady={() => setIsCameraReady(true)}
         onMountError={({ message }) => setMountError(message)}
@@ -1000,6 +1007,7 @@ export default function TestCamera({
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setFacing((f) => (f === "back" ? "front" : "back"));
+              setZoomIndex(0); // Reset zoom to 1x on camera flip
             }}
             accessibilityRole="button"
             accessibilityLabel="Flip camera"
@@ -1012,18 +1020,23 @@ export default function TestCamera({
             />
           </TouchableOpacity>
 
-          {/* Speed Toggle */}
+          {/* Real Camera Zoom Toggle (1x / 2x / 3x) */}
           <TouchableOpacity
             onPress={() => {
               Haptics.selectionAsync();
-              const idx = SPEED_OPTIONS.indexOf(speed);
-              setSpeed(SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length]);
+              setZoomIndex((prev) => (prev + 1) % ZOOM_PRESETS.length);
             }}
             accessibilityRole="button"
-            accessibilityLabel={`Playback speed ${speed}x`}
-            className="w-11 h-11 rounded-full bg-black/40 border border-white/20 items-center justify-center shadow-md active:opacity-80"
+            accessibilityLabel={`Camera zoom ${currentZoom.label}`}
+            className={`w-11 h-11 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
+              currentZoom.zoom > 0
+                ? "bg-blue-600/80 border-blue-400"
+                : "bg-black/40 border-white/20"
+            }`}
           >
-            <Text className="text-white text-xs font-bold">{speed}x</Text>
+            <Text className="text-white text-xs font-bold">
+              {currentZoom.label}
+            </Text>
           </TouchableOpacity>
 
           {/* Countdown Timer */}
