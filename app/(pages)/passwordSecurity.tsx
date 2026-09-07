@@ -9,9 +9,11 @@ import {
   Switch,
   Platform,
   Alert,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
   Keyboard,
+  Modal,
+  Dimensions,
+  TouchableWithoutFeedback,
+  StyleSheet,
 } from "react-native";
 import { styled } from "nativewind";
 import { router } from "expo-router";
@@ -28,17 +30,40 @@ const SafeAreaView = styled(RNSafeAreaView);
 const STORAGE_SAVED_LOGIN = "@clone_saved_login_info";
 const STORAGE_2FA_ENABLED = "@clone_2fa_enabled";
 
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
 export default function PasswordSecurity() {
   const { user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
   const [savedLoginEnabled, setSavedLoginEnabled] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [signingOutOthers, setSigningOutOthers] = useState(false);
   const [checkingSecurity, setCheckingSecurity] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Dynamic keyboard listeners for both Android and iOS
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Load saved preferences
   useEffect(() => {
@@ -61,6 +86,15 @@ export default function PasswordSecurity() {
   // Password validation
   const isLengthValid = newPassword.length >= 6;
   const hasMixedChars = /[0-9]/.test(newPassword) && /[a-zA-Z]/.test(newPassword);
+
+  const handleCloseModal = () => {
+    Keyboard.dismiss();
+    setModalVisible(false);
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
 
   // Handle password update
   const handleChangePassword = async () => {
@@ -94,9 +128,7 @@ export default function PasswordSecurity() {
     setSavingPassword(true);
     try {
       await authService.updatePassword(newPassword);
-      setModalVisible(false);
-      setNewPassword("");
-      setConfirmPassword("");
+      handleCloseModal();
       Toast.show({
         type: "success",
         text1: "Password Updated",
@@ -511,130 +543,185 @@ export default function PasswordSecurity() {
         </View>
       </ScrollView>
 
-      {/* Change Password Sheet */}
-      {modalVisible && (
-        <View className="absolute inset-0 z-50">
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1"
-          >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View className="flex-1 bg-black/60 items-center justify-end">
-          <ScrollView
-            className="w-full max-h-[90%]"
-            contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-          <View className="bg-white rounded-t-3xl p-6 w-full shadow-2xl">
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
-                  <Ionicons name="key" size={20} color={colors.blue[600]} />
-                </View>
-                <Text className="text-lg font-bold text-slate-900 tracking-tight">
-                  Change Password
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center"
-              >
-                <Ionicons name="close" size={18} color={colors.slate[600]} />
-              </TouchableOpacity>
-            </View>
-
-            <Text className="text-xs text-slate-500 mb-5 leading-relaxed">
-              Your password must be at least 6 characters and include a mix of
-              letters and numbers.
-            </Text>
-
-            <View className="gap-3.5 mb-5">
-              <View>
-                <Text className="text-xs font-semibold text-slate-700 mb-1">
-                  New Password
-                </Text>
-                <TextInput
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  placeholder="Enter new password"
-                  placeholderTextColor={colors.slate[400]}
-                  secureTextEntry
-                  className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 bg-slate-50 font-medium"
-                />
-              </View>
-
-              <View>
-                <Text className="text-xs font-semibold text-slate-700 mb-1">
-                  Re-type New Password
-                </Text>
-                <TextInput
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Confirm new password"
-                  placeholderTextColor={colors.slate[400]}
-                  secureTextEntry
-                  className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 bg-slate-50 font-medium"
-                />
-              </View>
-            </View>
-
-            {/* Requirement Checklist */}
-            <View className="bg-slate-50 rounded-xl p-3.5 mb-6 border border-slate-100 gap-1.5">
-              <View className="flex-row items-center gap-2">
-                <Ionicons
-                  name={isLengthValid ? "checkmark-circle" : "ellipse-outline"}
-                  size={14}
-                  color={isLengthValid ? colors.emerald[600] : colors.slate[400]}
-                />
-                <Text
-                  className={`text-xs ${
-                    isLengthValid ? "text-emerald-700 font-medium" : "text-slate-500"
-                  }`}
-                >
-                  At least 6 characters
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Ionicons
-                  name={hasMixedChars ? "checkmark-circle" : "ellipse-outline"}
-                  size={14}
-                  color={hasMixedChars ? colors.emerald[600] : colors.slate[400]}
-                />
-                <Text
-                  className={`text-xs ${
-                    hasMixedChars ? "text-emerald-700 font-medium" : "text-slate-500"
-                  }`}
-                >
-                  Letters and numbers
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleChangePassword}
-              disabled={savingPassword || !isLengthValid}
-              className={`py-3.5 rounded-xl items-center justify-center shadow-sm ${
-                isLengthValid ? "bg-blue-600 active:bg-blue-700" : "bg-slate-300"
-              }`}
-            >
-              {savingPassword ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text className="text-sm font-bold text-white">
-                  Save New Password
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-          </ScrollView>
-            </View>
+      {/* Change Password Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseModal}
+        statusBarTranslucent
+      >
+        <View style={modalStyles.overlay}>
+          {/* Backdrop Touch to Dismiss */}
+          <TouchableWithoutFeedback onPress={handleCloseModal}>
+            <View style={StyleSheet.absoluteFill} />
           </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
+
+          <View
+            style={[
+              modalStyles.sheetContainer,
+              {
+                maxHeight:
+                  keyboardHeight > 0
+                    ? SCREEN_HEIGHT - keyboardHeight - 20
+                    : SCREEN_HEIGHT * 0.85,
+                marginBottom: keyboardHeight,
+              },
+            ]}
+          >
+            <View className="bg-white rounded-t-3xl shadow-2xl overflow-hidden">
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                contentContainerStyle={{ padding: 24 }}
+              >
+                {/* Header Handle */}
+                <View className="items-center pb-2">
+                  <View className="w-12 h-1.5 rounded-full bg-slate-300" />
+                </View>
+
+                {/* Header */}
+                <View className="flex-row items-center justify-between mb-4">
+                  <View className="flex-row items-center gap-2.5">
+                    <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
+                      <Ionicons name="key" size={20} color={colors.blue[600]} />
+                    </View>
+                    <Text className="text-lg font-bold text-slate-900 tracking-tight">
+                      Change Password
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleCloseModal}
+                    className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center"
+                  >
+                    <Ionicons name="close" size={18} color={colors.slate[600]} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text className="text-xs text-slate-500 mb-5 leading-relaxed">
+                  Your password must be at least 6 characters and include a mix of
+                  letters and numbers.
+                </Text>
+
+                <View className="gap-3.5 mb-5">
+                  <View>
+                    <Text className="text-xs font-semibold text-slate-700 mb-1">
+                      New Password
+                    </Text>
+                    <View className="border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 flex-row items-center justify-between">
+                      <TextInput
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        placeholder="Enter new password"
+                        placeholderTextColor={colors.slate[400]}
+                        secureTextEntry={!showNewPassword}
+                        className="flex-1 text-sm text-slate-900 font-medium p-0"
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowNewPassword(!showNewPassword)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons
+                          name={showNewPassword ? "eye-off-outline" : "eye-outline"}
+                          size={19}
+                          color={colors.slate[400]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-slate-700 mb-1">
+                      Re-type New Password
+                    </Text>
+                    <View className="border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 flex-row items-center justify-between">
+                      <TextInput
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        placeholder="Confirm new password"
+                        placeholderTextColor={colors.slate[400]}
+                        secureTextEntry={!showConfirmPassword}
+                        className="flex-1 text-sm text-slate-900 font-medium p-0"
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons
+                          name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                          size={19}
+                          color={colors.slate[400]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Requirement Checklist */}
+                <View className="bg-slate-50 rounded-xl p-3.5 mb-6 border border-slate-100 gap-1.5">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons
+                      name={isLengthValid ? "checkmark-circle" : "ellipse-outline"}
+                      size={14}
+                      color={isLengthValid ? colors.emerald[600] : colors.slate[400]}
+                    />
+                    <Text
+                      className={`text-xs ${
+                        isLengthValid ? "text-emerald-700 font-medium" : "text-slate-500"
+                      }`}
+                    >
+                      At least 6 characters
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons
+                      name={hasMixedChars ? "checkmark-circle" : "ellipse-outline"}
+                      size={14}
+                      color={hasMixedChars ? colors.emerald[600] : colors.slate[400]}
+                    />
+                    <Text
+                      className={`text-xs ${
+                        hasMixedChars ? "text-emerald-700 font-medium" : "text-slate-500"
+                      }`}
+                    >
+                      Letters and numbers
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleChangePassword}
+                  disabled={savingPassword || !isLengthValid}
+                  className={`py-3.5 rounded-xl items-center justify-center shadow-sm ${
+                    isLengthValid ? "bg-blue-600 active:bg-blue-700" : "bg-slate-300"
+                  }`}
+                >
+                  {savingPassword ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text className="text-sm font-bold text-white">
+                      Save New Password
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
         </View>
-      )}
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "flex-end",
+  },
+  sheetContainer: {
+    width: "100%",
+  },
+});
