@@ -55,6 +55,53 @@ never grants permission).
 
 ## One-time setup
 
+### 0. Firebase / FCM credentials (Android — required before any Android build)
+
+On Android, `expo-notifications` mints its token through Firebase Cloud
+Messaging. If the native build has no Firebase config, token registration
+fails on-device with:
+
+> `Unable to get Firebase Messaging instance. Did you configure`
+> `` `googleServicesFile` `path in app config? … Default FirebaseApp is not`
+> `initialized in this process.`
+
+The app catches this and keeps working without pushes, but no Android
+device will ever register a token until you do the following once:
+
+1. Create a Firebase project at <https://console.firebase.google.com>,
+   then **Add app → Android** with package name `com.clone.app`
+   (must match `android.package` in `app.json`).
+2. Download the resulting **`google-services.json`** into the project
+   root (next to `app.json`). It is gitignored — never commit the real
+   file.
+3. Point `app.json` at it:
+   ```json
+   "android": {
+     "package": "com.clone.app",
+     "googleServicesFile": "./google-services.json"
+   }
+   ```
+   Do not add this line before the file exists — prebuild fails when the
+   referenced file is missing.
+4. In the Firebase console go to **Project settings → Service accounts →
+   Generate new private key**, then upload that JSON to Expo so the Expo
+   Push API can send via FCM on your behalf:
+   ```bash
+   eas credentials
+   # Android → Push Notifications → Manage your FCM push key → Upload a service account JSON
+   ```
+   (Full walkthrough:
+   <https://docs.expo.dev/push-notifications/fcm-credentials>.)
+5. **Rebuild** the dev client — this is a native change, so a JS-only
+   reload is not enough:
+   ```bash
+   eas build --profile development --platform android
+   # or, for a local bare build:
+   npx expo run:android
+   ```
+
+iOS does not need this step (it uses APNs; see “Before you ship” below).
+
 ### 1. Apply the migrations
 
 ```bash
@@ -178,6 +225,7 @@ select public.enqueue_story_expiry_notifications();  -- expect 1 per unwatched f
 | Symptom | Likely cause |
 | --- | --- |
 | No row in `push_tokens` | Simulator/Expo Go, or permission not granted. Check **Settings → Push Notifications** in the app. |
+| `Unable to get Firebase Messaging instance` / `Default FirebaseApp is not initialized` | Step 0 not done: no `google-services.json` / `googleServicesFile` in the Android build. Complete Step 0 and **rebuild** (native change). |
 | Row exists, no push | Vault secrets missing or the token is wrong. The trigger logs `push dispatch skipped …`. |
 | `401 unauthorized` in function logs | `PUSH_FUNCTION_TOKEN` ≠ the vault secret. They must be byte-identical. |
 | Push arrives, tap does nothing | Check `handleNotificationNavigation` in `services/pushService.ts` against the `data` payload. |

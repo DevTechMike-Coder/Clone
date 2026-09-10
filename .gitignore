@@ -36,6 +36,11 @@ yarn-error.*
 !.env.example
 .env*.local
 
+# Firebase (FCM) credentials — real keys stay out of git. The native build
+# needs the actual files in the project root; see PUSH_NOTIFICATIONS_SETUP.md.
+google-services.json
+GoogleService-Info.plist
+
 # typescript
 *.tsbuildinfo
 

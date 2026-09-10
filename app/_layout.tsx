@@ -1,23 +1,22 @@
 import { Stack } from "expo-router";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 import Toast from "react-native-toast-message";
-import AuthSplash from "@/components/AuthSplash";
 import { toastConfig } from "@/components/ToastConfig";
 import { usePushNotifications } from "@/lib/usePushNotifications";
 
 function RootNavigation() {
-  const { loading } = useAuth();
-
   // Registers this device's push token for the signed-in user and routes
-  // notification taps. Must be called before the early return: hooks cannot be
-  // conditional, and the token registration has to survive the splash screen
-  // swap below.
+  // notification taps.
   usePushNotifications();
 
-  if (loading) {
-    return <AuthSplash />;
-  }
-
+  // NOTE: this must ALWAYS render the Stack, even while auth is still
+  // loading. Conditionally swapping between a splash screen and the Stack
+  // (e.g. `if (loading) return <AuthSplash />`) leaves expo-router's linking
+  // subscription with no mounted navigator when the initial URL resolves,
+  // which trips React's "state update on a component that hasn't mounted
+  // yet" warning. Auth gating lives one level down instead: app/index.tsx
+  // and each group layout render <AuthSplash /> while loading and redirect
+  // once the session is known.
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
