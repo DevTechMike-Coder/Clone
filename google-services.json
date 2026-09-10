@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "840860470988",
+    "project_id": "clone-7ceeb",
+    "storage_bucket": "clone-7ceeb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:840860470988:android:31c2c2fb896ed83b397c69",
+        "android_client_info": {
+          "package_name": "com.clone.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYmdlymJNhApsXM_JCFFpA-ijv-JvmtoE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
