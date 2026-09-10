@@ -51,6 +51,11 @@ export type PushNotificationData = {
 const getEasProjectId = (): string | undefined =>
   Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
+// Logged once per app launch: without Firebase configured, registerPushToken
+// runs on every sign-in and every app start, and each attempt would otherwise
+// print the same wall of text to the console.
+let warnedMissingFirebase = false;
+
 /**
  * How notifications behave while the app is in the foreground.
  *
@@ -158,8 +163,34 @@ export async function registerPushToken(userId: string): Promise<string | null> 
     return null;
   }
 
-  const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId });
-  const token = tokenResult?.data;
+  let token: string | undefined;
+  try {
+    const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId });
+    token = tokenResult?.data;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    // The common Android case: expo-notifications needs Firebase (FCM) and
+    // the native build has no google-services.json wired up, so there is no
+    // FirebaseApp to mint a token from. This is a setup step the developer
+    // hasn't done yet — not a user-facing error — so log one short,
+    // actionable line instead of the raw native stack trace, and let the
+    // app continue normally without pushes.
+    if (/firebase|googleServicesFile|FirebaseApp|Firebase Messaging/i.test(message)) {
+      if (!warnedMissingFirebase) {
+        warnedMissingFirebase = true;
+        console.warn(
+          "Push notifications disabled: Android Firebase (FCM) is not configured " +
+            "— add google-services.json and set android.googleServicesFile in app.json " +
+            "(see PUSH_NOTIFICATIONS_SETUP.md, Step 0), then rebuild. The app works normally without it.",
+        );
+      }
+      return null;
+    }
+
+    console.warn("Push token registration failed:", message);
+    return null;
+  }
   if (!token) return null;
 
   const deviceId = await getDeviceId();

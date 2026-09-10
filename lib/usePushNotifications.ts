@@ -50,17 +50,36 @@ export function usePushNotifications(): void {
     if (!userId) return;
 
     // Fire-and-forget, and never throw into render: a failed token
-    // registration must not block the signed-in app.
-    void registerPushToken(userId).catch((err) => {
-      console.warn("Push token registration failed:", err);
+    // registration must not block the signed-in app. registerPushToken
+    // already logs expected cases (simulator, missing Firebase config) and
+    // returns null for them, so this only fires on something unexpected —
+    // log the message, not the whole object, to keep LogBox readable.
+    void registerPushToken(userId).catch((err: unknown) => {
+      console.warn(
+        "Push token registration failed:",
+        err instanceof Error ? err.message : String(err),
+      );
     });
   }, [userId]);
 
   useEffect(() => {
+    let disposed = false;
+    let coldStartTimer: ReturnType<typeof setTimeout> | undefined;
+
     const navigateFor = (data: PushNotificationData | undefined, id: string) => {
+      if (disposed) return;
       if (handledNotificationIds.current.has(id)) return;
       handledNotificationIds.current.add(id);
-      handleNotificationNavigation(data);
+      // A tap arriving before the navigator is ready (or for an unknown
+      // route) must never crash the app — drop it and stay put.
+      try {
+        handleNotificationNavigation(data);
+      } catch (err) {
+        console.warn(
+          "Notification navigation failed:",
+          err instanceof Error ? err.message : String(err),
+        );
+      }
     };
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -78,9 +97,9 @@ export function usePushNotifications(): void {
     // The delay gives expo-router a tick to mount the navigator — pushing
     // before that silently drops the navigation.
     void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (!response) return;
+      if (disposed || !response) return;
       const notification = response.notification;
-      setTimeout(() => {
+      coldStartTimer = setTimeout(() => {
         navigateFor(
           notification.request.content.data as PushNotificationData | undefined,
           notification.request.identifier,
@@ -88,6 +107,10 @@ export function usePushNotifications(): void {
       }, 500);
     });
 
-    return () => subscription.remove();
+    return () => {
+      disposed = true;
+      if (coldStartTimer) clearTimeout(coldStartTimer);
+      subscription.remove();
+    };
   }, []);
 }
