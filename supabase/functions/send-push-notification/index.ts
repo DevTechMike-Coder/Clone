@@ -13,8 +13,12 @@
 //   2. re-checks each recipient's push preferences — defence in depth, since
 //      this endpoint is reachable over HTTP even though the trigger already
 //      filtered,
-//   3. renders a title/body/data payload per notification type, and
-//   4. POSTs to the Expo Push API in batches of 100, deactivating any token
+//   3. drops any notification the recipient has already read — dispatch is
+//      asynchronous (pg_net → here, ~a second after the insert), and a
+//      recipient sitting in the conversation will have read the message in
+//      that window,
+//   4. renders a title/body/data payload per notification type, and
+//   5. POSTs to the Expo Push API in batches of 100, deactivating any token
 //      Expo reports as no longer registered.
 //
 // Deployment: `supabase functions deploy send-push-notification --no-verify-jwt`
@@ -47,6 +51,7 @@ type NotificationRow = {
   post_id: string | null;
   story_id: string | null;
   conversation_id: string | null;
+  is_read: boolean;
 };
 
 type PushTokenRow = {
@@ -194,7 +199,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // -------------------------------------------------------------------------
   const { data: notifications, error: notifError } = await supabase
     .from("notifications")
-    .select("id, user_id, from_user_id, type, post_id, story_id, conversation_id")
+    .select("id, user_id, from_user_id, type, post_id, story_id, conversation_id, is_read")
     .in("id", ids);
 
   if (notifError) {
@@ -261,8 +266,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const tokenIdByValue = new Map<string, string>();
   let skippedNoTokens = 0;
   let skippedByPrefs = 0;
+  let skippedAlreadyRead = 0;
 
   for (const row of rows) {
+    // Dispatch is asynchronous — by the time this runs the recipient may
+    // have already read the notification (e.g. they were sitting in the
+    // conversation when the message landed and the read-clearing trigger
+    // fired). Buzzing about something they have seen is noise, so skip.
+    // Only 'message' rows clear this fast in practice, but the check is
+    // universal and cheap.
+    if (row.is_read) {
+      skippedAlreadyRead += 1;
+      continue;
+    }
+
     const prefs = prefsByUser.get(row.user_id);
     if (prefs) {
       if (prefs.push_enabled === false || prefs[PREF_COLUMN[row.type]] === false) {
@@ -305,7 +322,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   if (messages.length === 0) {
-    return json({ sent: 0, skippedNoTokens, skippedByPrefs, deactivated: 0 }, 200);
+    return json(
+      { sent: 0, skippedNoTokens, skippedByPrefs, skippedAlreadyRead, deactivated: 0 },
+      200,
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -377,7 +397,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   return json(
-    { sent, failed, deactivated: deadTokenIds.size, skippedNoTokens, skippedByPrefs },
+    {
+      sent,
+      failed,
+      deactivated: deadTokenIds.size,
+      skippedNoTokens,
+      skippedByPrefs,
+      skippedAlreadyRead,
+    },
     200,
   );
 });
