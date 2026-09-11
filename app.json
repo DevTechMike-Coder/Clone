@@ -20,7 +20,6 @@
     },
     "android": {
       "package": "com.clone.app",
-      "googleServicesFile": "${GOOGLE_SERVICES_JSON}",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
