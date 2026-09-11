@@ -31,20 +31,43 @@ permissions:
 jobs:
   check-rls:
     runs-on: ubuntu-latest
+    # Single place to bump the CLI. Do NOT switch back to `version: latest`:
+    # setup-cli@v1 resolved `latest` via the unauthenticated GitHub releases
+    # API, which flakes with "Failed to resolve latest Supabase CLI release:
+    # rate limit exceeded" and then fails every later step with
+    # "supabase: command not found". A pinned version is reproducible and
+    # needs no "latest" lookup at all. Check
+    # https://github.com/supabase/cli/releases for breaking changes before
+    # bumping.
+    env:
+      SUPABASE_CLI_VERSION: 2.117.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - uses: supabase/setup-cli@v1
+      # v3 installs the CLI from npm (no GitHub releases API call, no Node 20
+      # runtime deprecation warning like v1). continue-on-error lets the npm
+      # fallback below recover if the action itself ever flakes.
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+        continue-on-error: true
+
+      - name: Ensure Supabase CLI is available (npm fallback)
+        run: |
+          if ! command -v supabase >/dev/null 2>&1; then
+            echo "setup-cli action did not provide a supabase binary, falling back to npm..."
+            npm install -g "supabase@${SUPABASE_CLI_VERSION}"
+          fi
+          supabase --version
 
       - name: Boot Supabase local stack and apply migrations
         run: |
@@ -65,4 +88,9 @@ jobs:
 
       - name: Stop Supabase
         if: always()
-        run: supabase stop
+        run: |
+          if command -v supabase >/dev/null 2>&1; then
+            supabase stop --no-backup || supabase stop || true
+          else
+            echo "Supabase CLI not installed, skipping stop."
+          fi
