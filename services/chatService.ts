@@ -4,6 +4,10 @@ import { supabase } from "@/lib/supabase";
 const CHAT_BUCKET = "chat";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
+// Monotonic id used to give every realtime subscription its own channel topic.
+// See subscribeToMessages for why a stable topic per conversation is a trap.
+let subscriptionSeq = 0;
+
 export type ChatMessage = {
   id: string;
   conversation_id: string;
@@ -321,8 +325,30 @@ export const chatService = {
     conversationId: string,
     onMessage: (msg: ChatMessage) => void
   ) {
+    // `supabase.channel(topic)` hands back the *same* channel instance while
+    // that topic is still registered on the client, and
+    // `RealtimeChannel.on("postgres_changes", …)` throws "cannot add
+    // postgres_changes callbacks … after `subscribe()`" once that instance has
+    // been subscribed. An old instance can't be re-subscribed either: Phoenix
+    // allows a channel to be joined only once per instance.
+    //
+    // Both traps vanish when every subscription gets its own topic — the
+    // Postgres filter is carried by the `filter` option below, so the topic is
+    // only an identifier and `channel()` always returns a fresh, closed
+    // channel. That makes the subscription safe under any mount order:
+    // React's dev-mode double invoke, a fast navigate-back-then-forward, or two
+    // screens open on the same conversation.
+    const topic = `chat:${conversationId}:${++subscriptionSeq}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+
+    // Leaving the channel is a round trip, so an INSERT can still arrive after
+    // the screen unmounts. Drop it rather than touching state on a component
+    // that is gone (and skip the profile lookup it would trigger).
+    let disposed = false;
+
     const channel = supabase
-      .channel(`chat:${conversationId}`)
+      .channel(topic)
       .on(
         "postgres_changes",
         {
@@ -332,12 +358,16 @@ export const chatService = {
           filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
+          if (disposed) return;
+
           // Fetch sender profile details for the incoming message
           const { data } = await supabase
             .from("profiles")
             .select("username, full_name, avatar_url")
             .eq("id", payload.new.sender_id)
             .single();
+
+          if (disposed) return;
 
           onMessage(
             await withSignedMedia({
@@ -350,7 +380,10 @@ export const chatService = {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      disposed = true;
+      // Leaving happens over the socket, so this resolves later than unmount.
+      // Swallow the outcome: a failed leave must never surface from cleanup.
+      supabase.removeChannel(channel).catch(() => {});
     };
   },
 };
