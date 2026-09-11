@@ -224,7 +224,7 @@ select public.enqueue_story_expiry_notifications();  -- expect 1 per unwatched f
 
 | Symptom | Likely cause |
 | --- | --- |
-| No row in `push_tokens` | Simulator/Expo Go, or permission not granted. Check **Settings → Push Notifications** in the app. |
+| No row in `push_tokens` | Simulator/Expo Go, or permission not granted. Permission is now requested automatically right after sign-in; if it was denied earlier, re-enable it in the OS settings, then re-launch the app. |
 | `Unable to get Firebase Messaging instance` / `Default FirebaseApp is not initialized` | Step 0 not done: no `google-services.json` / `googleServicesFile` in the Android build. Complete Step 0 and **rebuild** (native change). |
 | Row exists, no push | Vault secrets missing or the token is wrong. The trigger logs `push dispatch skipped …`. |
 | `401 unauthorized` in function logs | `PUSH_FUNCTION_TOKEN` ≠ the vault secret. They must be byte-identical. |

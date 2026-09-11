@@ -134,11 +134,15 @@ export async function requestPermission(): Promise<PushPermissionState> {
 }
 
 /**
- * Fetch this device's Expo push token and upsert it for `userId`.
+ * Fetch this device's Expo push token and save it for `userId`.
  *
- * Safe to call on every sign-in and every app start: the upsert is keyed on
- * (user_id, device_id), so a re-run refreshes `last_seen_at` on one row rather
- * than accumulating duplicates.
+ * Asks the OS for notification permission the first time it runs (the prompt
+ * only appears once), so a fresh install gets registered right after sign-in
+ * with no trip to Settings → Push Notifications required.
+ *
+ * Safe to call on every sign-in and every app start: registration goes through
+ * the `register_push_token` RPC, which reassigns the token to the current
+ * account and refreshes `last_seen_at` rather than accumulating duplicates.
  *
  * Returns the token, or null when the device cannot or must not receive pushes
  * (simulator, permission denied, no EAS project id). Callers should treat null
@@ -150,7 +154,14 @@ export async function registerPushToken(userId: string): Promise<string | null> 
     return null;
   }
 
-  const permission = await getPermissionState();
+  // The OS prompt only appears the first time it is asked. Nothing else in the
+  // app requests it, so ask now (right after sign-in) rather than making the
+  // user hunt through Settings → Push Notifications. A user who already
+  // declined is left alone — the only way back is the OS settings screen.
+  let permission = await getPermissionState();
+  if (permission === "undetermined") {
+    permission = await requestPermission();
+  }
   if (permission !== "granted") {
     return null;
   }
@@ -195,17 +206,18 @@ export async function registerPushToken(userId: string): Promise<string | null> 
 
   const deviceId = await getDeviceId();
 
-  const { error } = await supabase.from("push_tokens").upsert(
-    {
-      user_id: userId,
-      token,
-      device_id: deviceId,
-      platform: Platform.OS === "ios" ? "ios" : "android",
-      is_active: true,
-      last_seen_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,device_id" },
-  );
+  // Register through the RPC rather than a raw upsert. A token identifies the
+  // install, not the user, so the RPC reassigns it (deactivating any previous
+  // account still holding it active) before upserting this (user, device) row.
+  // A plain upsert keyed on (user_id, device_id) collides with the old row's
+  // token on account switch or reinstall and fails with a duplicate-key error,
+  // silently leaving this account with no token at all.
+  const { error } = await supabase.rpc("register_push_token", {
+    p_user_id: userId,
+    p_token: token,
+    p_device_id: deviceId,
+    p_platform: Platform.OS === "ios" ? "ios" : "android",
+  });
 
   if (error) {
     console.warn("Failed to save push token:", error.message);
