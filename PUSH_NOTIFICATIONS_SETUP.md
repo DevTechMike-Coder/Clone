@@ -233,6 +233,29 @@ select public.enqueue_story_expiry_notifications();  -- expect 1 per unwatched f
 
 ---
 
+## How message pushes coalesce
+
+Messages are the one type where a burst should be **one buzz**, not one
+notification per line of chat. The rules (see
+`20260911130000_fix_message_push_suppression.sql`):
+
+- While the recipient has an **unread** `message` notification for the same
+  (sender, conversation) that was bumped **within the last 5 minutes**, a new
+  message only refreshes that row — no new push.
+- The window slides: each folded-in message refreshes the row's timestamp, so
+  a continuous back-and-forth stays one buzz.
+- **Reading the conversation clears the row.** Marking messages read (opening
+  the conversation, or the realtime refresh while it is open) marks the
+  corresponding notification read, so the *next* message after the recipient
+  leaves starts a fresh row — and pushes.
+- After 5 minutes of silence, the next message pushes again regardless of the
+  old unread row, so an ignored notification can never silence future ones.
+- The Edge Function also drops any push whose notification was read between
+  dispatch and send — that is the "recipient was already in the conversation"
+  case.
+
+---
+
 ## Defaults
 
 Preferences gate the **push only** — the in-app inbox always keeps everything.
