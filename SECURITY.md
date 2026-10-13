@@ -1,0 +1,47 @@
+# Security Policy
+
+This policy covers **Clone (Expo / Supabase social app)** (`DevTechMike-Coder/Clone`). The design assumptions, controls, and known limitations are documented in [`docs/threat-model.md`](docs/threat-model.md).
+
+## Supported versions
+
+Only the `main` branch is supported. Fixes are not backported.
+
+## Reporting a vulnerability
+
+Please **do not open a public issue** for security problems.
+
+1. Preferred: use GitHub's private reporting at
+   <https://github.com/DevTechMike-Coder/Clone/security/advisories/new>
+   (enable *Settings → Code security → Private vulnerability reporting* on the repo if the link 404s).
+2. Alternative: contact me through <https://micahkesiena.vercel.app> and say you have a security report. Do not include exploit details until we have a private channel.
+
+Include, where possible: affected route/file, steps to reproduce, impact, and a suggested fix. A minimal proof of concept is enough; please avoid accessing, modifying, or deleting data that is not yours.
+
+## What to expect
+
+<!-- Edit these to commitments you can keep. -->
+- Acknowledgement within **72 hours**.
+- Initial assessment within **7 days**.
+- Fix or mitigation plan for confirmed issues within **30 days** (sooner for critical issues).
+- Credit in the release notes / advisory if you want it.
+
+## Scope
+
+In scope:
+- Row Level Security policy gaps, including regressions across migrations
+- Storage bucket policy flaws
+- Edge Function authentication (`send-push-notification`, `story-expiry-notifications`)
+- Client session storage and token handling
+
+Out of scope:
+- Findings that require a rooted/jailbroken device with the app already compromised
+- Anything requiring the Supabase service-role key, which is never shipped in the client bundle
+- Vulnerabilities in Expo, Supabase, or Google Sign-In themselves
+
+## Safe harbor
+
+Good-faith research that stays within this policy, does not degrade service for others, does not exfiltrate or retain data beyond what is needed to demonstrate the issue, and gives me reasonable time to fix before disclosure will not be pursued legally by me. This applies to this repository's code and to deployments I operate; it does not authorize testing other people's deployments or third-party services.
+
+## Disclosure
+
+Coordinated disclosure: please wait for a fix or 90 days from the report, whichever comes first, before publishing details.
