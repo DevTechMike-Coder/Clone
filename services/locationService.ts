@@ -181,4 +181,49 @@ export const locationService = {
       return [];
     }
   },
+
+  async getPopularLocations(): Promise<RealLocationItem[]> {
+    return [
+      {
+        id: "pop-1",
+        name: "Central Park, New York",
+        subtitle: "New York, United States",
+        type: "Park",
+        latitude: 40.785091,
+        longitude: -73.968285,
+      },
+      {
+        id: "pop-2",
+        name: "Eiffel Tower, Paris",
+        subtitle: "Paris, France",
+        type: "Monument",
+        latitude: 48.8584,
+        longitude: 2.2945,
+      },
+      {
+        id: "pop-3",
+        name: "Times Square, New York",
+        subtitle: "New York, United States",
+        type: "Square",
+        latitude: 40.758,
+        longitude: -73.9855,
+      },
+      {
+        id: "pop-4",
+        name: "London Eye, London",
+        subtitle: "London, United Kingdom",
+        type: "Attraction",
+        latitude: 51.5033,
+        longitude: -0.1195,
+      },
+      {
+        id: "pop-5",
+        name: "Tokyo Tower, Tokyo",
+        subtitle: "Tokyo, Japan",
+        type: "Attraction",
+        latitude: 35.6586,
+        longitude: 139.7454,
+      },
+    ];
+  },
 };

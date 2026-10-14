@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -17,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ProfileSearchResult, profileService } from "@/services/profileService";
 import { colors } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 type TagPeopleModalProps = {
   visible: boolean;
@@ -31,6 +31,7 @@ export default function TagPeopleModal({
   onClose,
   onSave,
 }: TagPeopleModalProps) {
+  const { isDark, palette } = useTheme();
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<ProfileSearchResult[]>([]);
   const [selected, setSelected] = useState<ProfileSearchResult[]>([]);
@@ -47,7 +48,6 @@ export default function TagPeopleModal({
   const loadInitialSuggestions = async () => {
     setLoading(true);
     try {
-      // Search for common active letters or empty
       const data = await profileService.searchProfiles("a");
       setResults(data || []);
     } catch {
@@ -58,28 +58,21 @@ export default function TagPeopleModal({
   };
 
   useEffect(() => {
-    if (!visible) return;
-
-    const trimmed = search.trim();
-    if (!trimmed) {
-      loadInitialSuggestions();
-      return;
-    }
-
+    if (!search.trim()) return;
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const data = await profileService.searchProfiles(trimmed);
+        const data = await profileService.searchProfiles(search.trim());
         setResults(data || []);
-      } catch (err) {
-        console.warn("Search profiles error:", err);
+      } catch {
+        setResults([]);
       } finally {
         setLoading(false);
       }
-    }, 250);
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, visible]);
+  }, [search]);
 
   const toggleUser = (user: ProfileSearchResult) => {
     Haptics.selectionAsync();
@@ -87,13 +80,14 @@ export default function TagPeopleModal({
       const exists = prev.some((u) => u.id === user.id);
       if (exists) {
         return prev.filter((u) => u.id !== user.id);
+      } else {
+        return [...prev, user];
       }
-      return [...prev, user];
     });
   };
 
   const handleDone = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSave(selected);
     onClose();
   };
@@ -107,47 +101,75 @@ export default function TagPeopleModal({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 bg-black/60 justify-end"
+        className="flex-1 justify-end"
+        style={{ backgroundColor: palette.overlay }}
       >
-        <View className="bg-white rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t border-slate-100 shadow-2xl">
+        <View
+          className="rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t shadow-2xl"
+          style={{
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+          }}
+        >
           {/* Sheet Handle */}
           <View className="items-center mb-3">
-            <View className="w-12 h-1.5 rounded-full bg-slate-300" />
+            <View
+              className="w-12 h-1.5 rounded-full"
+              style={{
+                backgroundColor: isDark
+                  ? colors.slate[700]
+                  : colors.slate[300],
+              }}
+            />
           </View>
 
           {/* Header */}
-          <View className="flex-row items-center justify-between pb-3 border-b border-slate-100">
+          <View
+            className="flex-row items-center justify-between pb-3 border-b"
+            style={{ borderColor: palette.borderSubtle }}
+          >
             <TouchableOpacity
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Close"
               className="p-1"
             >
-              <Ionicons name="close" size={24} color={colors.slate[500]} />
+              <Ionicons name="close" size={24} color={palette.muted} />
             </TouchableOpacity>
 
-            <Text className="text-lg font-bold text-slate-900">
+            <Text
+              className="text-lg font-bold"
+              style={{ color: palette.text }}
+            >
               Tag People {selected.length > 0 ? `(${selected.length})` : ""}
             </Text>
 
             <TouchableOpacity
               onPress={handleDone}
-              className="bg-blue-600 px-4 py-1.5 rounded-full"
+              className="px-4 py-1.5 rounded-full"
+              style={{ backgroundColor: palette.primary }}
             >
               <Text className="text-white font-bold text-sm">Done</Text>
             </TouchableOpacity>
           </View>
 
           {/* Search Bar */}
-          <View className="flex-row items-center bg-slate-100 rounded-2xl px-3.5 py-2.5 my-3.5">
-            <Ionicons name="search" size={18} color={colors.slate[400]} />
+          <View
+            className="flex-row items-center rounded-2xl px-3.5 py-2.5 my-3.5 border"
+            style={{
+              backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
+              borderColor: palette.border,
+            }}
+          >
+            <Ionicons name="search" size={18} color={palette.muted} />
             <TextInput
               placeholder="Search people to tag..."
-              placeholderTextColor={colors.slate[400]}
+              placeholderTextColor={palette.placeholder}
               value={search}
               onChangeText={setSearch}
               autoCapitalize="none"
-              className="flex-1 ml-2.5 text-sm text-slate-900"
+              className="flex-1 ml-2.5 text-sm"
+              style={{ color: palette.text }}
             />
             {search.length > 0 && (
               <TouchableOpacity
@@ -155,7 +177,7 @@ export default function TagPeopleModal({
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
               >
-                <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
               </TouchableOpacity>
             )}
           </View>
@@ -172,7 +194,15 @@ export default function TagPeopleModal({
                   <TouchableOpacity
                     key={user.id}
                     onPress={() => toggleUser(user)}
-                    className="flex-row items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full"
+                    className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border"
+                    style={{
+                      backgroundColor: isDark
+                        ? colors.blue[950] + "50"
+                        : colors.blue[50],
+                      borderColor: isDark
+                        ? colors.blue[900] + "60"
+                        : colors.blue[200],
+                    }}
                   >
                     {user.avatar_url ? (
                       <Image
@@ -181,12 +211,25 @@ export default function TagPeopleModal({
                         contentFit="cover"
                       />
                     ) : (
-                      <Ionicons name="person-circle" size={20} color={colors.blue[600]} />
+                      <Ionicons
+                        name="person-circle"
+                        size={20}
+                        color={palette.primary}
+                      />
                     )}
-                    <Text className="text-xs font-bold text-blue-700">
+                    <Text
+                      className="text-xs font-bold"
+                      style={{
+                        color: isDark ? colors.blue[300] : colors.blue[700],
+                      }}
+                    >
                       @{user.username || "user"}
                     </Text>
-                    <Ionicons name="close-circle" size={16} color={colors.blue[500]} />
+                    <Ionicons
+                      name="close-circle"
+                      size={16}
+                      color={palette.primary}
+                    />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -196,12 +239,15 @@ export default function TagPeopleModal({
           {/* User Results List */}
           {loading ? (
             <View className="flex-1 items-center justify-center py-12">
-              <ActivityIndicator size="small" color={colors.blue[600]} />
+              <ActivityIndicator size="small" color={palette.primary} />
             </View>
           ) : results.length === 0 ? (
             <View className="flex-1 items-center justify-center py-12 gap-2">
-              <Ionicons name="people-outline" size={40} color={colors.slate[300]} />
-              <Text className="text-sm font-semibold text-slate-500">
+              <Ionicons name="people-outline" size={40} color={colors.slate[400]} />
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: palette.muted }}
+              >
                 {search ? "No users found" : "Search users by username or name"}
               </Text>
             </View>
@@ -216,10 +262,19 @@ export default function TagPeopleModal({
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => toggleUser(item)}
-                    className="flex-row items-center justify-between py-3 border-b border-slate-50"
+                    className="flex-row items-center justify-between py-3 border-b"
+                    style={{ borderColor: palette.borderSubtle }}
                   >
                     <View className="flex-row items-center gap-3 flex-1 mr-3">
-                      <View className="w-11 h-11 rounded-full bg-slate-100 overflow-hidden items-center justify-center border border-slate-200">
+                      <View
+                        className="w-11 h-11 rounded-full overflow-hidden items-center justify-center border"
+                        style={{
+                          backgroundColor: isDark
+                            ? colors.slate[800]
+                            : colors.slate[100],
+                          borderColor: palette.border,
+                        }}
+                      >
                         {item.avatar_url ? (
                           <Image
                             source={{ uri: item.avatar_url }}
@@ -230,21 +285,23 @@ export default function TagPeopleModal({
                           <Ionicons
                             name="person-outline"
                             size={20}
-                            color={colors.slate[400]}
+                            color={palette.muted}
                           />
                         )}
                       </View>
 
                       <View className="flex-1">
                         <Text
-                          className="text-sm font-bold text-slate-900"
+                          className="text-sm font-bold"
+                          style={{ color: palette.text }}
                           numberOfLines={1}
                         >
                           @{item.username || "user"}
                         </Text>
                         {item.full_name && (
                           <Text
-                            className="text-xs text-slate-500"
+                            className="text-xs"
+                            style={{ color: palette.muted }}
                             numberOfLines={1}
                           >
                             {item.full_name}
@@ -254,11 +311,15 @@ export default function TagPeopleModal({
                     </View>
 
                     <View
-                      className={`w-6 h-6 rounded-full items-center justify-center border ${
-                        isSelected
-                          ? "bg-blue-600 border-blue-600"
-                          : "border-slate-300 bg-white"
-                      }`}
+                      className="w-6 h-6 rounded-full items-center justify-center border"
+                      style={{
+                        backgroundColor: isSelected
+                          ? palette.primary
+                          : "transparent",
+                        borderColor: isSelected
+                          ? palette.primary
+                          : palette.border,
+                      }}
                     >
                       {isSelected && (
                         <Ionicons name="checkmark" size={16} color="white" />

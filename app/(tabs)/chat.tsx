@@ -19,10 +19,12 @@ import {
 } from "@/services/chatService";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import { colors } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 export default function Chat() {
+  const { isDark, palette } = useTheme();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,24 +63,40 @@ export default function Chat() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: palette.background }}
+    >
       {/* --- Header Section --- */}
-      <View className="flex-row items-center justify-between px-5 py-4">
+      <View
+        className="flex-row items-center justify-between px-5 py-4 border-b"
+        style={{ borderColor: palette.borderSubtle }}
+      >
         <TouchableOpacity
           onPress={() => router.push("/(pages)/followpage")}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Find people"
-          className="w-10 h-10 items-center justify-center rounded-full bg-blue-50 border border-blue-100"
+          className="w-10 h-10 items-center justify-center rounded-full border"
+          style={{
+            backgroundColor: isDark
+              ? colors.blue[950]
+              : colors.blue[50],
+            borderColor: isDark ? colors.blue[900] : colors.blue[100],
+          }}
         >
           <Image
             source={require("@/assets/homeIcons/add-user.png")}
             className="w-6 h-6"
             resizeMode="contain"
+            style={{ tintColor: isDark ? palette.primary : undefined }}
           />
         </TouchableOpacity>
 
-        <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
+        <Text
+          className="text-xl font-bold uppercase tracking-tighter"
+          style={{ color: palette.primary }}
+        >
           Messages
         </Text>
 
@@ -87,20 +105,30 @@ export default function Chat() {
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="New message"
-          className="w-10 h-10 items-center justify-center rounded-full bg-slate-100"
+          className="w-10 h-10 items-center justify-center rounded-full"
+          style={{
+            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
+          }}
         >
-          <Ionicons name="create-outline" size={20} color={colors.slate[900]} />
+          <Ionicons name="create-outline" size={20} color={palette.text} />
         </TouchableOpacity>
       </View>
 
       {/* --- Search Bar Section --- */}
       <View className="px-5 pt-3 pb-2">
-        <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
-          <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
+        <View
+          className="flex-row items-center rounded-2xl px-4 py-2.5 border shadow-sm"
+          style={{
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+          }}
+        >
+          <Ionicons name="search-outline" size={18} color={palette.muted} />
           <TextInput
             placeholder="Search conversations..."
-            className="flex-1 ml-3 text-base text-slate-800"
-            placeholderTextColor={colors.slate[400]}
+            className="flex-1 ml-3 text-base"
+            style={{ color: palette.text }}
+            placeholderTextColor={palette.placeholder}
             value={searchText}
             onChangeText={setSearchText}
           />
@@ -110,7 +138,7 @@ export default function Chat() {
               accessibilityRole="button"
               accessibilityLabel="Clear search"
             >
-              <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
+              <Ionicons name="close-circle" size={18} color={palette.muted} />
             </TouchableOpacity>
           )}
         </View>
@@ -119,21 +147,28 @@ export default function Chat() {
       {/* --- Main Content Section --- */}
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.blue[600]} />
+          <ActivityIndicator size="large" color={palette.primary} />
         </View>
       ) : filteredConversations.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="chatbubbles-outline" size={54} color={colors.slate[300]} />
-          <Text className="text-lg font-bold text-slate-900 mt-4">
+          <Ionicons name="chatbubbles-outline" size={54} color={colors.slate[400]} />
+          <Text
+            className="text-lg font-bold mt-4"
+            style={{ color: palette.text }}
+          >
             No messages yet
           </Text>
-          <Text className="text-slate-500 text-center text-sm mt-1 mb-6">
+          <Text
+            className="text-center text-sm mt-1 mb-6"
+            style={{ color: palette.muted }}
+          >
             Connect with friends and creators to start chatting!
           </Text>
           <TouchableOpacity
             onPress={() => router.push("/(pages)/followpage")}
             activeOpacity={0.8}
-            className="bg-blue-600 px-6 py-3 rounded-full shadow-sm"
+            className="px-6 py-3 rounded-full shadow-sm"
+            style={{ backgroundColor: palette.primary }}
           >
             <Text className="text-white font-bold text-sm">Discover People</Text>
           </TouchableOpacity>
@@ -148,7 +183,7 @@ export default function Chat() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.blue[600]}
+              tintColor={palette.primary}
             />
           }
           renderItem={({ item }) => (
@@ -163,10 +198,22 @@ export default function Chat() {
                   },
                 })
               }
-              className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl bg-white border border-slate-200/70 shadow-sm"
+              className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl border shadow-sm"
+              style={{
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+              }}
             >
               <View className="flex-row items-center gap-3.5 flex-1 pr-2">
-                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+                <View
+                  className="h-13 w-13 rounded-full overflow-hidden items-center justify-center border"
+                  style={{
+                    backgroundColor: isDark
+                      ? colors.slate[800]
+                      : colors.slate[100],
+                    borderColor: palette.border,
+                  }}
+                >
                   {item.otherUser?.avatar_url ? (
                     <Image
                       source={{ uri: item.otherUser.avatar_url }}
@@ -184,11 +231,17 @@ export default function Chat() {
 
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-base font-bold text-slate-900 leading-tight">
+                    <Text
+                      className="text-base font-bold leading-tight"
+                      style={{ color: palette.text }}
+                    >
                       {item.otherUser?.full_name || item.otherUser?.username || "Direct Chat"}
                     </Text>
                     {item.lastMessage?.created_at && (
-                      <Text className="text-[11px] text-slate-400">
+                      <Text
+                        className="text-[11px]"
+                        style={{ color: palette.muted }}
+                      >
                         {formatRelativeTime(item.lastMessage.created_at)}
                       </Text>
                     )}
@@ -196,10 +249,14 @@ export default function Chat() {
 
                   <Text
                     className={`text-sm mt-1 leading-4 ${
-                      item.unreadCount > 0
-                        ? "font-bold text-slate-900"
-                        : "text-slate-500"
+                      item.unreadCount > 0 ? "font-bold" : ""
                     }`}
+                    style={{
+                      color:
+                        item.unreadCount > 0
+                          ? palette.text
+                          : palette.muted,
+                    }}
                     numberOfLines={1}
                   >
                     {item.lastMessage?.content ||
@@ -209,7 +266,10 @@ export default function Chat() {
               </View>
 
               {item.unreadCount > 0 && (
-                <View className="h-5 min-w-[20px] px-1.5 rounded-full bg-blue-600 items-center justify-center">
+                <View
+                  className="h-5 min-w-[20px] px-1.5 rounded-full items-center justify-center"
+                  style={{ backgroundColor: palette.primary }}
+                >
                   <Text className="text-white text-[10px] font-bold">
                     {item.unreadCount}
                   </Text>

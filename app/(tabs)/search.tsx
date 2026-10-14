@@ -8,6 +8,7 @@ import {
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { colors } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -149,6 +150,7 @@ function engagementScore(post: Post): number {
 }
 
 export default function Search() {
+  const { isDark, palette } = useTheme();
   const [searchText, setSearchText] = useState("");
   const [searchTab, setSearchTab] = useState<SearchTab>("users");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
@@ -272,7 +274,11 @@ export default function Search() {
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel={`View profile of ${item.full_name || item.username || "user"}`}
-                className="flex-row items-center gap-3.5 rounded-2xl bg-white px-4 py-3 mb-2.5 border border-slate-200/80 shadow-sm"
+                className="flex-row items-center gap-3.5 rounded-2xl px-4 py-3 mb-2.5 border shadow-sm"
+                style={{
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                }}
                 onPress={() =>
                   router.push({
                     pathname: "/(pages)/userProfile",
@@ -280,7 +286,15 @@ export default function Search() {
                   })
                 }
               >
-                <View className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+                <View
+                  className="h-12 w-12 rounded-full overflow-hidden items-center justify-center border"
+                  style={{
+                    backgroundColor: isDark
+                      ? colors.slate[800]
+                      : colors.slate[100],
+                    borderColor: palette.border,
+                  }}
+                >
                   {item.avatar_url ? (
                     <Image
                       source={{ uri: item.avatar_url }}
@@ -297,20 +311,27 @@ export default function Search() {
                 </View>
 
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-slate-900 leading-tight">
+                  <Text
+                    className="text-base font-bold leading-tight"
+                    style={{ color: palette.text }}
+                  >
                     {item.full_name || item.username || "User"}
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
+                  <Text className="text-xs mt-0.5" style={{ color: palette.muted }}>
                     @{item.username || "user"}
                   </Text>
                   {item.bio ? (
-                    <Text className="text-xs text-slate-500 mt-1" numberOfLines={1}>
+                    <Text
+                      className="text-xs mt-1"
+                      style={{ color: palette.muted }}
+                      numberOfLines={1}
+                    >
                       {item.bio}
                     </Text>
                   ) : null}
                 </View>
 
-                <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
+                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
               </TouchableOpacity>
             )}
           />
@@ -320,11 +341,14 @@ export default function Search() {
         if (postResults.length === 0 && searched) {
           return (
             <View className="flex-1 items-center justify-center px-10">
-              <Ionicons name="images-outline" size={48} color={colors.slate[300]} />
-              <Text className="mt-4 text-base font-semibold text-slate-800">
+              <Ionicons name="images-outline" size={48} color={colors.slate[400]} />
+              <Text
+                className="mt-4 text-base font-semibold"
+                style={{ color: palette.text }}
+              >
                 No posts found
               </Text>
-              <Text className="mt-1 text-center text-xs text-slate-400">
+              <Text className="mt-1 text-center text-xs" style={{ color: palette.muted }}>
                 Try searching for different keywords or tags.
               </Text>
             </View>
@@ -349,7 +373,13 @@ export default function Search() {
                     params: { postId: item.id },
                   })
                 }
-                className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                className="w-1/3 aspect-square border"
+                style={{
+                  borderColor: palette.border,
+                  backgroundColor: isDark
+                    ? colors.slate[900]
+                    : colors.slate[100],
+                }}
               >
                 <PostGridThumbnail post={item} />
               </TouchableOpacity>
@@ -408,7 +438,7 @@ export default function Search() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.blue[600]}
+            tintColor={palette.primary}
           />
         }
         renderItem={({ item }) => (
@@ -422,7 +452,13 @@ export default function Search() {
                 params: { postId: item.id },
               })
             }
-            className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+            className="w-1/3 aspect-square border"
+            style={{
+              borderColor: palette.border,
+              backgroundColor: isDark
+                ? colors.slate[900]
+                : colors.slate[100],
+            }}
           >
             <PostGridThumbnail post={item} />
           </TouchableOpacity>
@@ -432,15 +468,25 @@ export default function Search() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: palette.background }}
+    >
       {/* Search Input Bar */}
       <View className="px-5 pt-3 pb-2">
-        <View className="flex-row items-center bg-slate-100 rounded-2xl px-4 py-2.5 border border-slate-200">
-          <Ionicons name="search-outline" size={20} color={colors.slate[400]} />
+        <View
+          className="flex-row items-center rounded-2xl px-4 py-2.5 border"
+          style={{
+            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
+            borderColor: palette.border,
+          }}
+        >
+          <Ionicons name="search-outline" size={20} color={palette.muted} />
           <TextInput
             placeholder="Search creators, topics, captions..."
-            className="flex-1 ml-3 text-base text-slate-800"
-            placeholderTextColor={colors.slate[400]}
+            className="flex-1 ml-3 text-base"
+            style={{ color: palette.text }}
+            placeholderTextColor={palette.placeholder}
             value={searchText}
             onChangeText={setSearchText}
             autoCapitalize="none"
@@ -454,14 +500,17 @@ export default function Search() {
               accessibilityRole="button"
               accessibilityLabel="Clear search"
             >
-              <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
+              <Ionicons name="close-circle" size={18} color={palette.muted} />
             </TouchableOpacity>
           )}
         </View>
 
         {/* Search Switcher Tabs (When Searching) */}
         {isSearching && (
-          <View className="flex-row mt-3 border-t border-slate-100 pt-2">
+          <View
+            className="flex-row mt-3 border-t pt-2"
+            style={{ borderColor: palette.borderSubtle }}
+          >
             <TouchableOpacity
               onPress={() => setSearchTab("users")}
               accessibilityRole="tab"
@@ -474,12 +523,13 @@ export default function Search() {
               <Ionicons
                 name="people-outline"
                 size={16}
-                color={searchTab === "users" ? colors.blue[600] : colors.slate[500]}
+                color={searchTab === "users" ? palette.primary : palette.muted}
               />
               <Text
-                className={`text-sm font-bold ${
-                  searchTab === "users" ? "text-blue-600" : "text-slate-500"
-                }`}
+                className="text-sm font-bold"
+                style={{
+                  color: searchTab === "users" ? palette.primary : palette.muted,
+                }}
               >
                 People ({userResults.length})
               </Text>
@@ -497,12 +547,13 @@ export default function Search() {
               <Ionicons
                 name="images-outline"
                 size={16}
-                color={searchTab === "posts" ? colors.blue[600] : colors.slate[500]}
+                color={searchTab === "posts" ? palette.primary : palette.muted}
               />
               <Text
-                className={`text-sm font-bold ${
-                  searchTab === "posts" ? "text-blue-600" : "text-slate-500"
-                }`}
+                className="text-sm font-bold"
+                style={{
+                  color: searchTab === "posts" ? palette.primary : palette.muted,
+                }}
               >
                 Posts ({postResults.length})
               </Text>
@@ -530,15 +581,24 @@ export default function Search() {
                   accessibilityLabel={`${cat} category`}
                   accessibilityState={{ selected: active }}
                   className={`px-4 py-1.5 rounded-full ${
-                    active
-                      ? "bg-blue-600 shadow-sm"
-                      : "bg-slate-100 border border-slate-200"
+                    active ? "bg-blue-600 shadow-sm" : "border"
                   }`}
+                  style={
+                    active
+                      ? undefined
+                      : {
+                          backgroundColor: isDark
+                            ? colors.slate[800]
+                            : colors.slate[100],
+                          borderColor: palette.border,
+                        }
+                  }
                 >
                   <Text
-                    className={`text-xs font-bold ${
-                      active ? "text-white" : "text-slate-600"
-                    }`}
+                    className="text-xs font-bold"
+                    style={{
+                      color: active ? colors.white : palette.muted,
+                    }}
                   >
                     {cat}
                   </Text>

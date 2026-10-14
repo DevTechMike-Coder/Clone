@@ -33,11 +33,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/StyledLinearGradient";
 import * as Haptics from "expo-haptics";
 import { colors, storyRingGradient } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 const SafeAreaView = styled(RNSafeAreaView);
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function Profile() {
+  const { isDark, palette } = useTheme();
   const { user: authUser } = useAuth();
   const targetUserId = authUser?.id;
   const isOwnProfile = true;
@@ -186,11 +188,17 @@ export default function Profile() {
             height: 70,
             marginHorizontal: 20,
             borderRadius: 20,
-            borderTopWidth: 0,
-            elevation: 0,
+            borderTopWidth: 1,
+            borderColor: palette.border,
+            backgroundColor: palette.surface,
+            elevation: 6,
+            shadowColor: isDark ? "#000000" : colors.slate[900],
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isDark ? 0.35 : 0.08,
+            shadowRadius: 18,
           },
     });
-  }, [menuOpen, navigation, insets]);
+  }, [menuOpen, navigation, insets, palette, isDark]);
 
   const openMenu = () => {
     setMenuOpen(true);
@@ -215,7 +223,10 @@ export default function Profile() {
   const closePostMenu = () => setPostMenuPost(null);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: palette.background }}
+    >
       {/* Backdrop — closes menu when tapped */}
       {menuOpen && (
         <TouchableOpacity
@@ -227,6 +238,7 @@ export default function Profile() {
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: palette.overlay,
             zIndex: 10,
           }}
         />
@@ -240,20 +252,32 @@ export default function Profile() {
           right: 0,
           bottom: 0,
           width: "82%",
-          backgroundColor: colors.white,
+          backgroundColor: palette.surface,
+          borderLeftWidth: 1,
+          borderLeftColor: palette.border,
           zIndex: 20,
           transform: [{ translateX: slideAnim }],
-          shadowColor: colors.slate[900],
+          shadowColor: isDark ? "#000000" : colors.slate[900],
           shadowOffset: { width: -4, height: 0 },
-          shadowOpacity: 0.15,
+          shadowOpacity: isDark ? 0.4 : 0.15,
           shadowRadius: 12,
           elevation: 20,
         }}
       >
-        <View className="px-5 pt-14 pb-4 flex-row items-center justify-between border-b border-slate-100">
+        <View
+          className="px-5 pt-14 pb-4 flex-row items-center justify-between border-b"
+          style={{ borderColor: palette.borderSubtle }}
+        >
           <View className="flex-row items-center gap-3">
-            <Ionicons name="settings-outline" size={22} color={colors.slate[900]} />
-            <Text className="text-lg font-bold text-slate-900 tracking-tight">
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={palette.text}
+            />
+            <Text
+              className="text-lg font-bold tracking-tight"
+              style={{ color: palette.text }}
+            >
               Settings
             </Text>
           </View>
@@ -263,48 +287,95 @@ export default function Profile() {
             accessibilityRole="button"
             accessibilityLabel="Close settings"
             className="w-9 h-9 rounded-full items-center justify-center"
+            style={{
+              backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
+            }}
           >
-            <Image
-              source={require("@/assets/homeIcons/delete.png")}
-              className="w-4 h-4"
-              resizeMode="contain"
-            />
+            <Ionicons name="close" size={20} color={palette.text} />
           </TouchableOpacity>
         </View>
 
         <View className="px-5 pt-3">
-          <Text className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
-            Account
+          <Text
+            className="text-xs font-semibold uppercase tracking-widest mb-2"
+            style={{ color: palette.muted }}
+          >
+            Account & Appearance
           </Text>
 
           <TouchableOpacity
-            onPress={() => router.push("/(pages)/accountCenter")}
-            className="flex-row items-center justify-between py-4 border-b border-slate-100"
+            onPress={() => {
+              closeMenu();
+              router.push("/(pages)/accountCenter");
+            }}
+            className="flex-row items-center justify-between py-4 border-b"
+            style={{ borderColor: palette.borderSubtle }}
           >
             <View className="flex-row items-center gap-3">
-              <Ionicons name="person-circle-outline" size={20} color={colors.slate[600]} />
-              <Text className="text-base text-slate-800">Accounts Center</Text>
+              <Ionicons
+                name="person-circle-outline"
+                size={20}
+                color={palette.primary}
+              />
+              <Text className="text-base" style={{ color: palette.text }}>
+                Accounts Center
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.slate[300]} />
+            <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              closeMenu();
+              router.push("/(pages)/accountCenter");
+            }}
+            className="flex-row items-center justify-between py-4 border-b"
+            style={{ borderColor: palette.borderSubtle }}
+          >
+            <View className="flex-row items-center gap-3">
+              <Ionicons
+                name="color-palette-outline"
+                size={20}
+                color={palette.primary}
+              />
+              <Text className="text-base" style={{ color: palette.text }}>
+                Appearance & Theme
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={palette.muted} />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleTogglePrivate}
             disabled={privacySaving}
-            className="flex-row items-center justify-between py-4"
+            className="flex-row items-center justify-between py-4 border-b"
+            style={{ borderColor: palette.borderSubtle }}
           >
             <View className="flex-row items-center gap-3 flex-1 pr-3">
-              <Ionicons name="lock-closed-outline" size={20} color={colors.slate[600]} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={palette.muted}
+              />
               <View className="flex-1">
-                <Text className="text-base text-slate-800">Private account</Text>
-                <Text className="text-xs text-slate-400 mt-0.5">
+                <Text className="text-base" style={{ color: palette.text }}>
+                  Private account
+                </Text>
+                <Text
+                  className="text-xs mt-0.5"
+                  style={{ color: palette.muted }}
+                >
                   Only people who follow you can see your posts
                 </Text>
               </View>
             </View>
             <View
               className={`w-11 h-6 rounded-full justify-center ${
-                profile?.is_private ? "bg-blue-600" : "bg-slate-200"
+                profile?.is_private
+                  ? "bg-blue-600"
+                  : isDark
+                  ? "bg-slate-700"
+                  : "bg-slate-200"
               }`}
             >
               <View
@@ -315,13 +386,16 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-
           <TouchableOpacity
             onPress={handleSignOut}
             className="flex-row items-center justify-between py-4"
           >
             <View className="flex-row items-center gap-3">
-              <Ionicons name="log-out-outline" size={20} color={colors.red[500]} />
+              <Ionicons
+                name="log-out-outline"
+                size={20}
+                color={colors.red[500]}
+              />
               <Text className="text-base text-red-500 font-semibold">
                 Sign Out
               </Text>
@@ -422,18 +496,23 @@ export default function Profile() {
             </View>
 
             <View className="items-center pt-2">
-              <Text className="text-lg font-semibold text-slate-900 tracking-tight">
+              <Text
+                className="text-lg font-semibold tracking-tight"
+                style={{ color: palette.text }}
+              >
                 {profile?.full_name || authUser?.email?.split("@")[0] || "User"}
               </Text>
               {profile?.username && (
-                <Text className="text-sm text-slate-500">
+                <Text className="text-sm" style={{ color: palette.muted }}>
                   @{profile.username}
                 </Text>
               )}
               {profile?.is_private && (
                 <View className="flex-row items-center gap-1 mt-1">
-                  <Ionicons name="lock-closed" size={12} color={colors.slate[500]} />
-                  <Text className="text-xs text-slate-400">Private account</Text>
+                  <Ionicons name="lock-closed" size={12} color={palette.muted} />
+                  <Text className="text-xs" style={{ color: palette.muted }}>
+                    Private account
+                  </Text>
                 </View>
               )}
             </View>
@@ -443,14 +522,14 @@ export default function Profile() {
 
       {/* Bio & Social Links */}
       <View className="p-5 flex-col items-center justify-center">
-        <Text className="text-base text-slate-500">
+        <Text className="text-base text-center" style={{ color: palette.muted }}>
           {profile?.bio || "No bio yet. Tap edit to add one!"}
         </Text>
 
         {profile?.website && (
           <View className="flex-row items-center gap-2 mt-2">
             <TouchableOpacity onPress={() => WebBrowser.openBrowserAsync(profile.website.startsWith('http') ? profile.website : `https://${profile.website}`)}>
-              <Text className="text-blue-600 font-medium">
+              <Text className="font-medium" style={{ color: palette.primary }}>
                 {profile.website.replace(/^https?:\/\//, '')}
               </Text>
             </TouchableOpacity>
@@ -463,17 +542,29 @@ export default function Profile() {
         <TouchableOpacity
           onPress={() => router.push("/(pages)/editProfile")}
           activeOpacity={0.8}
-          className="flex-1 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+          className="flex-1 h-11 border rounded-xl items-center justify-center"
+          style={{
+            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
+            borderColor: palette.border,
+          }}
         >
-          <Text className="text-slate-900 font-bold">Edit Profile</Text>
+          <Text className="font-bold" style={{ color: palette.text }}>
+            Edit Profile
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push("/(pages)/createNew")}
           activeOpacity={0.8}
-          className="flex-1 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+          className="flex-1 h-11 border rounded-xl items-center justify-center"
+          style={{
+            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
+            borderColor: palette.border,
+          }}
         >
-          <Text className="text-slate-900 font-bold">New Post</Text>
+          <Text className="font-bold" style={{ color: palette.text }}>
+            New Post
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -481,20 +572,31 @@ export default function Profile() {
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Share profile"
-          className="w-11 h-11 bg-slate-100 border border-slate-200 rounded-xl items-center justify-center"
+          className="w-11 h-11 border rounded-xl items-center justify-center"
+          style={{
+            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
+            borderColor: palette.border,
+          }}
         >
-          <Ionicons name="share-outline" size={20} color={colors.slate[900]} />
+          <Ionicons name="share-outline" size={20} color={palette.text} />
         </TouchableOpacity>
       </View>
 
       {/* Stats Row */}
       <View className="flex-row items-center justify-center gap-1 py-4">
         <View className="items-center px-3 py-1">
-          <Text className="text-2xl font-bold text-slate-800">{stats.postsCount}</Text>
-          <Text className="text-sm text-slate-500">Posts</Text>
+          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
+            {stats.postsCount}
+          </Text>
+          <Text className="text-sm" style={{ color: palette.muted }}>
+            Posts
+          </Text>
         </View>
 
-        <View className="h-5 w-px bg-slate-300" />
+        <View
+          className="h-5 w-px"
+          style={{ backgroundColor: palette.border }}
+        />
 
         <TouchableOpacity
           activeOpacity={0.7}
@@ -512,11 +614,18 @@ export default function Profile() {
           }}
           className="items-center px-3 py-1"
         >
-          <Text className="text-2xl font-bold text-slate-800">{stats.followingCount}</Text>
-          <Text className="text-sm text-slate-500">Following</Text>
+          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
+            {stats.followingCount}
+          </Text>
+          <Text className="text-sm" style={{ color: palette.muted }}>
+            Following
+          </Text>
         </TouchableOpacity>
 
-        <View className="h-5 w-px bg-slate-300" />
+        <View
+          className="h-5 w-px"
+          style={{ backgroundColor: palette.border }}
+        />
 
         <TouchableOpacity
           activeOpacity={0.7}
@@ -534,20 +643,34 @@ export default function Profile() {
           }}
           className="items-center px-3 py-1"
         >
-          <Text className="text-2xl font-bold text-slate-800">{stats.followersCount}</Text>
-          <Text className="text-sm text-slate-500">Followers</Text>
+          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
+            {stats.followersCount}
+          </Text>
+          <Text className="text-sm" style={{ color: palette.muted }}>
+            Followers
+          </Text>
         </TouchableOpacity>
 
-        <View className="h-5 w-px bg-slate-300" />
+        <View
+          className="h-5 w-px"
+          style={{ backgroundColor: palette.border }}
+        />
 
         <View className="items-center px-3 py-1">
-          <Text className="text-2xl font-bold text-slate-800">{stats.likesCount}</Text>
-          <Text className="text-sm text-slate-500">Likes</Text>
+          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
+            {stats.likesCount}
+          </Text>
+          <Text className="text-sm" style={{ color: palette.muted }}>
+            Likes
+          </Text>
         </View>
       </View>
 
       {/* Tabs */}
-      <View className="flex-row border-b border-slate-200">
+      <View
+        className="flex-row border-b"
+        style={{ borderColor: palette.border }}
+      >
         <TouchableOpacity
           onPress={() => setActiveTab("overview")}
           accessibilityRole="tab"
@@ -562,7 +685,8 @@ export default function Profile() {
             className="w-5 h-5"
             resizeMode="contain"
             style={{
-              tintColor: activeTab === "overview" ? colors.blue[600] : colors.slate[500],
+              tintColor:
+                activeTab === "overview" ? palette.primary : palette.muted,
             }}
           />
         </TouchableOpacity>
@@ -580,7 +704,8 @@ export default function Profile() {
             className="w-5 h-5"
             resizeMode="contain"
             style={{
-              tintColor: activeTab === "repeat" ? colors.blue[600] : colors.slate[500],
+              tintColor:
+                activeTab === "repeat" ? palette.primary : palette.muted,
             }}
           />
         </TouchableOpacity>
@@ -598,7 +723,8 @@ export default function Profile() {
             className="w-5 h-5"
             resizeMode="contain"
             style={{
-              tintColor: activeTab === "bookmark" ? colors.blue[600] : colors.slate[500],
+              tintColor:
+                activeTab === "bookmark" ? palette.primary : palette.muted,
             }}
           />
         </TouchableOpacity>
@@ -727,25 +853,51 @@ export default function Profile() {
         onRequestClose={closePostMenu}
       >
         <Pressable
-          className="flex-1 bg-black/50 justify-end"
+          className="flex-1 justify-end"
+          style={{ backgroundColor: palette.overlay }}
           onPress={closePostMenu}
         >
-          <Pressable className="bg-white rounded-t-3xl p-5 pb-8" onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            className="rounded-t-3xl p-5 pb-8 border-t"
+            style={{
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View className="items-center mb-4">
-              <View className="w-12 h-1 bg-slate-300 rounded-full" />
+              <View
+                className="w-12 h-1 rounded-full"
+                style={{
+                  backgroundColor: isDark
+                    ? colors.slate[700]
+                    : colors.slate[300],
+                }}
+              />
             </View>
 
             {/* Post thumbnail */}
             {postMenuPost && (
               <View className="flex-row items-center gap-3 mb-4 px-2">
-                <View className="w-14 h-14 rounded-lg bg-slate-100 overflow-hidden">
+                <View
+                  className="w-14 h-14 rounded-lg overflow-hidden"
+                  style={{
+                    backgroundColor: isDark
+                      ? colors.slate[800]
+                      : colors.slate[100],
+                  }}
+                >
                   <PostGridThumbnail post={postMenuPost} />
                 </View>
                 <View className="flex-1">
-                  <Text numberOfLines={1} className="text-sm font-bold text-slate-900">
+                  <Text
+                    numberOfLines={1}
+                    className="text-sm font-bold"
+                    style={{ color: palette.text }}
+                  >
                     {postMenuPost.caption || "Post"}
                   </Text>
-                  <Text className="text-xs text-slate-500">
+                  <Text className="text-xs" style={{ color: palette.muted }}>
                     {postMenuPost.media_type === "video" ? "Video" : "Photo"}
                   </Text>
                 </View>
@@ -771,7 +923,8 @@ export default function Profile() {
                       ],
                     );
                   }}
-                  className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+                  className="flex-row items-center gap-3 py-4 px-2 border-b"
+                  style={{ borderColor: palette.borderSubtle }}
                 >
                   <Ionicons name="trash-outline" size={22} color={colors.red[500]} />
                   <Text className="text-red-500 font-bold text-base">Delete post</Text>
@@ -788,10 +941,16 @@ export default function Profile() {
                     closePostMenu();
                   }
                 }}
-                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+                className="flex-row items-center gap-3 py-4 px-2 border-b"
+                style={{ borderColor: palette.borderSubtle }}
               >
-                <Ionicons name="eye-outline" size={22} color={colors.slate[900]} />
-                <Text className="text-slate-800 font-semibold text-base">View post</Text>
+                <Ionicons name="eye-outline" size={22} color={palette.text} />
+                <Text
+                  className="font-semibold text-base"
+                  style={{ color: palette.text }}
+                >
+                  View post
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -807,18 +966,29 @@ export default function Profile() {
                   }
                   closePostMenu();
                 }}
-                className="flex-row items-center gap-3 py-4 px-2 border-b border-slate-100"
+                className="flex-row items-center gap-3 py-4 px-2 border-b"
+                style={{ borderColor: palette.borderSubtle }}
               >
-                <Ionicons name="share-outline" size={22} color={colors.slate[900]} />
-                <Text className="text-slate-800 font-semibold text-base">Share post</Text>
+                <Ionicons name="share-outline" size={22} color={palette.text} />
+                <Text
+                  className="font-semibold text-base"
+                  style={{ color: palette.text }}
+                >
+                  Share post
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={closePostMenu}
                 className="flex-row items-center gap-3 py-4 px-2"
               >
-                <Ionicons name="close-circle-outline" size={22} color={colors.slate[500]} />
-                <Text className="text-slate-500 font-semibold text-base">Cancel</Text>
+                <Ionicons name="close-circle-outline" size={22} color={palette.muted} />
+                <Text
+                  className="font-semibold text-base"
+                  style={{ color: palette.muted }}
+                >
+                  Cancel
+                </Text>
               </TouchableOpacity>
             </View>
           </Pressable>

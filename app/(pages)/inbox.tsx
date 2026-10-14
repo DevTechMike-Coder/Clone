@@ -20,6 +20,7 @@ import {
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import { colors } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
@@ -33,6 +34,7 @@ type FilterType =
   | "message";
 
 const Inbox = () => {
+  const { isDark, palette } = useTheme();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -122,51 +124,51 @@ const Inbox = () => {
     switch (item.type) {
       case "like":
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text> liked your post.
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> liked your post.
           </Text>
         );
       case "comment":
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text> commented on your post.
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> commented on your post.
           </Text>
         );
       case "repost":
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text> reposted your post.
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> reposted your post.
           </Text>
         );
       case "follow":
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text> started following you.
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> started following you.
           </Text>
         );
       case "message":
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text> sent you a message.
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> sent you a message.
           </Text>
         );
       case "story":
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text> posted a new story.
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> posted a new story.
           </Text>
         );
       case "story_expiring":
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text>&apos;s story
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text>&apos;s story
             expires soon.
           </Text>
         );
       default:
         return (
-          <Text className="text-slate-800 text-sm">
-            <Text className="font-bold text-slate-900">{name}</Text> sent you an update.
+          <Text className="text-sm" style={{ color: palette.text }}>
+            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> sent you an update.
           </Text>
         );
     }
@@ -233,9 +235,15 @@ const Inbox = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: palette.background }}
+    >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4">
+      <View
+        className="flex-row items-center justify-between px-5 py-4 border-b"
+        style={{ borderColor: palette.borderSubtle }}
+      >
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -243,9 +251,12 @@ const Inbox = () => {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
           </TouchableOpacity>
-          <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
+          <Text
+            className="text-xl font-bold uppercase tracking-tighter"
+            style={{ color: palette.primary }}
+          >
             Activity
           </Text>
         </View>
@@ -274,15 +285,24 @@ const Inbox = () => {
             onPress={() => setActiveFilter(tab.key)}
             activeOpacity={0.7}
             className={`px-3.5 py-1.5 rounded-full ${
-              activeFilter === tab.key
-                ? "bg-blue-600"
-                : "bg-slate-100 border border-slate-200"
+              activeFilter === tab.key ? "bg-blue-600" : "border"
             }`}
+            style={
+              activeFilter === tab.key
+                ? undefined
+                : {
+                    backgroundColor: isDark
+                      ? colors.slate[800]
+                      : colors.slate[100],
+                    borderColor: palette.border,
+                  }
+            }
           >
             <Text
-              className={`text-xs font-semibold ${
-                activeFilter === tab.key ? "text-white" : "text-slate-600"
-              }`}
+              className="text-xs font-semibold"
+              style={{
+                color: activeFilter === tab.key ? colors.white : palette.muted,
+              }}
             >
               {tab.label}
             </Text>
@@ -293,15 +313,21 @@ const Inbox = () => {
       {/* Content */}
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.blue[600]} />
+          <ActivityIndicator size="large" color={palette.primary} />
         </View>
       ) : filteredNotifications.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="notifications-outline" size={48} color={colors.slate[300]} />
-          <Text className="text-lg font-semibold text-slate-900 mt-4">
+          <Ionicons name="notifications-outline" size={48} color={colors.slate[400]} />
+          <Text
+            className="text-lg font-semibold mt-4"
+            style={{ color: palette.text }}
+          >
             No activity yet
           </Text>
-          <Text className="text-slate-500 text-center mt-2">
+          <Text
+            className="text-center mt-2"
+            style={{ color: palette.muted }}
+          >
             When people follow you, like or comment on your posts, message you,
             or post a story, you&apos;ll see it here.
           </Text>
@@ -316,23 +342,39 @@ const Inbox = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.blue[600]}
+              tintColor={palette.primary}
             />
           }
           renderItem={({ item }) => (
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => openNotification(item)}
-              className={`flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl border ${
-                item.is_read
-                  ? "bg-white border-slate-100"
-                  : "bg-blue-50/50 border-blue-100"
-              }`}
+              className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl border"
+              style={{
+                backgroundColor: item.is_read
+                  ? palette.surface
+                  : isDark
+                  ? colors.blue[950] + "50"
+                  : colors.blue[50] + "80",
+                borderColor: item.is_read
+                  ? palette.border
+                  : isDark
+                  ? colors.blue[900] + "60"
+                  : colors.blue[100],
+              }}
             >
               <View className="flex-row items-center gap-3.5 flex-1 pr-3">
                 {/* Avatar with Badge */}
                 <View className="relative">
-                  <View className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+                  <View
+                    className="h-12 w-12 rounded-full overflow-hidden items-center justify-center border"
+                    style={{
+                      backgroundColor: isDark
+                        ? colors.slate[800]
+                        : colors.slate[100],
+                      borderColor: palette.border,
+                    }}
+                  >
                     {item.profiles?.avatar_url ? (
                       <Image
                         source={{ uri: item.profiles.avatar_url }}
@@ -353,7 +395,10 @@ const Inbox = () => {
                 {/* Text Content */}
                 <View className="flex-1">
                   {getNotificationText(item)}
-                  <Text className="text-xs text-slate-400 mt-1">
+                  <Text
+                    className="text-xs mt-1"
+                    style={{ color: palette.muted }}
+                  >
                     {formatRelativeTime(item.created_at)}
                   </Text>
                 </View>
@@ -361,11 +406,19 @@ const Inbox = () => {
 
               {/* Optional Post Media Preview */}
               {item.posts?.media_url ? (
-                <View className="h-11 w-11 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                <View
+                  className="h-11 w-11 rounded-lg overflow-hidden border"
+                  style={{
+                    backgroundColor: isDark
+                      ? colors.slate[800]
+                      : colors.slate[100],
+                    borderColor: palette.border,
+                  }}
+                >
                   <PostGridThumbnail post={item.posts} />
                 </View>
               ) : item.type === "follow" ? (
-                <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
+                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
               ) : null}
             </TouchableOpacity>
           )}

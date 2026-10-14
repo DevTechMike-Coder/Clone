@@ -5,12 +5,14 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import AuthSplash from "@/components/AuthSplash";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 const Index = () => {
   const { session, loading } = useAuth();
+  const { isDark, palette } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideUpAnim = useRef(new Animated.Value(20)).current;
 
@@ -42,7 +44,10 @@ const Index = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: palette.background }}
+    >
       <View className="flex-1 px-6 pb-12 pt-6">
         <View className="flex-1 items-start justify-end">
           <Animated.View
@@ -54,11 +59,17 @@ const Index = () => {
             }}
           >
             <View className="items-start gap-3">
-              <Text className="text-left text-5xl font-extrabold leading-[56px] tracking-tighter text-slate-950">
+              <Text
+                className="text-left text-5xl font-extrabold leading-[56px] tracking-tighter"
+                style={{ color: palette.text }}
+              >
                 Welcome To{"\n"}
-                <Text className="text-blue-600">Clone</Text>
+                <Text style={{ color: palette.primary }}>Clone</Text>
               </Text>
-              <Text className="text-left text-lg leading-7 text-slate-600 max-w-[90%]">
+              <Text
+                className="text-left text-lg leading-7 max-w-[90%]"
+                style={{ color: palette.muted }}
+              >
                 Create an account or sign in to join the community.
               </Text>
             </View>
@@ -66,9 +77,16 @@ const Index = () => {
             <View className="w-full gap-4">
               <Pressable
                 onPress={() => router.push("/signIn")}
-                className="h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 active:bg-slate-100"
+                className="h-12 w-full items-center justify-center rounded-2xl border px-5"
+                style={{
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                }}
               >
-                <Text className="text-base font-semibold text-slate-900">
+                <Text
+                  className="text-base font-semibold"
+                  style={{ color: palette.text }}
+                >
                   Get Started
                 </Text>
               </Pressable>

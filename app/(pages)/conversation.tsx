@@ -25,10 +25,12 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 import { colors } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 export default function Conversation() {
+  const { isDark, palette } = useTheme();
   const { user: authUser } = useAuth();
   const { conversationId, otherUserId } = useLocalSearchParams<{
     conversationId: string;
@@ -169,9 +171,18 @@ export default function Conversation() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: palette.background }}
+    >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-100 bg-white shadow-sm">
+      <View
+        className="flex-row items-center justify-between px-4 py-3 border-b shadow-sm"
+        style={{
+          backgroundColor: palette.surface,
+          borderColor: palette.borderSubtle,
+        }}
+      >
         <View className="flex-row items-center gap-3 flex-1">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -180,7 +191,7 @@ export default function Conversation() {
             accessibilityLabel="Go back"
             className="p-1"
           >
-            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -195,7 +206,15 @@ export default function Conversation() {
             }}
             className="flex-row items-center gap-3 flex-1"
           >
-            <View className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
+            <View
+              className="h-10 w-10 rounded-full overflow-hidden items-center justify-center border"
+              style={{
+                backgroundColor: isDark
+                  ? colors.slate[800]
+                  : colors.slate[100],
+                borderColor: palette.border,
+              }}
+            >
               {otherUser?.avatar_url ? (
                 <Image
                   source={{ uri: otherUser.avatar_url }}
@@ -212,11 +231,15 @@ export default function Conversation() {
             </View>
 
             <View className="flex-1">
-              <Text className="text-base font-bold text-slate-900 leading-tight" numberOfLines={1}>
+              <Text
+                className="text-base font-bold leading-tight"
+                style={{ color: palette.text }}
+                numberOfLines={1}
+              >
                 {otherUser?.full_name || otherUser?.username || "Chat"}
               </Text>
               {otherUser?.username && (
-                <Text className="text-xs text-slate-400">
+                <Text className="text-xs" style={{ color: palette.muted }}>
                   @{otherUser.username}
                 </Text>
               )}
@@ -237,7 +260,7 @@ export default function Conversation() {
           accessibilityLabel="Conversation info"
           className="p-2"
         >
-          <Ionicons name="information-circle-outline" size={22} color={colors.slate[500]} />
+          <Ionicons name="information-circle-outline" size={22} color={palette.muted} />
         </TouchableOpacity>
       </View>
 
@@ -283,12 +306,27 @@ export default function Conversation() {
                     className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl ${
                       isMe
                         ? "bg-blue-600 rounded-br-none"
-                        : "bg-white border border-slate-200/80 rounded-bl-none shadow-sm"
+                        : "rounded-bl-none border shadow-sm"
                     }`}
+                    style={
+                      isMe
+                        ? undefined
+                        : {
+                            backgroundColor: palette.surface,
+                            borderColor: palette.border,
+                          }
+                    }
                   >
                     {/* Media Attachment */}
                     {item.media_url ? (
-                      <View className="w-56 h-56 rounded-xl overflow-hidden mb-1.5 bg-slate-100">
+                      <View
+                        className="w-56 h-56 rounded-xl overflow-hidden mb-1.5"
+                        style={{
+                          backgroundColor: isDark
+                            ? colors.slate[800]
+                            : colors.slate[100],
+                        }}
+                      >
                         <Image
                           source={{ uri: item.media_url }}
                           className="w-full h-full"
@@ -300,18 +338,20 @@ export default function Conversation() {
                     {/* Text content */}
                     {item.content ? (
                       <Text
-                        className={`text-sm leading-5 ${
-                          isMe ? "text-white" : "text-slate-800"
-                        }`}
+                        className="text-sm leading-5"
+                        style={{
+                          color: isMe ? colors.white : palette.text,
+                        }}
                       >
                         {item.content}
                       </Text>
                     ) : null}
 
                     <Text
-                      className={`text-[10px] mt-1 text-right ${
-                        isMe ? "text-blue-100" : "text-slate-400"
-                      }`}
+                      className="text-[10px] mt-1 text-right"
+                      style={{
+                        color: isMe ? colors.blue[100] : palette.muted,
+                      }}
                     >
                       {formatRelativeTime(item.created_at)}
                     </Text>
@@ -324,8 +364,17 @@ export default function Conversation() {
 
         {/* Selected Image Preview (Before Sending) */}
         {selectedImage && (
-          <View className="px-4 py-2 bg-white border-t border-slate-100 flex-row items-center gap-3">
-            <View className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 relative">
+          <View
+            className="px-4 py-2 border-t flex-row items-center gap-3"
+            style={{
+              backgroundColor: palette.surface,
+              borderColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              className="w-16 h-16 rounded-xl overflow-hidden border relative"
+              style={{ borderColor: palette.border }}
+            >
               <Image
                 source={{ uri: selectedImage }}
                 className="w-full h-full"
@@ -340,14 +389,20 @@ export default function Conversation() {
                 <Ionicons name="close" size={14} color={colors.white} />
               </TouchableOpacity>
             </View>
-            <Text className="text-xs text-slate-500 flex-1">
+            <Text className="text-xs flex-1" style={{ color: palette.muted }}>
               Photo ready to send. Add a caption below if you like.
             </Text>
           </View>
         )}
 
         {/* Input Bar */}
-        <View className="flex-row items-center px-4 py-3 bg-white border-t border-slate-100">
+        <View
+          className="flex-row items-center px-4 py-3 border-t"
+          style={{
+            backgroundColor: palette.surface,
+            borderColor: palette.borderSubtle,
+          }}
+        >
           <TouchableOpacity
             onPress={handlePickImage}
             disabled={sending}
@@ -356,14 +411,23 @@ export default function Conversation() {
             accessibilityLabel="Attach photo"
             className="p-2 mr-1"
           >
-            <Ionicons name="image-outline" size={24} color={colors.slate[500]} />
+            <Ionicons name="image-outline" size={24} color={palette.muted} />
           </TouchableOpacity>
 
-          <View className="flex-1 flex-row items-center bg-slate-100 rounded-2xl px-4 py-2 mr-3 border border-slate-200">
+          <View
+            className="flex-1 flex-row items-center rounded-2xl px-4 py-2 mr-3 border"
+            style={{
+              backgroundColor: isDark
+                ? colors.slate[800]
+                : colors.slate[100],
+              borderColor: palette.border,
+            }}
+          >
             <TextInput
               placeholder="Send a message..."
-              className="flex-1 text-sm text-slate-800 max-h-24"
-              placeholderTextColor={colors.slate[400]}
+              className="flex-1 text-sm max-h-24"
+              style={{ color: palette.text }}
+              placeholderTextColor={palette.placeholder}
               value={text}
               onChangeText={setText}
               multiline
@@ -377,9 +441,15 @@ export default function Conversation() {
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Send message"
-            className={`h-11 w-11 rounded-full items-center justify-center ${
-              text.trim() || selectedImage ? "bg-blue-600" : "bg-slate-200"
-            }`}
+            className="h-11 w-11 rounded-full items-center justify-center"
+            style={{
+              backgroundColor:
+                text.trim() || selectedImage
+                  ? palette.primary
+                  : isDark
+                  ? colors.slate[800]
+                  : colors.slate[200],
+            }}
           >
             {sending ? (
               <ActivityIndicator size="small" color={colors.white} />
@@ -387,7 +457,11 @@ export default function Conversation() {
               <Ionicons
                 name="send"
                 size={18}
-                color={text.trim() || selectedImage ? colors.white : colors.slate[400]}
+                color={
+                  text.trim() || selectedImage
+                    ? colors.white
+                    : palette.muted
+                }
                 style={{ marginLeft: 2 }}
               />
             )}

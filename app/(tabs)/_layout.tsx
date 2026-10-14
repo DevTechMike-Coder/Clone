@@ -4,19 +4,38 @@ import { View, Image } from "react-native";
 import { clsx } from "clsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import AuthSplash from "@/components/AuthSplash";
 import { colors } from "@/constants/theme";
 
-const TabIcon = ({ focused, icon }: TabIconProps) => {
+interface TabIconProps {
+  focused: boolean;
+  icon: any;
+  isDark: boolean;
+}
+
+const TabIcon = ({ focused, icon, isDark }: TabIconProps) => {
   return (
     <View>
       {/* Pill highlight only wraps the icon */}
-      <View className={clsx("tab-pill", focused && "tabs-active")}>
+      <View
+        className={clsx(
+          "tab-pill",
+          focused && "tabs-active",
+          !focused && isDark && "bg-slate-800/40"
+        )}
+      >
         <Image
           source={icon}
           resizeMode="contain"
           className="w-8 h-8"
-          style={{ tintColor: focused ? colors.white : colors.slate[500] }}
+          style={{
+            tintColor: focused
+              ? colors.white
+              : isDark
+              ? colors.slate[400]
+              : colors.slate[500],
+          }}
         />
       </View>
     </View>
@@ -25,6 +44,7 @@ const TabIcon = ({ focused, icon }: TabIconProps) => {
 
 export default function TabLayout() {
   const { session, loading } = useAuth();
+  const { isDark, palette } = useTheme();
   const insets = useSafeAreaInsets();
 
   if (loading) {
@@ -47,12 +67,12 @@ export default function TabLayout() {
           marginHorizontal: 20,
           borderRadius: 20,
           borderTopWidth: 1,
-          borderColor: colors.slate[200],
-          backgroundColor: colors.white,
+          borderColor: palette.border,
+          backgroundColor: palette.surface,
           elevation: 6,
-          shadowColor: colors.slate[900],
+          shadowColor: isDark ? "#000000" : colors.slate[900],
           shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.08,
+          shadowOpacity: isDark ? 0.35 : 0.08,
           shadowRadius: 18,
         },
         tabBarItemStyle: {
@@ -74,7 +94,7 @@ export default function TabLayout() {
             title: tab.title,
             tabBarAccessibilityLabel: tab.title,
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} icon={tab.icon} />
+              <TabIcon focused={focused} icon={tab.icon} isDark={isDark} />
             ),
           }}
         />

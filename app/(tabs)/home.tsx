@@ -18,11 +18,14 @@ import IndexVideoFeed from "@/components/IndexVideoFeed";
 import { Post } from "@/services/postService";
 import { bookmarkService } from "@/services/bookmarkService";
 import { shareService } from "@/services/shareService";
+import { useTheme } from "@/context/ThemeContext";
+import { colors } from "@/constants/theme";
 import Toast from "react-native-toast-message";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 export default function Index() {
+  const { isDark, palette } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const navigation = useNavigation();
@@ -41,11 +44,17 @@ export default function Index() {
             height: 70,
             marginHorizontal: 20,
             borderRadius: 20,
-            borderTopWidth: 0,
-            elevation: 0,
+            borderTopWidth: 1,
+            borderColor: palette.border,
+            backgroundColor: palette.surface,
+            elevation: 6,
+            shadowColor: isDark ? "#000000" : colors.slate[900],
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isDark ? 0.35 : 0.08,
+            shadowRadius: 18,
           },
     });
-  }, [isMenuOpen, navigation, insets]);
+  }, [isMenuOpen, navigation, insets, palette, isDark]);
 
   const openMenu = (post: Post) => {
     setSelectedPost(post);
@@ -68,12 +77,12 @@ export default function Index() {
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 300,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -84,45 +93,70 @@ export default function Index() {
 
   const handleMenuBookmark = async () => {
     if (!selectedPost) return;
-    closeMenu();
     try {
       const res = await bookmarkService.toggleBookmark(selectedPost.id);
+      setSelectedPost((prev) =>
+        prev ? { ...prev, is_bookmarked: res.bookmarked } : null
+      );
       Toast.show({
         type: "success",
-        text1: res.bookmarked ? "Saved!" : "Removed Bookmark",
-        text2: res.bookmarked ? "Post saved to your bookmarks." : "Bookmark removed.",
-        visibilityTime: 2000,
+        text1: res.bookmarked ? "Post Bookmarked" : "Bookmark Removed",
+        text2: res.bookmarked
+          ? "Post saved to your profile"
+          : "Post removed from saved",
       });
-    } catch (error: any) {
+    } catch {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: error.message || "Failed to update bookmark",
+        text2: "Failed to update bookmark",
       });
+    } finally {
+      closeMenu();
     }
   };
 
   const handleMenuShare = async () => {
     if (!selectedPost) return;
-    closeMenu();
-    await shareService.sharePost(selectedPost);
+    try {
+      await shareService.sharePost(selectedPost);
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to share post",
+      });
+    } finally {
+      closeMenu();
+    }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 p-5">
-      <View className="flex-row items-center justify-between">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: palette.background }}
+    >
+      {/* Top Header Bar */}
+      <View
+        className="flex-row items-center justify-between px-5 pt-2 pb-1 border-b"
+        style={{ borderColor: palette.borderSubtle }}
+      >
         <TouchableOpacity
-          onPress={() => router.push("/createNew")}
+          onPress={() => router.push("/(pages)/createNew")}
           accessibilityRole="button"
-          accessibilityLabel="Create post"
+          accessibilityLabel="Create Post"
         >
           <Image
             source={require("@/assets/homeIcons/plus.png")}
             className="w-9 h-9 object-contain"
+            style={{ tintColor: isDark ? palette.text : undefined }}
           />
         </TouchableOpacity>
 
-        <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
+        <Text
+          className="text-xl font-bold uppercase tracking-tighter"
+          style={{ color: palette.primary }}
+        >
           Clone
         </Text>
 
@@ -134,6 +168,7 @@ export default function Index() {
           <Image
             source={require("@/assets/homeIcons/alarm.png")}
             className="w-9 h-9 object-contain"
+            style={{ tintColor: isDark ? palette.text : undefined }}
           />
         </TouchableOpacity>
       </View>
@@ -147,7 +182,7 @@ export default function Index() {
             StyleSheet.absoluteFill,
             {
               zIndex: 50,
-              backgroundColor: "rgba(15,23,42,0.28)",
+              backgroundColor: palette.overlay,
               justifyContent: "flex-end",
             },
           ]}
@@ -158,14 +193,23 @@ export default function Index() {
             onPress={closeMenu}
           />
           <Animated.View
-            className="bg-white rounded-t-3xl border border-slate-100 p-6 pb-12"
+            className="rounded-t-3xl border p-6 pb-12"
             style={{
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             }}
           >
             <View className="items-center mb-4">
-              <View className="w-12 h-1 bg-slate-300 rounded-full" />
+              <View
+                className="w-12 h-1 rounded-full"
+                style={{
+                  backgroundColor: isDark
+                    ? colors.slate[700]
+                    : colors.slate[300],
+                }}
+              />
             </View>
             <View className="flex-col gap-6 mt-2">
               <TouchableOpacity
@@ -184,8 +228,12 @@ export default function Index() {
                   source={require("@/assets/homeIcons/profilePlus.png")}
                   className="w-6 h-6"
                   resizeMode="contain"
+                  style={{ tintColor: palette.text }}
                 />
-                <Text className="text-lg font-medium text-slate-800">
+                <Text
+                  className="text-lg font-medium"
+                  style={{ color: palette.text }}
+                >
                   View Profile
                 </Text>
               </TouchableOpacity>
@@ -198,9 +246,15 @@ export default function Index() {
                   source={require("@/assets/homeIcons/bookmark.png")}
                   className="w-6 h-6"
                   resizeMode="contain"
+                  style={{ tintColor: palette.text }}
                 />
-                <Text className="text-lg font-medium text-slate-800">
-                  {selectedPost?.is_bookmarked ? "Remove Bookmark" : "Bookmark Post"}
+                <Text
+                  className="text-lg font-medium"
+                  style={{ color: palette.text }}
+                >
+                  {selectedPost?.is_bookmarked
+                    ? "Remove Bookmark"
+                    : "Bookmark Post"}
                 </Text>
               </TouchableOpacity>
 
@@ -212,8 +266,12 @@ export default function Index() {
                   source={require("@/assets/homeIcons/share.png")}
                   className="w-6 h-6"
                   resizeMode="contain"
+                  style={{ tintColor: palette.text }}
                 />
-                <Text className="text-lg font-medium text-slate-800">
+                <Text
+                  className="text-lg font-medium"
+                  style={{ color: palette.text }}
+                >
                   Share Post
                 </Text>
               </TouchableOpacity>
@@ -226,8 +284,12 @@ export default function Index() {
                   source={require("@/assets/homeIcons/dislike.png")}
                   className="w-6 h-6"
                   resizeMode="contain"
+                  style={{ tintColor: palette.text }}
                 />
-                <Text className="text-lg font-medium text-slate-800">
+                <Text
+                  className="text-lg font-medium"
+                  style={{ color: palette.text }}
+                >
                   Not Interested
                 </Text>
               </TouchableOpacity>
@@ -240,8 +302,14 @@ export default function Index() {
                   source={require("@/assets/homeIcons/warning.png")}
                   className="w-6 h-6"
                   resizeMode="contain"
+                  style={{ tintColor: palette.danger }}
                 />
-                <Text className="text-lg font-medium text-red-500">Report</Text>
+                <Text
+                  className="text-lg font-medium"
+                  style={{ color: palette.danger }}
+                >
+                  Report
+                </Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
