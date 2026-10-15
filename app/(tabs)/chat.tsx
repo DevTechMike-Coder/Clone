@@ -1,30 +1,31 @@
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   RefreshControl,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+
 import {
   ConversationItem,
   chatService,
 } from "@/services/chatService";
 import { formatRelativeTime } from "@/lib/dateUtils";
-import { colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { TextField } from "@/components/ui/TextField";
+import { IconButton } from "@/components/ui/IconButton";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function Chat() {
-  const { isDark, palette } = useTheme();
+  const { palette } = useTheme();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,122 +64,68 @@ export default function Chat() {
   });
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: palette.background }}
-    >
-      {/* --- Header Section --- */}
-      <View
-        className="flex-row items-center justify-between px-5 py-4 border-b"
-        style={{ borderColor: palette.borderSubtle }}
-      >
-        <TouchableOpacity
-          onPress={() => router.push("/(pages)/followpage")}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Find people"
-          className="w-10 h-10 items-center justify-center rounded-full border"
-          style={{
-            backgroundColor: isDark
-              ? colors.blue[950]
-              : colors.blue[50],
-            borderColor: isDark ? colors.blue[900] : colors.blue[100],
-          }}
-        >
-          <Image
-            source={require("@/assets/homeIcons/add-user.png")}
-            className="w-6 h-6"
-            resizeMode="contain"
-            style={{ tintColor: isDark ? palette.primary : undefined }}
+    <Screen>
+      {/* Header */}
+      <ScreenHeader
+        title="Messages"
+        showBack={false}
+        leftAction={
+          <IconButton
+            icon={<Ionicons name="person-add-outline" size={20} color={palette.text} />}
+            accessibilityLabel="Find people"
+            onPress={() => router.push("/(pages)/followpage")}
+            variant="ghost"
           />
-        </TouchableOpacity>
+        }
+        rightAction={
+          <IconButton
+            icon={<Ionicons name="create-outline" size={22} color={palette.text} />}
+            accessibilityLabel="New message"
+            onPress={() => router.push("/(pages)/followpage")}
+            variant="ghost"
+          />
+        }
+        borderBottom
+      />
 
-        <Text
-          className="text-xl font-bold uppercase tracking-tighter"
-          style={{ color: palette.primary }}
-        >
-          Messages
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(pages)/followpage")}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="New message"
-          className="w-10 h-10 items-center justify-center rounded-full"
-          style={{
-            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-          }}
-        >
-          <Ionicons name="create-outline" size={20} color={palette.text} />
-        </TouchableOpacity>
+      {/* Search Bar */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+        <TextField
+          placeholder="Search conversations..."
+          leftIcon={
+            <Ionicons name="search-outline" size={18} color={palette.muted} />
+          }
+          rightIcon={
+            searchText ? (
+              <TouchableOpacity onPress={() => setSearchText("")}>
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
+              </TouchableOpacity>
+            ) : undefined
+          }
+          value={searchText}
+          onChangeText={setSearchText}
+        />
       </View>
 
-      {/* --- Search Bar Section --- */}
-      <View className="px-5 pt-3 pb-2">
-        <View
-          className="flex-row items-center rounded-2xl px-4 py-2.5 border shadow-sm"
-          style={{
-            backgroundColor: palette.surface,
-            borderColor: palette.border,
-          }}
-        >
-          <Ionicons name="search-outline" size={18} color={palette.muted} />
-          <TextInput
-            placeholder="Search conversations..."
-            className="flex-1 ml-3 text-base"
-            style={{ color: palette.text }}
-            placeholderTextColor={palette.placeholder}
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchText("")}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="close-circle" size={18} color={palette.muted} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* --- Main Content Section --- */}
+      {/* Content */}
       {loading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={palette.primary} />
         </View>
       ) : filteredConversations.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="chatbubbles-outline" size={54} color={colors.slate[400]} />
-          <Text
-            className="text-lg font-bold mt-4"
-            style={{ color: palette.text }}
-          >
-            No messages yet
-          </Text>
-          <Text
-            className="text-center text-sm mt-1 mb-6"
-            style={{ color: palette.muted }}
-          >
-            Connect with friends and creators to start chatting!
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/(pages)/followpage")}
-            activeOpacity={0.8}
-            className="px-6 py-3 rounded-full shadow-sm"
-            style={{ backgroundColor: palette.primary }}
-          >
-            <Text className="text-white font-bold text-sm">Discover People</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon="chatbubbles-outline"
+          title="No messages yet"
+          description="Connect with friends and creators to start chatting!"
+          actionTitle="Discover People"
+          onActionPress={() => router.push("/(pages)/followpage")}
+        />
       ) : (
         <FlatList
           data={filteredConversations}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -186,99 +133,95 @@ export default function Chat() {
               tintColor={palette.primary}
             />
           }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() =>
-                router.push({
-                  pathname: "/(pages)/conversation",
-                  params: {
-                    conversationId: item.id,
-                    otherUserId: item.otherUser?.id,
-                  },
-                })
-              }
-              className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl border shadow-sm"
-              style={{
-                backgroundColor: palette.surface,
-                borderColor: palette.border,
-              }}
-            >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-2">
+          renderItem={({ item }) => {
+            const hasUnread = item.unreadCount > 0;
+            return (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(pages)/conversation",
+                    params: {
+                      conversationId: item.id,
+                      otherUserId: item.otherUser?.id,
+                    },
+                  })
+                }
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  marginBottom: 8,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  backgroundColor: palette.surface,
+                }}
+              >
                 <View
-                  className="h-13 w-13 rounded-full overflow-hidden items-center justify-center border"
                   style={{
-                    backgroundColor: isDark
-                      ? colors.slate[800]
-                      : colors.slate[100],
-                    borderColor: palette.border,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flex: 1,
+                    marginRight: 10,
                   }}
                 >
-                  {item.otherUser?.avatar_url ? (
-                    <Image
-                      source={{ uri: item.otherUser.avatar_url }}
-                      className="h-full w-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require("@/assets/homeIcons/profileUser.png")}
-                      className="h-7 w-7"
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
+                  <Avatar
+                    url={item.otherUser?.avatar_url}
+                    name={item.otherUser?.full_name || item.otherUser?.username}
+                    size={48}
+                  />
 
-                <View className="flex-1">
-                  <View className="flex-row items-center justify-between">
-                    <Text
-                      className="text-base font-bold leading-tight"
-                      style={{ color: palette.text }}
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
                     >
-                      {item.otherUser?.full_name || item.otherUser?.username || "Direct Chat"}
-                    </Text>
-                    {item.lastMessage?.created_at && (
                       <Text
-                        className="text-[11px]"
-                        style={{ color: palette.muted }}
+                        variant="body"
+                        weight={hasUnread ? "bold" : "semibold"}
+                        numberOfLines={1}
+                        style={{ flex: 1, marginRight: 8 }}
                       >
-                        {formatRelativeTime(item.lastMessage.created_at)}
+                        {item.otherUser?.full_name ||
+                          item.otherUser?.username ||
+                          "Direct Chat"}
                       </Text>
-                    )}
+                      {item.lastMessage?.created_at && (
+                        <Text variant="micro" color="muted">
+                          {formatRelativeTime(item.lastMessage.created_at)}
+                        </Text>
+                      )}
+                    </View>
+
+                    <Text
+                      variant="caption"
+                      color={hasUnread ? "default" : "muted"}
+                      weight={hasUnread ? "semibold" : "regular"}
+                      numberOfLines={1}
+                      style={{ marginTop: 3 }}
+                    >
+                      {item.lastMessage?.content ||
+                        (item.lastMessage?.media_url
+                          ? "📷 Photo"
+                          : "Tap to start conversation")}
+                    </Text>
                   </View>
-
-                  <Text
-                    className={`text-sm mt-1 leading-4 ${
-                      item.unreadCount > 0 ? "font-bold" : ""
-                    }`}
-                    style={{
-                      color:
-                        item.unreadCount > 0
-                          ? palette.text
-                          : palette.muted,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {item.lastMessage?.content ||
-                      (item.lastMessage?.media_url ? "Photo" : "Tap to start conversation")}
-                  </Text>
                 </View>
-              </View>
 
-              {item.unreadCount > 0 && (
-                <View
-                  className="h-5 min-w-[20px] px-1.5 rounded-full items-center justify-center"
-                  style={{ backgroundColor: palette.primary }}
-                >
-                  <Text className="text-white text-[10px] font-bold">
-                    {item.unreadCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
+                {hasUnread && (
+                  <Badge content={item.unreadCount} variant="primary" size="sm" />
+                )}
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
-    </SafeAreaView>
+    </Screen>
   );
 }

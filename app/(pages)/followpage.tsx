@@ -1,27 +1,29 @@
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   RefreshControl,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { followService, SuggestedUser } from "@/services/followService";
-import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
-import { colors } from "@/constants/theme";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { followService, SuggestedUser } from "@/services/followService";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const FollowPage = () => {
+  const { palette } = useTheme();
   const { user: authUser } = useAuth();
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +56,6 @@ const FollowPage = () => {
 
   const handleToggleFollow = async (user: SuggestedUser) => {
     if (togglingIds[user.id]) return;
-    // getSuggestedUsers() already excludes you, but the button should not
-    // depend on that staying true — a query change would silently reintroduce
-    // a "Follow" button on your own row.
     if (authUser?.id && user.id === authUser.id) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -123,123 +122,131 @@ const FollowPage = () => {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <Screen>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
-          </TouchableOpacity>
-          <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
-            Discover People
-          </Text>
-        </View>
+      <ScreenHeader
+        title="Discover People"
+        showBack
+        onBackPress={() => router.back()}
+        borderBottom
+      />
+
+      {/* Search Input */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+        <TextField
+          placeholder="Search suggested creators..."
+          leftIcon={
+            <Ionicons name="search-outline" size={18} color={palette.muted} />
+          }
+          rightIcon={
+            searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
+              </TouchableOpacity>
+            ) : undefined
+          }
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
 
-      {/* Search Bar */}
-      <View className="px-5 pt-4 pb-2">
-        <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
-          <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
-          <TextInput
-            placeholder="Search suggested creators..."
-            className="flex-1 ml-3 text-base text-slate-800"
-            placeholderTextColor={colors.slate[400]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery("")}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Title */}
-      <View className="px-5 py-3">
-        <Text className="text-sm font-bold uppercase tracking-wider text-slate-400">
+      {/* Section Subheading */}
+      <View style={{ paddingHorizontal: 20, paddingVertical: 8 }}>
+        <Text
+          variant="caption"
+          color="muted"
+          weight="bold"
+          style={{
+            letterSpacing: 1,
+            textTransform: "uppercase",
+          }}
+        >
           Suggested For You
         </Text>
       </View>
 
       {/* Content */}
       {loading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.blue[600]} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={palette.primary} />
         </View>
       ) : filteredUsers.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="people-outline" size={48} color={colors.slate[300]} />
-          <Text className="text-lg font-semibold text-slate-900 mt-4">
-            No suggestions found
-          </Text>
-          <Text className="text-slate-500 text-center mt-2">
-            Try searching for another user or check back later!
-          </Text>
-        </View>
+        <EmptyState
+          icon="people-outline"
+          title="No suggestions found"
+          description={
+            searchQuery
+              ? "No creators match your search query."
+              : "Try checking back later for more recommendations!"
+          }
+        />
       ) : (
         <FlatList
           data={filteredUsers}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.blue[600]}
+              tintColor={palette.primary}
             />
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              activeOpacity={0.85}
+              activeOpacity={0.8}
               onPress={() =>
                 router.push({
                   pathname: "/(pages)/userProfile",
                   params: { userId: item.id },
                 })
               }
-              className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3.5 mb-3 border border-slate-200/70 shadow-sm"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: palette.surface,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                marginBottom: 10,
+                borderWidth: 1,
+                borderColor: palette.border,
+              }}
             >
               {/* Avatar & User Details */}
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="h-13 w-13 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
-                  {item.avatar_url ? (
-                    <Image
-                      source={{ uri: item.avatar_url }}
-                      className="h-full w-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require("@/assets/homeIcons/profileUser.png")}
-                      className="h-8 w-8"
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  flex: 1,
+                  marginRight: 12,
+                }}
+              >
+                <Avatar
+                  url={item.avatar_url}
+                  name={item.full_name || item.username}
+                  size={46}
+                />
 
-                <View className="flex-1">
-                  <Text className="text-base font-bold text-slate-900 leading-tight">
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text variant="body" weight="semibold" numberOfLines={1}>
                     {item.full_name || item.username}
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
+                  <Text
+                    variant="caption"
+                    color="muted"
+                    style={{ marginTop: 2 }}
+                    numberOfLines={1}
+                  >
                     @{item.username} • {item.followers_count} followers
                   </Text>
                   {item.bio ? (
                     <Text
-                      className="text-xs text-slate-500 mt-1"
+                      variant="micro"
+                      color="muted"
+                      style={{ marginTop: 2 }}
                       numberOfLines={1}
                     >
                       {item.bio}
@@ -250,30 +257,19 @@ const FollowPage = () => {
 
               {/* Follow Button */}
               {item.id !== authUser?.id && (
-                <TouchableOpacity
+                <Button
+                  title={item.is_following ? "Following" : "Follow"}
+                  variant={item.is_following ? "outline" : "primary"}
+                  size="sm"
+                  loading={togglingIds[item.id]}
                   onPress={() => handleToggleFollow(item)}
-                  disabled={togglingIds[item.id]}
-                  activeOpacity={0.7}
-                  className={`px-4 py-2 rounded-xl items-center justify-center ${
-                    item.is_following
-                      ? "bg-slate-100 border border-slate-300"
-                      : "bg-blue-600"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold ${
-                      item.is_following ? "text-slate-700" : "text-white"
-                    }`}
-                  >
-                    {item.is_following ? "Following" : "Follow"}
-                  </Text>
-                </TouchableOpacity>
+                />
               )}
             </TouchableOpacity>
           )}
         />
       )}
-    </SafeAreaView>
+    </Screen>
   );
 };
 

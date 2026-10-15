@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Text,
-  TouchableOpacity,
   View,
-  ScrollView,
-  TextInput,
   ActivityIndicator,
   Switch,
   Platform,
@@ -12,20 +8,24 @@ import {
   Modal,
   Dimensions,
   TouchableWithoutFeedback,
-  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
 } from "react-native";
-import { styled } from "nativewind";
 import { router } from "expo-router";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/context/AuthContext";
-import { authService } from "@/services/authService";
-import { colors } from "@/constants/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
-import NotificationModal from "@/components/modal/NotificationModal";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { colors } from "@/constants/theme";
+import { authService } from "@/services/authService";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { TextField } from "@/components/ui/TextField";
+import { Button } from "@/components/ui/Button";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 const STORAGE_SAVED_LOGIN = "@clone_saved_login_info";
 const STORAGE_2FA_ENABLED = "@clone_2fa_enabled";
@@ -34,11 +34,11 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function PasswordSecurity() {
   const { user } = useAuth();
+  const { palette, isDark } = useTheme();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
   const [savedLoginEnabled, setSavedLoginEnabled] = useState(true);
@@ -74,7 +74,6 @@ export default function PasswordSecurity() {
     setNotifyModal((prev) => ({ ...prev, visible: false }));
   };
 
-  // Dynamic keyboard listeners for both Android and iOS
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
@@ -92,7 +91,6 @@ export default function PasswordSecurity() {
     };
   }, []);
 
-  // Load saved preferences
   useEffect(() => {
     (async () => {
       try {
@@ -110,7 +108,6 @@ export default function PasswordSecurity() {
     })();
   }, []);
 
-  // Password validation
   const isLengthValid = newPassword.length >= 6;
   const hasMixedChars = /[0-9]/.test(newPassword) && /[a-zA-Z]/.test(newPassword);
 
@@ -119,11 +116,8 @@ export default function PasswordSecurity() {
     setModalVisible(false);
     setNewPassword("");
     setConfirmPassword("");
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
   };
 
-  // Handle password update
   const handleChangePassword = async () => {
     if (!newPassword) {
       Toast.show({
@@ -172,7 +166,6 @@ export default function PasswordSecurity() {
     }
   };
 
-  // Handle Forgot / Reset Password Email
   const handleSendResetEmail = async () => {
     if (!user?.email) {
       Toast.show({
@@ -205,7 +198,6 @@ export default function PasswordSecurity() {
     }
   };
 
-  // Toggle Saved Login
   const handleToggleSavedLogin = async (val: boolean) => {
     setSavedLoginEnabled(val);
     try {
@@ -222,7 +214,6 @@ export default function PasswordSecurity() {
     }
   };
 
-  // Toggle Two-Factor Authentication
   const handleToggle2FA = async (val: boolean) => {
     setTwoFactorEnabled(val);
     try {
@@ -240,7 +231,6 @@ export default function PasswordSecurity() {
     }
   };
 
-  // Log Out Other Sessions
   const handleSignOutOthers = () => {
     showNotify({
       title: "Log Out Other Sessions?",
@@ -274,7 +264,6 @@ export default function PasswordSecurity() {
     });
   };
 
-  // Run Security Checkup
   const handleRunSecurityCheckup = () => {
     setCheckingSecurity(true);
     setTimeout(() => {
@@ -293,290 +282,461 @@ export default function PasswordSecurity() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-10 h-10 rounded-full items-center justify-center -ml-2 active:bg-slate-100"
+    <Screen
+      scrollable
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <ScreenHeader
+        title="Password and Security"
+        showBack
+        onBackPress={() => router.back()}
+        borderBottom
+      />
+
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+        <Text variant="title">Password and Security</Text>
+        <Text
+          variant="body"
+          color="muted"
+          style={{ marginTop: 6, lineHeight: 22 }}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.slate[800]} />
-        </TouchableOpacity>
-
-        <View className="items-center">
-          <Text className="text-base font-bold text-slate-900 tracking-tight">
-            Password and Security
-          </Text>
-        </View>
-
-        <View className="w-10" />
+          Manage your credentials, login alerts, and multi-factor security
+          controls across Clone.
+        </Text>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Intro */}
-        <View className="px-5 pt-6 pb-4">
-          <Text className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Password and Security
-          </Text>
-          <Text className="text-sm text-slate-500 mt-1.5 leading-relaxed">
-            Manage your credentials, login alerts, and multi-factor security
-            controls across Clone.
-          </Text>
-        </View>
+      {/* Login & Recovery Section */}
+      <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+        <Text
+          variant="caption"
+          weight="bold"
+          color="muted"
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          Login & Recovery
+        </Text>
 
-        {/* Login & Recovery */}
-        <View className="px-5 mt-2">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            Login & Recovery
-          </Text>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm divide-y divide-slate-100 overflow-hidden">
-            {/* Change Password */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setModalVisible(true)}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            overflow: "hidden",
+          }}
+        >
+          {/* Change Password */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setModalVisible(true)}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
             >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
-                  <Ionicons name="key-outline" size={20} color={colors.blue[600]} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-semibold text-slate-900 tracking-tight">
-                    Change password
-                  </Text>
-                  <Text className="text-xs text-slate-500 mt-0.5">
-                    Update your account login password
-                  </Text>
-                </View>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.accent + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="key-outline" size={20} color={palette.accent} />
               </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="body" weight="semibold">
+                  Change password
+                </Text>
+                <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                  Update your account login password
+                </Text>
+              </View>
+            </View>
 
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={palette.muted}
+            />
+          </TouchableOpacity>
+
+          {/* Send Password Reset Link */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleSendResetEmail}
+            disabled={sendingReset}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.warning + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="mail-unread-outline"
+                  size={20}
+                  color={palette.warning}
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="body" weight="semibold">
+                  Send password reset email
+                </Text>
+                <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                  Receive a recovery link at {user?.email}
+                </Text>
+              </View>
+            </View>
+
+            {sendingReset ? (
+              <ActivityIndicator size="small" color={palette.primary} />
+            ) : (
               <Ionicons
                 name="chevron-forward"
                 size={18}
-                color={colors.slate[300]}
+                color={palette.muted}
               />
-            </TouchableOpacity>
+            )}
+          </TouchableOpacity>
 
-            {/* Send Password Reset Link */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleSendResetEmail}
-              disabled={sendingReset}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
+          {/* Two-Factor Authentication */}
+          <View
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
             >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-amber-50 items-center justify-center">
-                  <Ionicons
-                    name="mail-unread-outline"
-                    size={20}
-                    color={colors.amber[500]}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-semibold text-slate-900 tracking-tight">
-                    Send password reset email
-                  </Text>
-                  <Text className="text-xs text-slate-500 mt-0.5">
-                    Receive a recovery link at {user?.email}
-                  </Text>
-                </View>
-              </View>
-
-              {sendingReset ? (
-                <ActivityIndicator size="small" color={colors.blue[600]} />
-              ) : (
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.slate[300]}
-                />
-              )}
-            </TouchableOpacity>
-
-            {/* Two-Factor Authentication */}
-            <View className="p-4 flex-row items-center justify-between">
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center">
-                  <Ionicons
-                    name="shield-checkmark-outline"
-                    size={20}
-                    color={colors.emerald[600]}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-semibold text-slate-900 tracking-tight">
-                    Two-factor authentication
-                  </Text>
-                  <Text className="text-xs text-slate-500 mt-0.5">
-                    Require extra verification on unrecognized devices
-                  </Text>
-                </View>
-              </View>
-
-              <Switch
-                value={twoFactorEnabled}
-                onValueChange={handleToggle2FA}
-                trackColor={{ false: colors.slate[200], true: colors.blue[600] }}
-                thumbColor={colors.white}
-              />
-            </View>
-
-            {/* Saved Login Info */}
-            <View className="p-4 flex-row items-center justify-between">
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-violet-50 items-center justify-center">
-                  <Ionicons
-                    name="save-outline"
-                    size={20}
-                    color={colors.violet[600]}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-semibold text-slate-900 tracking-tight">
-                    Saved login information
-                  </Text>
-                  <Text className="text-xs text-slate-500 mt-0.5">
-                    Remember credentials on this trusted device
-                  </Text>
-                </View>
-              </View>
-
-              <Switch
-                value={savedLoginEnabled}
-                onValueChange={handleToggleSavedLogin}
-                trackColor={{ false: colors.slate[200], true: colors.blue[600] }}
-                thumbColor={colors.white}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Security Checks & Device Activity */}
-        <View className="px-5 mt-6">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            {"Where You're Logged In"}
-          </Text>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 divide-y divide-slate-100">
-            <View className="flex-row items-center gap-3.5 pb-3.5">
-              <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
-                <Ionicons
-                  name={Platform.OS === "ios" ? "logo-apple" : "logo-android"}
-                  size={20}
-                  color={colors.slate[700]}
-                />
-              </View>
-              <View className="flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-sm font-bold text-slate-900">
-                    {Platform.OS === "ios" ? "Apple iPhone" : "Android Device"}
-                  </Text>
-                  <View className="bg-emerald-100 px-2 py-0.5 rounded-full">
-                    <Text className="text-[10px] font-bold text-emerald-800">
-                      Active Now
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-xs text-slate-500 mt-0.5">
-                  Clone Mobile App • Current Session
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleSignOutOthers}
-              disabled={signingOutOthers}
-              className="pt-3 flex-row items-center justify-between"
-            >
-              <Text className="text-xs font-semibold text-red-500">
-                Log out of all other sessions
-              </Text>
-              {signingOutOthers ? (
-                <ActivityIndicator size="small" color={colors.red[500]} />
-              ) : (
-                <Ionicons name="log-out-outline" size={16} color={colors.red[500]} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Security Checkup */}
-        <View className="px-5 mt-6">
-          <View className="flex-row items-center justify-between mb-2.5 px-1">
-            <Text className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Security Status
-            </Text>
-            <TouchableOpacity onPress={handleRunSecurityCheckup} disabled={checkingSecurity}>
-              <Text className="text-xs font-bold text-blue-600">
-                {checkingSecurity ? "Checking..." : "Run Checkup"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 space-y-3">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2.5">
-                <Ionicons
-                  name="checkmark-circle"
-                  size={18}
-                  color={colors.emerald[600]}
-                />
-                <Text className="text-sm text-slate-800 font-medium">
-                  Email Confirmed
-                </Text>
-              </View>
-              <Text className="text-xs text-slate-500">{user?.email}</Text>
-            </View>
-
-            <View className="h-px bg-slate-100 my-1" />
-
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2.5">
-                <Ionicons
-                  name="checkmark-circle"
-                  size={18}
-                  color={colors.emerald[600]}
-                />
-                <Text className="text-sm text-slate-800 font-medium">
-                  Authentication Token
-                </Text>
-              </View>
-              <Text className="text-xs text-emerald-600 font-semibold">
-                Protected via Supabase
-              </Text>
-            </View>
-
-            <View className="h-px bg-slate-100 my-1" />
-
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2.5">
-                <Ionicons
-                  name={twoFactorEnabled ? "checkmark-circle" : "alert-circle"}
-                  size={18}
-                  color={twoFactorEnabled ? colors.emerald[600] : colors.amber[500]}
-                />
-                <Text className="text-sm text-slate-800 font-medium">
-                  Two-Factor Status
-                </Text>
-              </View>
-              <Text
-                className={`text-xs font-semibold ${
-                  twoFactorEnabled ? "text-emerald-600" : "text-amber-600"
-                }`}
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.success + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                {twoFactorEnabled ? "Enabled" : "Off"}
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={20}
+                  color={palette.success}
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="body" weight="semibold">
+                  Two-factor authentication
+                </Text>
+                <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                  Require extra verification on unrecognized devices
+                </Text>
+              </View>
+            </View>
+
+            <Switch
+              value={twoFactorEnabled}
+              onValueChange={handleToggle2FA}
+              trackColor={{ false: palette.border, true: palette.accent }}
+              thumbColor={colors.white}
+            />
+          </View>
+
+          {/* Saved Login Info */}
+          <View
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.surfaceMuted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="save-outline"
+                  size={20}
+                  color={palette.accent}
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="body" weight="semibold">
+                  Saved login information
+                </Text>
+                <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                  Remember credentials on this trusted device
+                </Text>
+              </View>
+            </View>
+
+            <Switch
+              value={savedLoginEnabled}
+              onValueChange={handleToggleSavedLogin}
+              trackColor={{ false: palette.border, true: palette.accent }}
+              thumbColor={colors.white}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Where You're Logged In */}
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <Text
+          variant="caption"
+          weight="bold"
+          color="muted"
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          {"Where You're Logged In"}
+        </Text>
+
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingBottom: 14,
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: palette.surfaceMuted,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name={Platform.OS === "ios" ? "logo-apple" : "logo-android"}
+                size={20}
+                color={palette.text}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text variant="body" weight="bold">
+                  {Platform.OS === "ios" ? "Apple iPhone" : "Android Device"}
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: palette.success + "20",
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Text variant="micro" weight="bold" color="success">
+                    Active Now
+                  </Text>
+                </View>
+              </View>
+              <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                Clone Mobile App • Current Session
               </Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            onPress={handleSignOutOthers}
+            disabled={signingOutOthers}
+            style={{
+              paddingTop: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text variant="caption" weight="semibold" color="danger">
+              Log out of all other sessions
+            </Text>
+            {signingOutOthers ? (
+              <ActivityIndicator size="small" color={palette.danger} />
+            ) : (
+              <Ionicons name="log-out-outline" size={16} color={palette.danger} />
+            )}
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
+
+      {/* Security Status Checkup */}
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          <Text
+            variant="caption"
+            weight="bold"
+            color="muted"
+            style={{
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}
+          >
+            Security Status
+          </Text>
+          <TouchableOpacity onPress={handleRunSecurityCheckup} disabled={checkingSecurity}>
+            <Text variant="caption" weight="bold" color="accent">
+              {checkingSecurity ? "Checking..." : "Run Checkup"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            padding: 16,
+            gap: 12,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Ionicons
+                name="checkmark-circle"
+                size={18}
+                color={palette.success}
+              />
+              <Text variant="caption" weight="medium">
+                Email Confirmed
+              </Text>
+            </View>
+            <Text variant="caption" color="muted">
+              {user?.email}
+            </Text>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: palette.borderSubtle }} />
+
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Ionicons
+                name="checkmark-circle"
+                size={18}
+                color={palette.success}
+              />
+              <Text variant="caption" weight="medium">
+                Authentication Token
+              </Text>
+            </View>
+            <Text variant="caption" weight="semibold" color="success">
+              Protected via Supabase
+            </Text>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: palette.borderSubtle }} />
+
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Ionicons
+                name={twoFactorEnabled ? "checkmark-circle" : "alert-circle"}
+                size={18}
+                color={twoFactorEnabled ? palette.success : palette.warning}
+              />
+              <Text variant="caption" weight="medium">
+                Two-Factor Status
+              </Text>
+            </View>
+            <Text
+              variant="caption"
+              weight="semibold"
+              color={twoFactorEnabled ? "success" : "warning"}
+            >
+              {twoFactorEnabled ? "Enabled" : "Off"}
+            </Text>
+          </View>
+        </View>
+      </View>
 
       {/* Change Password Modal */}
       <Modal
@@ -586,179 +746,134 @@ export default function PasswordSecurity() {
         onRequestClose={handleCloseModal}
         statusBarTranslucent
       >
-        <View style={modalStyles.overlay}>
-          {/* Backdrop Touch to Dismiss */}
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            justifyContent: "flex-end",
+          }}
+        >
           <TouchableWithoutFeedback onPress={handleCloseModal}>
-            <View style={StyleSheet.absoluteFill} />
+            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
           </TouchableWithoutFeedback>
 
           <View
-            style={[
-              modalStyles.sheetContainer,
-              {
-                maxHeight:
-                  keyboardHeight > 0
-                    ? SCREEN_HEIGHT - keyboardHeight - 20
-                    : SCREEN_HEIGHT * 0.85,
-                marginBottom: keyboardHeight,
-              },
-            ]}
+            style={{
+              width: "100%",
+              maxHeight:
+                keyboardHeight > 0
+                  ? SCREEN_HEIGHT - keyboardHeight - 20
+                  : SCREEN_HEIGHT * 0.85,
+              marginBottom: keyboardHeight,
+              backgroundColor: palette.surface,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
           >
-            <View className="bg-white rounded-t-3xl shadow-2xl overflow-hidden">
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                bounces={false}
-                contentContainerStyle={{ padding: 24 }}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ padding: 24 }}
+            >
+              {/* Header */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 16,
+                }}
               >
-                {/* Header Handle */}
-                <View className="items-center pb-2">
-                  <View className="w-12 h-1.5 rounded-full bg-slate-300" />
-                </View>
-
-                {/* Header */}
-                <View className="flex-row items-center justify-between mb-4">
-                  <View className="flex-row items-center gap-2.5">
-                    <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
-                      <Ionicons name="key" size={20} color={colors.blue[600]} />
-                    </View>
-                    <Text className="text-lg font-bold text-slate-900 tracking-tight">
-                      Change Password
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={handleCloseModal}
-                    className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center"
-                  >
-                    <Ionicons name="close" size={18} color={colors.slate[600]} />
-                  </TouchableOpacity>
-                </View>
-
-                <Text className="text-xs text-slate-500 mb-5 leading-relaxed">
-                  Your password must be at least 6 characters and include a mix of
-                  letters and numbers.
-                </Text>
-
-                <View className="gap-3.5 mb-5">
-                  <View>
-                    <Text className="text-xs font-semibold text-slate-700 mb-1">
-                      New Password
-                    </Text>
-                    <View className="border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 flex-row items-center justify-between">
-                      <TextInput
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                        placeholder="Enter new password"
-                        placeholderTextColor={colors.slate[400]}
-                        secureTextEntry={!showNewPassword}
-                        className="flex-1 text-sm text-slate-900 font-medium p-0"
-                      />
-                      <TouchableOpacity
-                        onPress={() => setShowNewPassword(!showNewPassword)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons
-                          name={showNewPassword ? "eye-off-outline" : "eye-outline"}
-                          size={19}
-                          color={colors.slate[400]}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View>
-                    <Text className="text-xs font-semibold text-slate-700 mb-1">
-                      Re-type New Password
-                    </Text>
-                    <View className="border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 flex-row items-center justify-between">
-                      <TextInput
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        placeholder="Confirm new password"
-                        placeholderTextColor={colors.slate[400]}
-                        secureTextEntry={!showConfirmPassword}
-                        className="flex-1 text-sm text-slate-900 font-medium p-0"
-                      />
-                      <TouchableOpacity
-                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons
-                          name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                          size={19}
-                          color={colors.slate[400]}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Requirement Checklist */}
-                <View className="bg-slate-50 rounded-xl p-3.5 mb-6 border border-slate-100 gap-1.5">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons
-                      name={isLengthValid ? "checkmark-circle" : "ellipse-outline"}
-                      size={14}
-                      color={isLengthValid ? colors.emerald[600] : colors.slate[400]}
-                    />
-                    <Text
-                      className={`text-xs ${
-                        isLengthValid ? "text-emerald-700 font-medium" : "text-slate-500"
-                      }`}
-                    >
-                      At least 6 characters
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons
-                      name={hasMixedChars ? "checkmark-circle" : "ellipse-outline"}
-                      size={14}
-                      color={hasMixedChars ? colors.emerald[600] : colors.slate[400]}
-                    />
-                    <Text
-                      className={`text-xs ${
-                        hasMixedChars ? "text-emerald-700 font-medium" : "text-slate-500"
-                      }`}
-                    >
-                      Letters and numbers
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  onPress={handleChangePassword}
-                  disabled={savingPassword || !isLengthValid}
-                  className={`py-3.5 rounded-xl items-center justify-center shadow-sm ${
-                    isLengthValid ? "bg-blue-600 active:bg-blue-700" : "bg-slate-300"
-                  }`}
-                >
-                  {savingPassword ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text className="text-sm font-bold text-white">
-                      Save New Password
-                    </Text>
-                  )}
+                <Text variant="headline">Change Password</Text>
+                <TouchableOpacity onPress={handleCloseModal}>
+                  <Ionicons name="close" size={20} color={palette.muted} />
                 </TouchableOpacity>
-              </ScrollView>
-            </View>
+              </View>
+
+              <Text
+                variant="caption"
+                color="muted"
+                style={{ marginBottom: 18, lineHeight: 18 }}
+              >
+                Your password must be at least 6 characters and include a mix of
+                letters and numbers.
+              </Text>
+
+              <View style={{ gap: 14, marginBottom: 18 }}>
+                <TextField
+                  label="New Password"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  placeholder="Enter new password"
+                  showPasswordToggle
+                  secureTextEntry
+                />
+
+                <TextField
+                  label="Re-type New Password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="Confirm new password"
+                  showPasswordToggle
+                  secureTextEntry
+                />
+              </View>
+
+              {/* Requirement Checklist */}
+              <View
+                style={{
+                  backgroundColor: palette.surfaceMuted,
+                  borderRadius: 14,
+                  padding: 14,
+                  marginBottom: 20,
+                  gap: 8,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons
+                    name={isLengthValid ? "checkmark-circle" : "ellipse-outline"}
+                    size={16}
+                    color={isLengthValid ? palette.success : palette.muted}
+                  />
+                  <Text
+                    variant="caption"
+                    color={isLengthValid ? "success" : "muted"}
+                    weight={isLengthValid ? "medium" : "regular"}
+                  >
+                    At least 6 characters
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons
+                    name={hasMixedChars ? "checkmark-circle" : "ellipse-outline"}
+                    size={16}
+                    color={hasMixedChars ? palette.success : palette.muted}
+                  />
+                  <Text
+                    variant="caption"
+                    color={hasMixedChars ? "success" : "muted"}
+                    weight={hasMixedChars ? "medium" : "regular"}
+                  >
+                    Letters and numbers
+                  </Text>
+                </View>
+              </View>
+
+              <Button
+                title="Save New Password"
+                variant="primary"
+                disabled={savingPassword || !isLengthValid}
+                loading={savingPassword}
+                onPress={handleChangePassword}
+              />
+            </ScrollView>
           </View>
         </View>
       </Modal>
-      {/* Custom Notification / Alert Modal */}
+
       <NotificationModal {...notifyModal} />
-    </SafeAreaView>
+    </Screen>
   );
 }
-
-const modalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "flex-end",
-  },
-  sheetContainer: {
-    width: "100%",
-  },
-});

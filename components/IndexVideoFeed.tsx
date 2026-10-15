@@ -242,7 +242,7 @@ export default function IndexVideoFeed({ onOptionsPress }: IndexVideoFeedProps) 
             style={[
               styles.bannerButton,
               {
-                backgroundColor: isDark ? "#1E293B" : palette.text,
+                backgroundColor: palette.surfaceElevated,
                 borderColor: palette.borderSubtle,
               },
             ]}

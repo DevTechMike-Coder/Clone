@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { MusicTrackItem } from "@/store/pendingPost";
 import { musicService } from "@/services/musicService";
 import { stopAllSounds } from "@/lib/useTrackSound";
+import { useTheme } from "@/context/ThemeContext";
 import { colors } from "@/constants/theme";
 
 const GENRES = [
@@ -52,6 +53,7 @@ export default function MusicPickerModal({
   onClose,
   onSelectTrack,
 }: MusicPickerModalProps) {
+  const { palette } = useTheme();
   const [search, setSearch] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [tracks, setTracks] = useState<MusicTrackItem[]>([]);
@@ -157,23 +159,69 @@ export default function MusicPickerModal({
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={close}>
-      <Pressable className="flex-1 bg-black/60 justify-end" onPress={close}>
+      <Pressable
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          justifyContent: "flex-end",
+        }}
+        onPress={close}
+      >
         <Pressable
-          className="bg-slate-900 rounded-t-[32px] max-h-[85%] p-5 border-t border-slate-800 shadow-2xl"
+          style={{
+            backgroundColor: palette.surface,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            maxHeight: "85%",
+            padding: 20,
+            borderTopWidth: 1,
+            borderColor: palette.border,
+          }}
           onPress={(e) => e.stopPropagation()}
         >
           {/* Sheet Handle */}
-          <View className="items-center mb-3">
-            <View className="w-12 h-1.5 rounded-full bg-slate-700" />
+          <View style={{ alignItems: "center", marginBottom: 12 }}>
+            <View
+              style={{
+                width: 48,
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: palette.border,
+              }}
+            />
           </View>
 
           {/* Header */}
-          <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row items-center gap-2.5">
-              <View className="w-9 h-9 rounded-full bg-blue-600/20 items-center justify-center border border-blue-500/30">
-                <Ionicons name="musical-notes" size={20} color={colors.sky[400]} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 12,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: palette.accent + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="musical-notes" size={20} color={palette.accent} />
               </View>
-              <Text className="text-xl font-bold text-white">Sounds & Music</Text>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: "700",
+                  color: palette.text,
+                }}
+              >
+                Sounds & Music
+              </Text>
             </View>
 
             {selectedTrack && (
@@ -183,22 +231,49 @@ export default function MusicPickerModal({
                   onSelectTrack(null);
                   close();
                 }}
-                className="px-3.5 py-1.5 rounded-full bg-red-500/20 border border-red-500/30 active:opacity-80"
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: palette.danger + "20",
+                  borderWidth: 1,
+                  borderColor: palette.danger + "40",
+                }}
               >
-                <Text className="text-red-400 text-xs font-bold">Remove</Text>
+                <Text style={{ color: palette.danger, fontSize: 12, fontWeight: "700" }}>
+                  Remove
+                </Text>
               </TouchableOpacity>
             )}
           </View>
 
           {/* Search Bar */}
-          <View className="flex-row items-center bg-slate-800 rounded-2xl px-3.5 py-2.5 mb-3 border border-slate-700">
-            <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: palette.surfaceMuted,
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
+            <Ionicons name="search-outline" size={18} color={palette.muted} />
             <TextInput
               placeholder="Search songs, artists, or genres..."
-              placeholderTextColor={colors.slate[500]}
+              placeholderTextColor={palette.placeholder}
               value={search}
               onChangeText={setSearch}
-              className="flex-1 ml-2.5 text-white text-sm"
+              style={{
+                flex: 1,
+                marginLeft: 10,
+                color: palette.text,
+                fontSize: 14,
+                padding: 0,
+              }}
             />
             {search.length > 0 && (
               <TouchableOpacity
@@ -206,13 +281,13 @@ export default function MusicPickerModal({
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
               >
-                <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
               </TouchableOpacity>
             )}
           </View>
 
           {/* Genre & Trending Filter Tabs */}
-          <View className="mb-3">
+          <View style={{ marginBottom: 12 }}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -227,16 +302,25 @@ export default function MusicPickerModal({
                       Haptics.selectionAsync();
                       setSelectedGenre(g.id);
                     }}
-                    className={`px-3.5 py-1.5 rounded-full border ${
-                      active
-                        ? "bg-blue-600 border-blue-500"
-                        : "bg-slate-800 border-slate-700"
-                    }`}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      borderRadius: 20,
+                      backgroundColor: active
+                        ? palette.primary
+                        : palette.surfaceMuted,
+                      borderWidth: 1,
+                      borderColor: active
+                        ? palette.primary
+                        : palette.border,
+                    }}
                   >
                     <Text
-                      className={`text-xs font-bold ${
-                        active ? "text-white" : "text-slate-400"
-                      }`}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: active ? colors.white : palette.muted,
+                      }}
                     >
                       {g.label}
                     </Text>
@@ -247,49 +331,112 @@ export default function MusicPickerModal({
           </View>
 
           {/* Volume Control Bar */}
-          <View className="flex-row items-center gap-3 mb-3 bg-slate-800/80 rounded-2xl px-3 py-2 border border-slate-700">
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 12,
+              backgroundColor: palette.surfaceMuted,
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
             <TouchableOpacity
               onPress={() => changeVolume(-0.25)}
               accessibilityRole="button"
               accessibilityLabel="Decrease volume"
-              className="w-7 h-7 rounded-full bg-slate-700 items-center justify-center active:opacity-80"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: palette.border,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Ionicons name="remove" size={14} color="white" />
+              <Ionicons name="remove" size={14} color={palette.text} />
             </TouchableOpacity>
-            <Ionicons name="volume-medium" size={16} color={colors.slate[400]} />
-            <View className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
+            <Ionicons name="volume-medium" size={16} color={palette.muted} />
+            <View
+              style={{
+                flex: 1,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: palette.border,
+                overflow: "hidden",
+              }}
+            >
               <View
-                className="h-full bg-blue-500 rounded-full"
-                style={{ width: `${Math.round((player.volume || 1) * 100)}%` }}
+                style={{
+                  height: "100%",
+                  backgroundColor: palette.primary,
+                  borderRadius: 3,
+                  width: `${Math.round((player.volume || 1) * 100)}%`,
+                }}
               />
             </View>
-            <Text className="text-xs font-bold text-slate-300 w-9 text-right">
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                color: palette.text,
+                width: 36,
+                textAlign: "right",
+              }}
+            >
               {Math.round((player.volume || 1) * 100)}%
             </Text>
             <TouchableOpacity
               onPress={() => changeVolume(0.25)}
               accessibilityRole="button"
               accessibilityLabel="Increase volume"
-              className="w-7 h-7 rounded-full bg-slate-700 items-center justify-center active:opacity-80"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: palette.border,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Ionicons name="add" size={14} color="white" />
+              <Ionicons name="add" size={14} color={palette.text} />
             </TouchableOpacity>
           </View>
 
           {/* Now Playing Strip */}
           {playingId ? (
-            <View className="flex-row items-center justify-between mb-2 bg-blue-600/20 border border-blue-500/40 rounded-2xl px-3.5 py-2">
-              <View className="flex-row items-center gap-2 flex-1 mr-2">
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+                backgroundColor: palette.accent + "1A",
+                borderWidth: 1,
+                borderColor: palette.accent + "40",
+                borderRadius: 16,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}>
                 {status.isBuffering && !status.playing ? (
-                  <ActivityIndicator size="small" color={colors.blue[400]} />
+                  <ActivityIndicator size="small" color={palette.accent} />
                 ) : (
-                  <Ionicons name="musical-notes" size={16} color={colors.blue[400]} />
+                  <Ionicons name="musical-notes" size={16} color={palette.accent} />
                 )}
-                <Text className="text-white text-xs font-bold flex-1" numberOfLines={1}>
+                <Text
+                  style={{ color: palette.text, fontSize: 12, fontWeight: "700", flex: 1 }}
+                  numberOfLines={1}
+                >
                   {tracks.find((t) => t.id === playingId)?.title || "Playing sound..."}
                 </Text>
               </View>
-              <Text className="text-[10px] font-mono text-blue-300 font-bold">
+              <Text style={{ fontSize: 11, fontFamily: "monospace", color: palette.accent, fontWeight: "700" }}>
                 {Math.floor(status.currentTime || 0)}s
               </Text>
             </View>
@@ -297,8 +444,8 @@ export default function MusicPickerModal({
 
           {/* Tracks List */}
           {loading ? (
-            <View className="h-80 items-center justify-center">
-              <ActivityIndicator size="large" color={colors.blue[500]} />
+            <View style={{ height: 300, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator size="large" color={palette.primary} />
             </View>
           ) : (
             <FlatList
@@ -307,9 +454,9 @@ export default function MusicPickerModal({
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 24 }}
               ListEmptyComponent={
-                <View className="py-12 items-center justify-center gap-2">
-                  <Ionicons name="musical-notes-outline" size={40} color={colors.slate[600]} />
-                  <Text className="text-center text-slate-400 text-sm">
+                <View style={{ paddingVertical: 48, alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <Ionicons name="musical-notes-outline" size={40} color={palette.muted} />
+                  <Text style={{ textAlign: "center", color: palette.muted, fontSize: 14 }}>
                     No sounds found in this category.
                   </Text>
                 </View>
@@ -320,62 +467,112 @@ export default function MusicPickerModal({
                 const isBuffering = isPlaying && status.isBuffering && !status.playing;
 
                 return (
-                  <View className="flex-row items-center justify-between py-3 border-b border-slate-800/80">
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: palette.borderSubtle,
+                    }}
+                  >
                     <TouchableOpacity
                       activeOpacity={0.7}
                       onPress={() => togglePreview(item)}
-                      className="flex-row items-center gap-3.5 flex-1 mr-3"
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 14,
+                        flex: 1,
+                        marginRight: 12,
+                      }}
                     >
                       {/* Thumbnail or Play Icon */}
-                      <View className="w-12 h-12 rounded-xl bg-slate-800 overflow-hidden items-center justify-center border border-slate-700 relative">
+                      <View
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          backgroundColor: palette.surfaceMuted,
+                          overflow: "hidden",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderWidth: 1,
+                          borderColor: palette.border,
+                          position: "relative",
+                        }}
+                      >
                         {item.coverUrl ? (
                           <Image
                             source={{ uri: item.coverUrl }}
-                            className="w-full h-full"
+                            style={{ width: "100%", height: "100%" }}
                             contentFit="cover"
                           />
                         ) : null}
 
-                        {/* Dark Tint overlay with Play/Pause button */}
-                        <View className="absolute inset-0 bg-black/40 items-center justify-center">
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: "rgba(0,0,0,0.4)",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
                           {isBuffering ? (
-                            <ActivityIndicator size="small" color="white" />
+                            <ActivityIndicator size="small" color={colors.white} />
                           ) : (
                             <Ionicons
                               name={isPlaying ? "pause" : "play"}
                               size={20}
-                              color="white"
+                              color={colors.white}
                             />
                           )}
                         </View>
                       </View>
 
-                      <View className="flex-1">
+                      <View style={{ flex: 1 }}>
                         <Text
                           numberOfLines={1}
-                          className={`text-sm font-bold leading-tight ${
-                            isSelected ? "text-blue-400" : "text-white"
-                          }`}
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "700",
+                            color: isSelected ? palette.accent : palette.text,
+                          }}
                         >
                           {item.title}
                         </Text>
-                        <Text className="text-xs text-slate-400 mt-0.5" numberOfLines={1}>
+                        <Text
+                          style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}
+                          numberOfLines={1}
+                        >
                           {item.artist}
                           {item.durationSeconds ? ` • ${formatDuration(item.durationSeconds)}` : ""}
                         </Text>
-                        <View className="flex-row flex-wrap items-center gap-x-2 mt-1">
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 4 }}>
                           {item.isTrending && (
-                            <Text className="text-[10px] text-amber-400 font-bold">
+                            <Text style={{ fontSize: 10, color: palette.warning, fontWeight: "700" }}>
                               TRENDING
                             </Text>
                           )}
                           {item.genre && (
-                            <Text className="text-[10px] text-slate-500 uppercase font-semibold">
+                            <Text
+                              style={{
+                                fontSize: 10,
+                                color: palette.muted,
+                                textTransform: "uppercase",
+                                fontWeight: "600",
+                              }}
+                            >
                               {item.genre}
                             </Text>
                           )}
                           {!!item.usageCount && (
-                            <Text className="text-[10px] text-slate-500">
+                            <Text style={{ fontSize: 10, color: palette.muted }}>
                               {item.usageCount} {item.usageCount === 1 ? "post" : "posts"}
                             </Text>
                           )}
@@ -391,16 +588,25 @@ export default function MusicPickerModal({
                         onSelectTrack(item);
                         close();
                       }}
-                      className={`px-4 py-1.5 rounded-full ${
-                        isSelected
-                          ? "bg-blue-600"
-                          : "bg-slate-800 border border-slate-700"
-                      }`}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 6,
+                        borderRadius: 20,
+                        backgroundColor: isSelected
+                          ? palette.primary
+                          : palette.surfaceMuted,
+                        borderWidth: 1,
+                        borderColor: isSelected
+                          ? palette.primary
+                          : palette.border,
+                      }}
                     >
                       <Text
-                        className={`text-xs font-bold ${
-                          isSelected ? "text-white" : "text-slate-300"
-                        }`}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: isSelected ? colors.white : palette.text,
+                        }}
                       >
                         {isSelected ? "Selected" : "Use"}
                       </Text>

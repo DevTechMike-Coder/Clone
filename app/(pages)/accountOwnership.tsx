@@ -1,23 +1,22 @@
 import React, { useState } from "react";
 import {
-  Text,
-  TouchableOpacity,
   View,
-  ScrollView,
-  ActivityIndicator,
   Modal,
-  TextInput,
+  TouchableOpacity,
 } from "react-native";
-import { styled } from "nativewind";
 import { router } from "expo-router";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { authService } from "@/services/authService";
+import { useTheme } from "@/context/ThemeContext";
 import { colors } from "@/constants/theme";
 import Toast from "react-native-toast-message";
-import NotificationModal from "@/components/modal/NotificationModal";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { TextField } from "@/components/ui/TextField";
+import { Button } from "@/components/ui/Button";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 const REASONS = [
   "Just need a break",
@@ -29,6 +28,7 @@ const REASONS = [
 ];
 
 export default function AccountOwnership() {
+  const { palette } = useTheme();
   const [selectedOption, setSelectedOption] = useState<"deactivate" | "delete">(
     "deactivate"
   );
@@ -109,177 +109,266 @@ export default function AccountOwnership() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-10 h-10 rounded-full items-center justify-center -ml-2 active:bg-slate-100"
+    <Screen
+      scrollable
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <ScreenHeader
+        title="Account Ownership"
+        showBack
+        onBackPress={() => router.back()}
+        borderBottom
+      />
+
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+        <Text variant="title">
+          Deactivating or deleting your Clone account
+        </Text>
+        <Text
+          variant="body"
+          color="muted"
+          style={{ marginTop: 6, lineHeight: 22 }}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.slate[800]} />
-        </TouchableOpacity>
-
-        <View className="items-center">
-          <Text className="text-base font-bold text-slate-900 tracking-tight">
-            Account Ownership
-          </Text>
-        </View>
-
-        <View className="w-10" />
+          If you want to take a break from Clone, you can temporarily deactivate
+          your account. If you want to permanently delete your account, let us
+          know.
+        </Text>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Title & Description */}
-        <View className="px-5 pt-6 pb-4">
-          <Text className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Deactivating or deleting your Clone account
-          </Text>
-          <Text className="text-sm text-slate-500 mt-2 leading-relaxed">
-            If you want to take a break from Clone, you can temporarily deactivate
-            your account. If you want to permanently delete your account, let us
-            know.
-          </Text>
-        </View>
-
-        {/* Options */}
-        <View className="px-5 mt-2 gap-4">
-          {/* Deactivate Option */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setSelectedOption("deactivate")}
-            className={`p-5 rounded-2xl border bg-white ${
+      {/* Options Cards */}
+      <View style={{ paddingHorizontal: 20, gap: 14 }}>
+        {/* Deactivate Option */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setSelectedOption("deactivate")}
+          style={{
+            padding: 18,
+            borderRadius: 16,
+            borderWidth: 2,
+            backgroundColor: palette.surface,
+            borderColor:
               selectedOption === "deactivate"
-                ? "border-blue-600 ring-2 ring-blue-100"
-                : "border-slate-200"
-            }`}
-          >
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1 pr-3">
-                <Text className="text-base font-bold text-slate-900">
-                  Deactivate account
-                </Text>
-                <Text className="text-xs font-semibold text-blue-600 uppercase tracking-wider mt-0.5">
-                  Temporary
-                </Text>
-                <Text className="text-xs text-slate-500 mt-2 leading-relaxed">
-                  Deactivating your account means your profile, photos, comments,
-                  and likes will be hidden until you reactivate it by logging back
-                  in.
-                </Text>
-              </View>
+                ? palette.accent
+                : palette.border,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text variant="headline">Deactivate account</Text>
+              <Text
+                variant="micro"
+                weight="bold"
+                color="accent"
+                style={{ textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}
+              >
+                Temporary
+              </Text>
+              <Text
+                variant="caption"
+                color="muted"
+                style={{ marginTop: 8, lineHeight: 18 }}
+              >
+                Deactivating your account means your profile, photos, comments,
+                and likes will be hidden until you reactivate it by logging back
+                in.
+              </Text>
+            </View>
 
-              <View
-                className={`w-6 h-6 rounded-full border items-center justify-center mt-1 ${
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                borderWidth: 2,
+                borderColor:
                   selectedOption === "deactivate"
-                    ? "border-blue-600 bg-blue-600"
-                    : "border-slate-300 bg-white"
-                }`}
-              >
-                {selectedOption === "deactivate" && (
-                  <View className="w-2.5 h-2.5 rounded-full bg-white" />
-                )}
-              </View>
+                    ? palette.accent
+                    : palette.border,
+                backgroundColor:
+                  selectedOption === "deactivate"
+                    ? palette.accent
+                    : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 2,
+              }}
+            >
+              {selectedOption === "deactivate" && (
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.white,
+                  }}
+                />
+              )}
             </View>
-          </TouchableOpacity>
-
-          {/* Delete Option */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setSelectedOption("delete")}
-            className={`p-5 rounded-2xl border bg-white ${
-              selectedOption === "delete"
-                ? "border-red-500 ring-2 ring-red-100"
-                : "border-slate-200"
-            }`}
-          >
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1 pr-3">
-                <Text className="text-base font-bold text-slate-900">
-                  Delete account
-                </Text>
-                <Text className="text-xs font-semibold text-red-500 uppercase tracking-wider mt-0.5">
-                  Permanent
-                </Text>
-                <Text className="text-xs text-slate-500 mt-2 leading-relaxed">
-                  When you delete your Clone account, your profile, photos,
-                  videos, comments, likes, and followers will be permanently
-                  removed.
-                </Text>
-              </View>
-
-              <View
-                className={`w-6 h-6 rounded-full border items-center justify-center mt-1 ${
-                  selectedOption === "delete"
-                    ? "border-red-500 bg-red-500"
-                    : "border-slate-300 bg-white"
-                }`}
-              >
-                {selectedOption === "delete" && (
-                  <View className="w-2.5 h-2.5 rounded-full bg-white" />
-                )}
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Reason Selector */}
-        <View className="px-5 mt-6">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            Why are you {selectedOption === "deactivate" ? "deactivating" : "deleting"}?
-          </Text>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm divide-y divide-slate-100 overflow-hidden">
-            {REASONS.map((reason) => {
-              const isSelected = selectedReason === reason;
-              return (
-                <TouchableOpacity
-                  key={reason}
-                  activeOpacity={0.7}
-                  onPress={() => setSelectedReason(reason)}
-                  className="p-3.5 flex-row items-center justify-between"
-                >
-                  <Text
-                    className={`text-sm ${
-                      isSelected ? "font-bold text-slate-900" : "text-slate-600"
-                    }`}
-                  >
-                    {reason}
-                  </Text>
-                  <View
-                    className={`w-5 h-5 rounded-full border items-center justify-center ${
-                      isSelected ? "border-blue-600 bg-blue-600" : "border-slate-300"
-                    }`}
-                  >
-                    {isSelected && (
-                      <View className="w-2 h-2 rounded-full bg-white" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Continue Action */}
-        <View className="px-5 mt-8">
-          <TouchableOpacity
-            onPress={handleOpenConfirm}
-            className={`py-4 rounded-xl items-center justify-center shadow-sm ${
-              selectedOption === "delete" ? "bg-red-500" : "bg-blue-600"
-            }`}
-          >
-            <Text className="text-base font-bold text-white">
-              Continue
-            </Text>
-          </TouchableOpacity>
+        {/* Delete Option */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setSelectedOption("delete")}
+          style={{
+            padding: 18,
+            borderRadius: 16,
+            borderWidth: 2,
+            backgroundColor: palette.surface,
+            borderColor:
+              selectedOption === "delete"
+                ? palette.danger
+                : palette.border,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text variant="headline">Delete account</Text>
+              <Text
+                variant="micro"
+                weight="bold"
+                color="danger"
+                style={{ textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}
+              >
+                Permanent
+              </Text>
+              <Text
+                variant="caption"
+                color="muted"
+                style={{ marginTop: 8, lineHeight: 18 }}
+              >
+                When you delete your Clone account, your profile, photos,
+                videos, comments, likes, and followers will be permanently
+                removed.
+              </Text>
+            </View>
+
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                borderWidth: 2,
+                borderColor:
+                  selectedOption === "delete"
+                    ? palette.danger
+                    : palette.border,
+                backgroundColor:
+                  selectedOption === "delete"
+                    ? palette.danger
+                    : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 2,
+              }}
+            >
+              {selectedOption === "delete" && (
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.white,
+                  }}
+                />
+              )}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Reason Selector */}
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <Text
+          variant="caption"
+          weight="bold"
+          color="muted"
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          Why are you {selectedOption === "deactivate" ? "deactivating" : "deleting"}?
+        </Text>
+
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            overflow: "hidden",
+          }}
+        >
+          {REASONS.map((reason, index) => {
+            const isSelected = selectedReason === reason;
+            const isLast = index === REASONS.length - 1;
+            return (
+              <TouchableOpacity
+                key={reason}
+                activeOpacity={0.7}
+                onPress={() => setSelectedReason(reason)}
+                style={{
+                  padding: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderBottomWidth: isLast ? 0 : 1,
+                  borderBottomColor: palette.borderSubtle,
+                }}
+              >
+                <Text
+                  variant="body"
+                  weight={isSelected ? "bold" : "regular"}
+                  color={isSelected ? "default" : "muted"}
+                >
+                  {reason}
+                </Text>
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    borderWidth: 2,
+                    borderColor: isSelected
+                      ? palette.accent
+                      : palette.border,
+                    backgroundColor: isSelected
+                      ? palette.accent
+                      : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {isSelected && (
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: colors.white,
+                      }}
+                    />
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </ScrollView>
+      </View>
+
+      {/* Continue Action */}
+      <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <Button
+          title="Continue"
+          variant={selectedOption === "delete" ? "danger" : "primary"}
+          size="lg"
+          onPress={handleOpenConfirm}
+        />
+      </View>
 
       {/* Confirmation & Password Challenge Modal */}
       <Modal
@@ -288,94 +377,86 @@ export default function AccountOwnership() {
         animationType="slide"
         onRequestClose={() => setConfirmModalVisible(false)}
       >
-        <View className="flex-1 bg-black/60 items-center justify-end">
-          <View className="bg-white rounded-t-3xl p-6 w-full shadow-2xl">
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-2.5">
-                <View
-                  className={`w-10 h-10 rounded-xl items-center justify-center ${
-                    selectedOption === "delete" ? "bg-red-50" : "bg-blue-50"
-                  }`}
-                >
-                  <Ionicons
-                    name={
-                      selectedOption === "delete"
-                        ? "warning-outline"
-                        : "pause-circle-outline"
-                    }
-                    size={20}
-                    color={
-                      selectedOption === "delete" ? colors.red[500] : colors.blue[600]
-                    }
-                  />
-                </View>
-                <Text className="text-lg font-bold text-slate-900 tracking-tight">
-                  {selectedOption === "delete"
-                    ? "Confirm Account Deletion"
-                    : "Confirm Deactivation"}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={() => setConfirmModalVisible(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center"
-              >
-                <Ionicons name="close" size={18} color={colors.slate[600]} />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            alignItems: "center",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              padding: 24,
+              width: "100%",
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <Text variant="headline">
+                {selectedOption === "delete"
+                  ? "Confirm Account Deletion"
+                  : "Confirm Deactivation"}
+              </Text>
+              <TouchableOpacity onPress={() => setConfirmModalVisible(false)}>
+                <Ionicons name="close" size={20} color={palette.muted} />
               </TouchableOpacity>
             </View>
 
-            <Text className="text-xs text-slate-500 mb-4 leading-relaxed">
+            <Text
+              variant="caption"
+              color="muted"
+              style={{ marginBottom: 16, lineHeight: 18 }}
+            >
               {selectedOption === "delete"
                 ? "For your security, please confirm your intent to permanently delete your account. This action cannot be reversed."
                 : "Your profile will be hidden immediately and reactivated the next time you sign in with your credentials."}
             </Text>
 
-            <View className="mb-6">
-              <Text className="text-xs font-semibold text-slate-700 mb-1">
-                Confirm your password
-              </Text>
-              <TextInput
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Enter your current password"
-                placeholderTextColor={colors.slate[400]}
-                secureTextEntry
-                className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 bg-slate-50 font-medium"
-              />
-            </View>
+            <TextField
+              label="Confirm your password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Enter your current password"
+              secureTextEntry
+              showPasswordToggle
+              containerStyle={{ marginBottom: 20 }}
+            />
 
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={() => setConfirmModalVisible(false)}
-                disabled={processing}
-                className="flex-1 py-3.5 rounded-xl border border-slate-200 bg-slate-100 items-center justify-center"
-              >
-                <Text className="text-sm font-semibold text-slate-700">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleExecuteAction}
-                disabled={processing}
-                className={`flex-1 py-3.5 rounded-xl items-center justify-center shadow-sm ${
-                  selectedOption === "delete" ? "bg-red-500" : "bg-blue-600"
-                }`}
-              >
-                {processing ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text className="text-sm font-bold text-white">
-                    {selectedOption === "delete" ? "Delete" : "Deactivate"}
-                  </Text>
-                )}
-              </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  disabled={processing}
+                  onPress={() => setConfirmModalVisible(false)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title={selectedOption === "delete" ? "Delete" : "Deactivate"}
+                  variant={selectedOption === "delete" ? "danger" : "primary"}
+                  loading={processing}
+                  onPress={handleExecuteAction}
+                />
+              </View>
             </View>
           </View>
         </View>
       </Modal>
-      {/* Custom Notification Modal */}
+
       <NotificationModal {...notifyModal} />
-    </SafeAreaView>
+    </Screen>
   );
 }

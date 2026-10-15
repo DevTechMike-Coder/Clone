@@ -1,28 +1,28 @@
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   RefreshControl,
   ScrollView,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useCallback, useState } from "react";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+
 import {
   NotificationItem,
   notificationService,
 } from "@/services/notificationService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { formatRelativeTime } from "@/lib/dateUtils";
-import { colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { colors } from "@/constants/theme";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type FilterType =
   | "all"
@@ -34,7 +34,7 @@ type FilterType =
   | "message";
 
 const Inbox = () => {
-  const { isDark, palette } = useTheme();
+  const { palette } = useTheme();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,8 +67,6 @@ const Inbox = () => {
 
   const filteredNotifications = notifications.filter((n) => {
     if (activeFilter === "all") return true;
-    // The expiry reminder is the same subject as the "new story" event, so the
-    // Stories chip shows both rather than hiding one behind a second chip.
     if (activeFilter === "story") {
       return n.type === "story" || n.type === "story_expiring";
     }
@@ -76,112 +74,95 @@ const Inbox = () => {
   });
 
   const renderBadge = (type: NotificationItem["type"]) => {
+    let iconName: keyof typeof Ionicons.glyphMap = "notifications";
+    let bgColor: string = palette.accent;
+
     switch (type) {
       case "like":
-        return (
-          <View className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="heart" size={10} color={colors.white} />
-          </View>
-        );
+        iconName = "heart";
+        bgColor = palette.danger;
+        break;
       case "comment":
-        return (
-          <View className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="chatbubble" size={10} color={colors.white} />
-          </View>
-        );
+        iconName = "chatbubble";
+        bgColor = palette.accent;
+        break;
       case "repost":
-        return (
-          <View className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="repeat" size={10} color={colors.white} />
-          </View>
-        );
+        iconName = "repeat";
+        bgColor = palette.success;
+        break;
       case "follow":
-        return (
-          <View className="absolute -bottom-1 -right-1 bg-purple-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="person" size={10} color={colors.white} />
-          </View>
-        );
+        iconName = "person";
+        bgColor = colors.purple[500];
+        break;
       case "story":
       case "story_expiring":
-        return (
-          <View className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full p-1 border-2 border-white">
-            <Ionicons name="play" size={10} color={colors.white} />
-          </View>
-        );
+        iconName = "play";
+        bgColor = palette.warning;
+        break;
       case "message":
-        return (
-          <View className="absolute -bottom-1 -right-1 bg-sky-400 rounded-full p-1 border-2 border-white">
-            <Ionicons name="send" size={10} color={colors.white} />
-          </View>
-        );
+        iconName = "send";
+        bgColor = palette.primary;
+        break;
       default:
         return null;
     }
+
+    return (
+      <View
+        style={{
+          position: "absolute",
+          bottom: -2,
+          right: -2,
+          backgroundColor: bgColor,
+          borderRadius: 10,
+          padding: 3,
+          borderWidth: 2,
+          borderColor: palette.background,
+        }}
+      >
+        <Ionicons name={iconName} size={10} color={colors.white} />
+      </View>
+    );
   };
 
   const getNotificationText = (item: NotificationItem) => {
     const name = item.profiles?.full_name || item.profiles?.username || "Someone";
+    let actionText = "sent you an update.";
+
     switch (item.type) {
       case "like":
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> liked your post.
-          </Text>
-        );
+        actionText = "liked your post.";
+        break;
       case "comment":
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> commented on your post.
-          </Text>
-        );
+        actionText = "commented on your post.";
+        break;
       case "repost":
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> reposted your post.
-          </Text>
-        );
+        actionText = "reposted your post.";
+        break;
       case "follow":
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> started following you.
-          </Text>
-        );
+        actionText = "started following you.";
+        break;
       case "message":
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> sent you a message.
-          </Text>
-        );
+        actionText = "sent you a message.";
+        break;
       case "story":
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> posted a new story.
-          </Text>
-        );
+        actionText = "posted a new story.";
+        break;
       case "story_expiring":
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text>&apos;s story
-            expires soon.
-          </Text>
-        );
-      default:
-        return (
-          <Text className="text-sm" style={{ color: palette.text }}>
-            <Text className="font-bold" style={{ color: palette.text }}>{name}</Text> sent you an update.
-          </Text>
-        );
+        actionText = "'s story expires soon.";
+        break;
     }
+
+    return (
+      <Text variant="caption" style={{ lineHeight: 18 }}>
+        <Text variant="caption" weight="bold">
+          {name}{" "}
+        </Text>
+        {actionText}
+      </Text>
+    );
   };
 
-  /**
-   * Open what the notification is *about* rather than just the actor's
-   * profile: a like should land on the post, a story alert on the story.
-   *
-   * Falls back to the profile for follows, and for any notification whose
-   * target has since been deleted (posts cascade, and a dead link is worse
-   * than a generic one).
-   */
   const openNotification = (item: NotificationItem) => {
     switch (item.type) {
       case "like":
@@ -235,109 +216,82 @@ const Inbox = () => {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: palette.background }}
-    >
+    <Screen>
       {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-5 py-4 border-b"
-        style={{ borderColor: palette.borderSubtle }}
-      >
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </TouchableOpacity>
-          <Text
-            className="text-xl font-bold uppercase tracking-tighter"
-            style={{ color: palette.primary }}
-          >
-            Activity
-          </Text>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Activity"
+        showBack
+        onBackPress={() => router.back()}
+        borderBottom
+      />
 
       {/* Filter Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="px-5 py-3"
-        contentContainerStyle={{ gap: 8 }}
-      >
-        {(
-          [
-            { key: "all", label: "All" },
-            { key: "like", label: "Likes" },
-            { key: "comment", label: "Comments" },
-            { key: "follow", label: "Follows" },
-            { key: "repost", label: "Reposts" },
-            { key: "story", label: "Stories" },
-            { key: "message", label: "Messages" },
-          ] as { key: FilterType; label: string }[]
-        ).map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => setActiveFilter(tab.key)}
-            activeOpacity={0.7}
-            className={`px-3.5 py-1.5 rounded-full ${
-              activeFilter === tab.key ? "bg-blue-600" : "border"
-            }`}
-            style={
-              activeFilter === tab.key
-                ? undefined
-                : {
-                    backgroundColor: isDark
-                      ? colors.slate[800]
-                      : colors.slate[100],
-                    borderColor: palette.border,
-                  }
-            }
-          >
-            <Text
-              className="text-xs font-semibold"
-              style={{
-                color: activeFilter === tab.key ? colors.white : palette.muted,
-              }}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={{ paddingVertical: 10 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+        >
+          {(
+            [
+              { key: "all", label: "All" },
+              { key: "like", label: "Likes" },
+              { key: "comment", label: "Comments" },
+              { key: "follow", label: "Follows" },
+              { key: "repost", label: "Reposts" },
+              { key: "story", label: "Stories" },
+              { key: "message", label: "Messages" },
+            ] as { key: FilterType; label: string }[]
+          ).map((tab) => {
+            const active = activeFilter === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setActiveFilter(tab.key)}
+                activeOpacity={0.7}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: active
+                    ? palette.primary
+                    : palette.surface,
+                  borderWidth: 1,
+                  borderColor: active
+                    ? palette.primary
+                    : palette.border,
+                }}
+              >
+                <Text
+                  variant="caption"
+                  weight="semibold"
+                  color={active ? "white" : "muted"}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* Content */}
       {loading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={palette.primary} />
         </View>
       ) : filteredNotifications.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="notifications-outline" size={48} color={colors.slate[400]} />
-          <Text
-            className="text-lg font-semibold mt-4"
-            style={{ color: palette.text }}
-          >
-            No activity yet
-          </Text>
-          <Text
-            className="text-center mt-2"
-            style={{ color: palette.muted }}
-          >
-            When people follow you, like or comment on your posts, message you,
-            or post a story, you&apos;ll see it here.
-          </Text>
-        </View>
+        <EmptyState
+          icon="notifications-outline"
+          title="No activity yet"
+          description="When people follow you, like or comment on your posts, message you, or post a story, you'll see it here."
+        />
       ) : (
         <FlatList
           data={filteredNotifications}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -349,55 +303,46 @@ const Inbox = () => {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => openNotification(item)}
-              className="flex-row items-center justify-between p-3.5 mb-2.5 rounded-2xl border"
               style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                marginBottom: 8,
+                borderRadius: 16,
+                borderWidth: 1,
                 backgroundColor: item.is_read
                   ? palette.surface
-                  : isDark
-                  ? colors.blue[950] + "50"
-                  : colors.blue[50] + "80",
-                borderColor: item.is_read
-                  ? palette.border
-                  : isDark
-                  ? colors.blue[900] + "60"
-                  : colors.blue[100],
+                  : palette.surfaceMuted,
+                borderColor: palette.border,
               }}
             >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  flex: 1,
+                  paddingRight: 12,
+                }}
+              >
                 {/* Avatar with Badge */}
-                <View className="relative">
-                  <View
-                    className="h-12 w-12 rounded-full overflow-hidden items-center justify-center border"
-                    style={{
-                      backgroundColor: isDark
-                        ? colors.slate[800]
-                        : colors.slate[100],
-                      borderColor: palette.border,
-                    }}
-                  >
-                    {item.profiles?.avatar_url ? (
-                      <Image
-                        source={{ uri: item.profiles.avatar_url }}
-                        className="h-full w-full"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Image
-                        source={require("@/assets/homeIcons/profileUser.png")}
-                        className="h-7 w-7"
-                        resizeMode="contain"
-                      />
-                    )}
-                  </View>
+                <View style={{ position: "relative" }}>
+                  <Avatar
+                    url={item.profiles?.avatar_url}
+                    name={item.profiles?.full_name || item.profiles?.username}
+                    size={46}
+                  />
                   {renderBadge(item.type)}
                 </View>
 
                 {/* Text Content */}
-                <View className="flex-1">
+                <View style={{ flex: 1, marginLeft: 12 }}>
                   {getNotificationText(item)}
                   <Text
-                    className="text-xs mt-1"
-                    style={{ color: palette.muted }}
+                    variant="micro"
+                    color="muted"
+                    style={{ marginTop: 2 }}
                   >
                     {formatRelativeTime(item.created_at)}
                   </Text>
@@ -407,12 +352,14 @@ const Inbox = () => {
               {/* Optional Post Media Preview */}
               {item.posts?.media_url ? (
                 <View
-                  className="h-11 w-11 rounded-lg overflow-hidden border"
                   style={{
-                    backgroundColor: isDark
-                      ? colors.slate[800]
-                      : colors.slate[100],
+                    width: 44,
+                    height: 44,
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    borderWidth: 1,
                     borderColor: palette.border,
+                    backgroundColor: palette.surfaceMuted,
                   }}
                 >
                   <PostGridThumbnail post={item.posts} />
@@ -424,7 +371,7 @@ const Inbox = () => {
           )}
         />
       )}
-    </SafeAreaView>
+    </Screen>
   );
 };
 

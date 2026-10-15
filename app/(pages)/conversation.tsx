@@ -1,19 +1,20 @@
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
+import Toast from "react-native-toast-message";
+
 import { useAuth } from "@/context/AuthContext";
 import {
   ChatMessage,
@@ -21,16 +22,17 @@ import {
 } from "@/services/chatService";
 import { profileService } from "@/services/profileService";
 import { formatRelativeTime } from "@/lib/dateUtils";
-import * as ImagePicker from "expo-image-picker";
-import * as Haptics from "expo-haptics";
-import Toast from "react-native-toast-message";
-import { colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { colors } from "@/constants/theme";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { IconButton } from "@/components/ui/IconButton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function Conversation() {
-  const { isDark, palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { user: authUser } = useAuth();
   const { conversationId, otherUserId } = useLocalSearchParams<{
     conversationId: string;
@@ -81,7 +83,6 @@ export default function Conversation() {
           return [...prev, newMsg];
         });
 
-        // If incoming message from other user, mark as read
         if (newMsg.sender_id !== authUser?.id) {
           chatService.markMessagesAsRead(conversationId);
         }
@@ -171,31 +172,15 @@ export default function Conversation() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: palette.background }}
-    >
+    <Screen>
       {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-4 py-3 border-b shadow-sm"
-        style={{
-          backgroundColor: palette.surface,
-          borderColor: palette.borderSubtle,
-        }}
-      >
-        <View className="flex-row items-center gap-3 flex-1">
+      <ScreenHeader
+        showBack
+        onBackPress={() => router.back()}
+        title={otherUser?.full_name || otherUser?.username || "Chat"}
+        subtitle={otherUser?.username ? `@${otherUser.username}` : undefined}
+        rightAction={
           <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            className="p-1"
-          >
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
             onPress={() => {
               if (otherUserId) {
                 router.push({
@@ -204,75 +189,27 @@ export default function Conversation() {
                 });
               }
             }}
-            className="flex-row items-center gap-3 flex-1"
+            style={{ padding: 4 }}
           >
-            <View
-              className="h-10 w-10 rounded-full overflow-hidden items-center justify-center border"
-              style={{
-                backgroundColor: isDark
-                  ? colors.slate[800]
-                  : colors.slate[100],
-                borderColor: palette.border,
-              }}
-            >
-              {otherUser?.avatar_url ? (
-                <Image
-                  source={{ uri: otherUser.avatar_url }}
-                  className="h-full w-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <Image
-                  source={require("@/assets/homeIcons/profileUser.png")}
-                  className="h-6 w-6"
-                  resizeMode="contain"
-                />
-              )}
-            </View>
-
-            <View className="flex-1">
-              <Text
-                className="text-base font-bold leading-tight"
-                style={{ color: palette.text }}
-                numberOfLines={1}
-              >
-                {otherUser?.full_name || otherUser?.username || "Chat"}
-              </Text>
-              {otherUser?.username && (
-                <Text className="text-xs" style={{ color: palette.muted }}>
-                  @{otherUser.username}
-                </Text>
-              )}
-            </View>
+            <Avatar
+              url={otherUser?.avatar_url}
+              name={otherUser?.full_name || otherUser?.username}
+              size={34}
+            />
           </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => {
-            if (otherUserId) {
-              router.push({
-                pathname: "/(pages)/userProfile",
-                params: { userId: otherUserId },
-              });
-            }
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Conversation info"
-          className="p-2"
-        >
-          <Ionicons name="information-circle-outline" size={22} color={palette.muted} />
-        </TouchableOpacity>
-      </View>
+        }
+        borderBottom
+      />
 
       {/* Messages List */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.blue[600]} />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator size="large" color={palette.primary} />
           </View>
         ) : (
           <FlatList
@@ -281,55 +218,55 @@ export default function Conversation() {
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: false })
+            }
             ListEmptyComponent={
-              <View className="flex-1 items-center justify-center py-24 px-10">
-                <Ionicons name="chatbubbles-outline" size={48} color={colors.slate[300]} />
-                <Text className="text-base font-semibold text-slate-800 mt-4">
-                  No messages yet
-                </Text>
-                <Text className="text-slate-400 text-center text-xs mt-1">
-                  Send a friendly message or photo to say hello!
-                </Text>
-              </View>
+              <EmptyState
+                icon="chatbubbles-outline"
+                title="No messages yet"
+                description="Send a friendly message or photo to say hello!"
+              />
             }
             renderItem={({ item }) => {
               const isMe = item.sender_id === authUser?.id;
 
               return (
                 <View
-                  className={`mb-3 flex-row ${
-                    isMe ? "justify-end" : "justify-start"
-                  }`}
+                  style={{
+                    marginBottom: 12,
+                    flexDirection: "row",
+                    justifyContent: isMe ? "flex-end" : "flex-start",
+                  }}
                 >
                   <View
-                    className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl ${
-                      isMe
-                        ? "bg-blue-600 rounded-br-none"
-                        : "rounded-bl-none border shadow-sm"
-                    }`}
-                    style={
-                      isMe
-                        ? undefined
-                        : {
-                            backgroundColor: palette.surface,
-                            borderColor: palette.border,
-                          }
-                    }
+                    style={{
+                      maxWidth: "78%",
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      borderRadius: 18,
+                      borderBottomRightRadius: isMe ? 4 : 18,
+                      borderBottomLeftRadius: isMe ? 18 : 4,
+                      backgroundColor: isMe ? palette.primary : palette.surface,
+                      borderWidth: isMe ? 0 : 1,
+                      borderColor: palette.border,
+                    }}
                   >
                     {/* Media Attachment */}
                     {item.media_url ? (
                       <View
-                        className="w-56 h-56 rounded-xl overflow-hidden mb-1.5"
                         style={{
-                          backgroundColor: isDark
-                            ? colors.slate[800]
-                            : colors.slate[100],
+                          width: 220,
+                          height: 220,
+                          borderRadius: 12,
+                          overflow: "hidden",
+                          marginBottom: item.content ? 8 : 4,
+                          backgroundColor: palette.surfaceMuted,
                         }}
                       >
                         <Image
                           source={{ uri: item.media_url }}
-                          className="w-full h-full"
+                          style={{ width: "100%", height: "100%" }}
                           resizeMode="cover"
                         />
                       </View>
@@ -338,19 +275,20 @@ export default function Conversation() {
                     {/* Text content */}
                     {item.content ? (
                       <Text
-                        className="text-sm leading-5"
-                        style={{
-                          color: isMe ? colors.white : palette.text,
-                        }}
+                        variant="body"
+                        color={isMe ? "white" : "default"}
+                        style={{ lineHeight: 20 }}
                       >
                         {item.content}
                       </Text>
                     ) : null}
 
                     <Text
-                      className="text-[10px] mt-1 text-right"
+                      variant="micro"
                       style={{
-                        color: isMe ? colors.blue[100] : palette.muted,
+                        marginTop: 4,
+                        textAlign: "right",
+                        color: isMe ? "rgba(255,255,255,0.7)" : palette.muted,
                       }}
                     >
                       {formatRelativeTime(item.created_at)}
@@ -365,31 +303,50 @@ export default function Conversation() {
         {/* Selected Image Preview (Before Sending) */}
         {selectedImage && (
           <View
-            className="px-4 py-2 border-t flex-row items-center gap-3"
             style={{
-              backgroundColor: palette.surface,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderTopWidth: 1,
               borderColor: palette.borderSubtle,
+              backgroundColor: palette.surface,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
             }}
           >
             <View
-              className="w-16 h-16 rounded-xl overflow-hidden border relative"
-              style={{ borderColor: palette.border }}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 12,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: palette.border,
+                position: "relative",
+              }}
             >
               <Image
                 source={{ uri: selectedImage }}
-                className="w-full h-full"
+                style={{ width: "100%", height: "100%" }}
                 resizeMode="cover"
               />
               <TouchableOpacity
                 onPress={() => setSelectedImage(null)}
                 accessibilityRole="button"
                 accessibilityLabel="Remove selected photo"
-                className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5"
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  right: 3,
+                  backgroundColor: "rgba(0,0,0,0.6)",
+                  borderRadius: 12,
+                  padding: 2,
+                }}
               >
                 <Ionicons name="close" size={14} color={colors.white} />
               </TouchableOpacity>
             </View>
-            <Text className="text-xs flex-1" style={{ color: palette.muted }}>
+            <Text variant="caption" color="muted" style={{ flex: 1 }}>
               Photo ready to send. Add a caption below if you like.
             </Text>
           </View>
@@ -397,36 +354,47 @@ export default function Conversation() {
 
         {/* Input Bar */}
         <View
-          className="flex-row items-center px-4 py-3 border-t"
           style={{
-            backgroundColor: palette.surface,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderTopWidth: 1,
             borderColor: palette.borderSubtle,
+            backgroundColor: palette.surface,
           }}
         >
-          <TouchableOpacity
+          <IconButton
+            icon={<Ionicons name="image-outline" size={24} color={palette.muted} />}
+            accessibilityLabel="Attach photo"
             onPress={handlePickImage}
             disabled={sending}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Attach photo"
-            className="p-2 mr-1"
-          >
-            <Ionicons name="image-outline" size={24} color={palette.muted} />
-          </TouchableOpacity>
+            variant="ghost"
+          />
 
           <View
-            className="flex-1 flex-row items-center rounded-2xl px-4 py-2 mr-3 border"
             style={{
-              backgroundColor: isDark
-                ? colors.slate[800]
-                : colors.slate[100],
+              flex: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              borderRadius: 20,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              marginHorizontal: 8,
+              borderWidth: 1,
               borderColor: palette.border,
+              backgroundColor: palette.background,
             }}
           >
             <TextInput
               placeholder="Send a message..."
-              className="flex-1 text-sm max-h-24"
-              style={{ color: palette.text }}
+              style={{
+                flex: 1,
+                fontSize: 15,
+                color: palette.text,
+                maxHeight: 96,
+                padding: 0,
+              }}
               placeholderTextColor={palette.placeholder}
               value={text}
               onChangeText={setText}
@@ -441,14 +409,16 @@ export default function Conversation() {
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Send message"
-            className="h-11 w-11 rounded-full items-center justify-center"
             style={{
+              height: 42,
+              width: 42,
+              borderRadius: 21,
+              alignItems: "center",
+              justifyContent: "center",
               backgroundColor:
                 text.trim() || selectedImage
                   ? palette.primary
-                  : isDark
-                  ? colors.slate[800]
-                  : colors.slate[200],
+                  : palette.surfaceMuted,
             }}
           >
             {sending ? (
@@ -468,6 +438,6 @@ export default function Conversation() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }

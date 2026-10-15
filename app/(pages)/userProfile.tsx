@@ -1,36 +1,39 @@
-import { styled } from "nativewind";
+import React, { useState, useCallback } from "react";
 import {
-  Image,
-  Text,
   View,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  StyleSheet,
 } from "react-native";
-import {
-  SafeAreaView as RNSafeAreaView,
-} from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from 'expo-web-browser';
+import * as WebBrowser from "expo-web-browser";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import Toast from "react-native-toast-message";
+
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { profileService } from "@/services/profileService";
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { repostService } from "@/services/repostService";
 import { followService, UserStats } from "@/services/followService";
 import { chatService } from "@/services/chatService";
-import { useState, useCallback } from "react";
-import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import Toast from "react-native-toast-message";
-import { colors } from "@/constants/theme";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function UserProfile() {
   const { user: authUser } = useAuth();
+  const { palette } = useTheme();
   const { userId } = useLocalSearchParams<{ userId: string }>();
-  
+
   const isOwnProfile = userId === authUser?.id;
 
   const [profile, setProfile] = useState<any>(null);
@@ -84,7 +87,7 @@ export default function UserProfile() {
     const prevIsFollowing = isFollowing;
     const nextIsFollowing = !prevIsFollowing;
 
-    // 1. Optimistic Update
+    // Optimistic Update
     setIsFollowing(nextIsFollowing);
     setStats((prev) => ({
       ...prev,
@@ -120,55 +123,48 @@ export default function UserProfile() {
     }
   };
 
-  return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      {/* Header Row */}
-      <View className="flex-row items-center justify-between px-5 py-4">
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
-          </TouchableOpacity>
-          <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
-            {isOwnProfile ? "My Profile" : "Profile"}
-          </Text>
-        </View>
-      </View>
+  const tabs: TabItem<"overview" | "repeat">[] = [
+    { key: "overview", label: "Posts", badge: posts.length },
+    { key: "repeat", label: "Reposts", badge: reposts.length },
+  ];
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Avatar */}
-        <View className="flex items-center pt-4">
+  return (
+    <Screen style={{ backgroundColor: palette.background }}>
+      <ScreenHeader
+        title={profile?.username ? `@${profile.username}` : "Profile"}
+        showBack
+        borderBottom
+      />
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* Avatar & Info */}
+        <View style={styles.heroBlock}>
           {loading ? (
-            <ActivityIndicator size="large" color={colors.blue[600]} />
+            <ActivityIndicator size="large" color={palette.accent} style={{ paddingVertical: 24 }} />
           ) : (
             <>
-              <View className="w-24 h-24 rounded-full bg-white items-center justify-center border-2 border-blue-600 overflow-hidden">
-                {profile?.avatar_url ? (
-                  <Image
-                    source={{ uri: profile.avatar_url }}
-                    className="w-full h-full"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Image
-                    source={require("@/assets/homeIcons/profileUser.png")}
-                    className="w-14 h-14"
-                    resizeMode="contain"
-                  />
-                )}
-              </View>
+              <Avatar
+                url={profile?.avatar_url}
+                name={profile?.full_name || profile?.username}
+                size="2xl"
+              />
 
-              <View className="items-center pt-2">
-                <Text className="text-lg font-semibold text-slate-900 tracking-tight">
+              <View style={{ alignItems: "center", marginTop: 12 }}>
+                <Text variant="headline" weight="bold" style={{ color: palette.text }}>
                   {profile?.full_name || "User"}
                 </Text>
                 {profile?.username && (
-                  <Text className="text-sm text-slate-500">
+                  <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
                     @{profile.username}
                   </Text>
+                )}
+                {profile?.is_private && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                    <Ionicons name="lock-closed" size={12} color={palette.muted} />
+                    <Text variant="micro" style={{ color: palette.muted }}>
+                      Private account
+                    </Text>
+                  </View>
                 )}
               </View>
             </>
@@ -176,104 +172,44 @@ export default function UserProfile() {
         </View>
 
         {/* Bio & Social Links */}
-        <View className="p-5 flex-col items-center justify-center">
-          <Text className="text-base text-slate-500">
+        <View style={styles.bioBlock}>
+          <Text variant="body" align="center" style={{ color: palette.muted, lineHeight: 20 }}>
             {profile?.bio || "No bio"}
           </Text>
 
           {profile?.website && (
-            <View className="flex-row items-center gap-2 mt-2">
-              <TouchableOpacity onPress={() => WebBrowser.openBrowserAsync(profile.website.startsWith('http') ? profile.website : `https://${profile.website}`)}>
-                <Text className="text-blue-600 font-medium">
-                  {profile.website.replace(/^https?:\/\//, '')}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={() =>
+                WebBrowser.openBrowserAsync(
+                  profile.website.startsWith("http") ? profile.website : `https://${profile.website}`
+                )
+              }
+              style={{ marginTop: 8 }}
+            >
+              <Text variant="bodyMedium" weight="semibold" style={{ color: palette.accent }}>
+                {profile.website.replace(/^https?:\/\//, "")}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
 
-        {/* Stats Row */}
-        <View className="flex-row items-center justify-center gap-1 py-4">
-          <View className="items-center px-3 py-1">
-            <Text className="text-2xl font-bold text-slate-800">{stats.postsCount}</Text>
-            <Text className="text-sm text-slate-500">Posts</Text>
-          </View>
-
-          <View className="h-5 w-px bg-slate-300" />
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => {
-              if (!userId) return;
-              if (profile?.is_private && !isOwnProfile && !isFollowing) return;
-              router.push({
-                pathname: "/(pages)/followList",
-                params: {
-                  userId,
-                  initialTab: "following",
-                  username: profile?.username || "user",
-                },
-              });
-            }}
-            className="items-center px-3 py-1"
-          >
-            <Text className="text-2xl font-bold text-slate-800">{stats.followingCount}</Text>
-            <Text className="text-sm text-slate-500">Following</Text>
-          </TouchableOpacity>
-
-          <View className="h-5 w-px bg-slate-300" />
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => {
-              if (!userId) return;
-              if (profile?.is_private && !isOwnProfile && !isFollowing) return;
-              router.push({
-                pathname: "/(pages)/followList",
-                params: {
-                  userId,
-                  initialTab: "followers",
-                  username: profile?.username || "user",
-                },
-              });
-            }}
-            className="items-center px-3 py-1"
-          >
-            <Text className="text-2xl font-bold text-slate-800">{stats.followersCount}</Text>
-            <Text className="text-sm text-slate-500">Followers</Text>
-          </TouchableOpacity>
-
-          <View className="h-5 w-px bg-slate-300" />
-
-          <View className="items-center px-3 py-1">
-            <Text className="text-2xl font-bold text-slate-800">{stats.likesCount}</Text>
-            <Text className="text-sm text-slate-500">Likes</Text>
-          </View>
-        </View>
-
-        {/* Action Buttons (Follow/Message) */}
+        {/* Action Buttons (Follow / Message) */}
         {!isOwnProfile && (
-          <View className="flex-row px-5 gap-3 mb-6">
-            <TouchableOpacity
+          <View style={styles.actionsBlock}>
+            <Button
+              title={isFollowing ? "Following" : "Follow"}
+              variant={isFollowing ? "outline" : "primary"}
+              size="md"
+              loading={followLoading}
               onPress={handleToggleFollow}
-              disabled={followLoading}
-              activeOpacity={0.8}
-              className={`flex-1 h-11 rounded-xl items-center justify-center shadow-sm ${
-                isFollowing
-                  ? "bg-slate-100 border border-slate-300"
-                  : "bg-blue-600"
-              }`}
-            >
-              <Text
-                className={`font-bold ${
-                  isFollowing ? "text-slate-800" : "text-white"
-                }`}
-              >
-                {isFollowing ? "Following" : "Follow"}
-              </Text>
-            </TouchableOpacity>
+              style={{ flex: 1 }}
+            />
 
-            <TouchableOpacity
+            <Button
+              title="Message"
+              variant="secondary"
+              size="md"
+              loading={messageLoading}
               onPress={async () => {
                 if (!userId || messageLoading) return;
                 try {
@@ -294,76 +230,108 @@ export default function UserProfile() {
                   setMessageLoading(false);
                 }
               }}
-              disabled={messageLoading}
-              activeOpacity={0.8}
-              className="flex-1 bg-white border border-slate-200 h-11 rounded-xl items-center justify-center shadow-sm"
-            >
-              {messageLoading ? (
-                <ActivityIndicator size="small" color={colors.blue[600]} />
-              ) : (
-                <Text className="text-slate-900 font-bold">Message</Text>
-              )}
-            </TouchableOpacity>
+              style={{ flex: 1 }}
+            />
           </View>
         )}
 
-        {/* Tabs */}
-        <View className="flex-row border-b border-slate-200">
+        {/* Stats Row */}
+        <View style={[styles.statsRow, { borderColor: palette.borderSubtle }]}>
+          <View style={styles.statItem}>
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.postsCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Posts
+            </Text>
+          </View>
+
+          <View style={[styles.statDivider, { backgroundColor: palette.borderSubtle }]} />
+
           <TouchableOpacity
-            onPress={() => setActiveTab("overview")}
-            accessibilityRole="tab"
-            accessibilityLabel="Posts"
-            accessibilityState={{ selected: activeTab === "overview" }}
-            className={`flex-1 items-center py-3 border-b-2 ${
-              activeTab === "overview" ? "border-blue-600" : "border-transparent"
-            }`}
+            activeOpacity={0.7}
+            onPress={() => {
+              if (!userId) return;
+              if (profile?.is_private && !isOwnProfile && !isFollowing) return;
+              router.push({
+                pathname: "/(pages)/followList",
+                params: {
+                  userId,
+                  initialTab: "following",
+                  username: profile?.username || "user",
+                },
+              });
+            }}
+            style={styles.statItem}
           >
-            <Image
-              source={require("@/assets/homeIcons/overview.png")}
-              className="w-5 h-5"
-              resizeMode="contain"
-              style={{
-                tintColor: activeTab === "overview" ? colors.blue[600] : colors.slate[500],
-              }}
-            />
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.followingCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Following
+            </Text>
           </TouchableOpacity>
+
+          <View style={[styles.statDivider, { backgroundColor: palette.borderSubtle }]} />
+
           <TouchableOpacity
-            onPress={() => setActiveTab("repeat")}
-            accessibilityRole="tab"
-            accessibilityLabel="Reposts"
-            accessibilityState={{ selected: activeTab === "repeat" }}
-            className={`flex-1 items-center py-3 border-b-2 ${
-              activeTab === "repeat" ? "border-blue-600" : "border-transparent"
-            }`}
+            activeOpacity={0.7}
+            onPress={() => {
+              if (!userId) return;
+              if (profile?.is_private && !isOwnProfile && !isFollowing) return;
+              router.push({
+                pathname: "/(pages)/followList",
+                params: {
+                  userId,
+                  initialTab: "followers",
+                  username: profile?.username || "user",
+                },
+              });
+            }}
+            style={styles.statItem}
           >
-            <Image
-              source={require("@/assets/homeIcons/repeat.png")}
-              className="w-5 h-5"
-              resizeMode="contain"
-              style={{
-                tintColor: activeTab === "repeat" ? colors.blue[600] : colors.slate[500],
-              }}
-            />
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.followersCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Followers
+            </Text>
           </TouchableOpacity>
+
+          <View style={[styles.statDivider, { backgroundColor: palette.borderSubtle }]} />
+
+          <View style={styles.statItem}>
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.likesCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Likes
+            </Text>
+          </View>
+        </View>
+
+        {/* Segmented Tabs */}
+        <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 12 }}>
+          <SegmentedTabs<"overview" | "repeat">
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab)}
+          />
         </View>
 
         {/* Content Area */}
-        <View className="min-h-[300px]">
+        <View style={{ minHeight: 300 }}>
           {profile?.is_private && !isOwnProfile && !isFollowing ? (
-            <View className="items-center justify-center py-20 px-10">
-              <Ionicons name="lock-closed-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
-                This account is private
-              </Text>
-              <Text className="text-slate-500 text-center mt-2">
-                Follow this account to see their posts.
-              </Text>
-            </View>
+            <EmptyState
+              icon={<Ionicons name="lock-closed-outline" size={44} color={palette.muted} />}
+              title="This account is private"
+              description="Follow this account to see their posts and updates."
+            />
           ) : (
             <>
               {activeTab === "overview" && (
                 posts.length > 0 ? (
-                  <View className="flex-row flex-wrap">
+                  <View style={styles.gridContainer}>
                     {posts.map((post) => (
                       <TouchableOpacity
                         key={post.id}
@@ -374,28 +342,24 @@ export default function UserProfile() {
                             params: { postId: post.id },
                           })
                         }
-                        className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                        style={[styles.gridCell, { borderColor: palette.background }]}
                       >
                         <PostGridThumbnail post={post} />
                       </TouchableOpacity>
                     ))}
                   </View>
                 ) : (
-                  <View className="items-center justify-center py-20 px-10">
-                    <Ionicons name="document-text-outline" size={48} color={colors.slate[300]} />
-                    <Text className="text-lg font-semibold text-slate-900 mt-4">
-                      No posts yet
-                    </Text>
-                    <Text className="text-slate-500 text-center mt-2">
-                      This user hasn&apos;t posted anything yet.
-                    </Text>
-                  </View>
+                  <EmptyState
+                    icon={<Ionicons name="document-text-outline" size={44} color={palette.muted} />}
+                    title="No posts yet"
+                    description="This user hasn't posted anything yet."
+                  />
                 )
               )}
 
               {activeTab === "repeat" && (
                 reposts.length > 0 ? (
-                  <View className="flex-row flex-wrap">
+                  <View style={styles.gridContainer}>
                     {reposts.map((post) => (
                       <TouchableOpacity
                         key={post.id}
@@ -406,28 +370,72 @@ export default function UserProfile() {
                             params: { postId: post.id },
                           })
                         }
-                        className="w-1/3 aspect-square border border-slate-100 bg-slate-100"
+                        style={[styles.gridCell, { borderColor: palette.background }]}
                       >
                         <PostGridThumbnail post={post} />
                       </TouchableOpacity>
                     ))}
                   </View>
                 ) : (
-                  <View className="items-center justify-center py-20 px-10">
-                    <Ionicons name="repeat-outline" size={48} color={colors.slate[300]} />
-                    <Text className="text-lg font-semibold text-slate-900 mt-4">
-                      No reposts yet
-                    </Text>
-                    <Text className="text-slate-500 text-center mt-2">
-                      This user hasn&apos;t reposted anything yet.
-                    </Text>
-                  </View>
+                  <EmptyState
+                    icon={<Ionicons name="repeat-outline" size={44} color={palette.muted} />}
+                    title="No reposts yet"
+                    description="This user hasn't reposted anything yet."
+                  />
                 )
               )}
             </>
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  heroBlock: {
+    alignItems: "center",
+    paddingTop: 16,
+  },
+  bioBlock: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  actionsBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    gap: 12,
+    marginVertical: 12,
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 22,
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  gridCell: {
+    width: "33.333%",
+    aspectRatio: 1,
+    borderWidth: 0.5,
+    position: "relative",
+  },
+});
+

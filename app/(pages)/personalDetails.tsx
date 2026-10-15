@@ -1,29 +1,30 @@
 import React, { useState } from "react";
 import {
-  Text,
-  TouchableOpacity,
   View,
-  ScrollView,
   Modal,
-  TextInput,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
-import { styled } from "nativewind";
 import { router } from "expo-router";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { copyToClipboard } from "@/lib/safeClipboard";
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@/context/AuthContext";
-import { authService } from "@/services/authService";
-import { colors } from "@/constants/theme";
 import Toast from "react-native-toast-message";
-import NotificationModal from "@/components/modal/NotificationModal";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { authService } from "@/services/authService";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { TextField } from "@/components/ui/TextField";
+import { Button } from "@/components/ui/Button";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 export default function PersonalDetails() {
   const { user } = useAuth();
+  const { palette } = useTheme();
+
   const [emailModalVisible, setEmailModalVisible] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [updatingEmail, setUpdatingEmail] = useState(false);
@@ -38,6 +39,7 @@ export default function PersonalDetails() {
   // Birthday state
   const [birthdayModalVisible, setBirthdayModalVisible] = useState(false);
   const [birthday, setBirthday] = useState(user?.user_metadata?.birthday || "");
+  const [savingBirthday, setSavingBirthday] = useState(false);
 
   // Notification Modal State
   const [notifyModal, setNotifyModal] = useState<{
@@ -65,7 +67,6 @@ export default function PersonalDetails() {
   const closeNotify = () => {
     setNotifyModal((prev) => ({ ...prev, visible: false }));
   };
-  const [savingBirthday, setSavingBirthday] = useState(false);
 
   const createdAtFormatted = user?.created_at
     ? new Date(user.created_at).toLocaleDateString("en-US", {
@@ -201,253 +202,433 @@ export default function PersonalDetails() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <Screen
+      scrollable
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-10 h-10 rounded-full items-center justify-center -ml-2 active:bg-slate-100"
+      <ScreenHeader
+        title="Personal Details"
+        showBack
+        onBackPress={() => router.back()}
+        borderBottom
+      />
+
+      {/* Intro */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+        <Text variant="title">Personal Details</Text>
+        <Text
+          variant="body"
+          color="muted"
+          style={{ marginTop: 6, lineHeight: 22 }}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.slate[800]} />
-        </TouchableOpacity>
-
-        <View className="items-center">
-          <Text className="text-base font-bold text-slate-900 tracking-tight">
-            Personal Details
-          </Text>
-        </View>
-
-        <View className="w-10" />
+          Clone uses this information to verify your identity and keep our
+          community safe. You decide which personal info is visible to others.
+        </Text>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Intro */}
-        <View className="px-5 pt-6 pb-4">
-          <Text className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Personal Details
-          </Text>
-          <Text className="text-sm text-slate-500 mt-1.5 leading-relaxed">
-            Clone uses this information to verify your identity and keep our
-            community safe. You decide which personal info is visible to others.
-          </Text>
-        </View>
+      {/* Contact Info Card */}
+      <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+        <Text
+          variant="caption"
+          weight="bold"
+          color="muted"
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          Contact Information
+        </Text>
 
-        {/* Contact Info Card */}
-        <View className="px-5 mt-2">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            Contact Information
-          </Text>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm divide-y divide-slate-100 overflow-hidden">
-            {/* Email Address */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setEmailModalVisible(true)}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            overflow: "hidden",
+          }}
+        >
+          {/* Email Address */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setEmailModalVisible(true)}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
             >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
-                  <Ionicons name="mail-outline" size={20} color={colors.blue[600]} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-slate-400 font-medium">
-                    Email address
-                  </Text>
-                  <Text
-                    className="text-base font-semibold text-slate-900 mt-0.5"
-                    numberOfLines={1}
-                  >
-                    {user?.email || "No email on file"}
-                  </Text>
-                </View>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.accent + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="mail-outline" size={20} color={palette.accent} />
               </View>
-
-              <View className="flex-row items-center gap-1.5">
-                <View className="bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <Text className="text-[10px] font-bold text-emerald-700 uppercase">
-                    Verified
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={colors.slate[300]}
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* Phone Number */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setPhoneModalVisible(true)}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
-            >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
-                  <Ionicons name="call-outline" size={20} color={colors.slate[600]} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-slate-400 font-medium">
-                    Phone number
-                  </Text>
-                  <Text className="text-base font-semibold text-slate-900 mt-0.5">
-                    {phoneNumber || "Add phone number"}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row items-center gap-1.5">
-                <Text className="text-xs font-semibold text-blue-600">
-                  {phoneNumber ? "Edit" : "Add"}
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="micro" color="muted" weight="medium">
+                  Email address
                 </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={colors.slate[300]}
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* Date of Birth */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setBirthdayModalVisible(true)}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
-            >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-pink-50 items-center justify-center">
-                  <Ionicons name="gift-outline" size={20} color={colors.pink[500]} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-slate-400 font-medium">
-                    Birthday
-                  </Text>
-                  <Text className="text-base font-semibold text-slate-900 mt-0.5">
-                    {birthday || "Add your birthday"}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row items-center gap-1.5">
-                <Text className="text-xs font-semibold text-blue-600">
-                  {birthday ? "Edit" : "Add"}
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={colors.slate[300]}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Identity & Account Info */}
-        <View className="px-5 mt-6">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            Account Information
-          </Text>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm divide-y divide-slate-100 overflow-hidden">
-            {/* Member Since */}
-            <View className="p-4 flex-row items-center gap-3.5">
-              <View className="w-10 h-10 rounded-xl bg-amber-50 items-center justify-center">
-                <Ionicons
-                  name="calendar-outline"
-                  size={20}
-                  color={colors.amber[500]}
-                />
-              </View>
-              <View className="flex-1">
-                <Text className="text-xs text-slate-400 font-medium">
-                  Member since
-                </Text>
-                <Text className="text-base font-semibold text-slate-900 mt-0.5">
-                  {createdAtFormatted}
+                <Text
+                  variant="body"
+                  weight="semibold"
+                  style={{ marginTop: 2 }}
+                  numberOfLines={1}
+                >
+                  {user?.email || "No email on file"}
                 </Text>
               </View>
             </View>
 
-            {/* User ID with Copy action */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleCopyAccountId}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
-            >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-violet-50 items-center justify-center">
-                  <Ionicons
-                    name="finger-print-outline"
-                    size={20}
-                    color={colors.violet[600]}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-slate-400 font-medium">
-                    Account ID (tap to copy)
-                  </Text>
-                  <Text
-                    selectable={true}
-                    className="text-xs font-mono text-slate-500 mt-0.5"
-                    numberOfLines={1}
-                  >
-                    {user?.id || "N/A"}
-                  </Text>
-                </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View
+                style={{
+                  backgroundColor: palette.success + "20",
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: palette.success + "40",
+                }}
+              >
+                <Text
+                  variant="micro"
+                  weight="bold"
+                  color="success"
+                  style={{ textTransform: "uppercase" }}
+                >
+                  Verified
+                </Text>
               </View>
-
               <Ionicons
-                name="copy-outline"
-                size={18}
-                color={colors.slate[400]}
+                name="chevron-forward"
+                size={16}
+                color={palette.muted}
               />
-            </TouchableOpacity>
-          </View>
-        </View>
+            </View>
+          </TouchableOpacity>
 
-        {/* Account Ownership and Control Link */}
-        <View className="px-5 mt-6">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            Account Ownership and Control
-          </Text>
-
+          {/* Phone Number */}
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => router.push("/(pages)/accountOwnership")}
-            className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 flex-row items-center justify-between active:bg-slate-50"
+            onPress={() => setPhoneModalVisible(true)}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
           >
-            <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-              <View className="w-10 h-10 rounded-xl bg-red-50 items-center justify-center">
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.surfaceMuted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="call-outline" size={20} color={palette.muted} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="micro" color="muted" weight="medium">
+                  Phone number
+                </Text>
+                <Text variant="body" weight="semibold" style={{ marginTop: 2 }}>
+                  {phoneNumber || "Add phone number"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text variant="caption" weight="semibold" color="accent">
+                {phoneNumber ? "Edit" : "Add"}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={palette.muted}
+              />
+            </View>
+          </TouchableOpacity>
+
+          {/* Date of Birth */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setBirthdayModalVisible(true)}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.accent + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="gift-outline" size={20} color={palette.accent} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="micro" color="muted" weight="medium">
+                  Birthday
+                </Text>
+                <Text variant="body" weight="semibold" style={{ marginTop: 2 }}>
+                  {birthday || "Add your birthday"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text variant="caption" weight="semibold" color="accent">
+                {birthday ? "Edit" : "Add"}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={palette.muted}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Identity & Account Info */}
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <Text
+          variant="caption"
+          weight="bold"
+          color="muted"
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          Account Information
+        </Text>
+
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            overflow: "hidden",
+          }}
+        >
+          {/* Member Since */}
+          <View
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: palette.surfaceMuted,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={palette.muted}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text variant="micro" color="muted" weight="medium">
+                Member since
+              </Text>
+              <Text variant="body" weight="semibold" style={{ marginTop: 2 }}>
+                {createdAtFormatted}
+              </Text>
+            </View>
+          </View>
+
+          {/* User ID */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleCopyAccountId}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.surfaceMuted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 <Ionicons
-                  name="person-remove-outline"
+                  name="finger-print-outline"
                   size={20}
-                  color={colors.red[500]}
+                  color={palette.accent}
                 />
               </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-slate-900 tracking-tight">
-                  Account ownership & control
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="micro" color="muted" weight="medium">
+                  Account ID (tap to copy)
                 </Text>
-                <Text className="text-xs text-slate-500 mt-0.5">
-                  Manage your data, modify legacy contact, or deactivate/delete account.
+                <Text
+                  variant="caption"
+                  color="muted"
+                  style={{ marginTop: 2, fontFamily: "monospace" }}
+                  numberOfLines={1}
+                >
+                  {user?.id || "N/A"}
                 </Text>
               </View>
             </View>
 
             <Ionicons
-              name="chevron-forward"
+              name="copy-outline"
               size={18}
-              color={colors.slate[300]}
+              color={palette.muted}
             />
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
+
+      {/* Account Ownership Link */}
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <Text
+          variant="caption"
+          weight="bold"
+          color="muted"
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          Account Ownership and Control
+        </Text>
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.push("/(pages)/accountOwnership")}
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              flex: 1,
+              paddingRight: 12,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: palette.danger + "1A",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name="person-remove-outline"
+                size={20}
+                color={palette.danger}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text variant="body" weight="semibold">
+                Account ownership & control
+              </Text>
+              <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                Manage your data, modify legacy contact, or deactivate/delete account.
+              </Text>
+            </View>
+          </View>
+
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={palette.muted}
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* Edit Email Modal */}
       <Modal
@@ -456,54 +637,63 @@ export default function PersonalDetails() {
         animationType="fade"
         onRequestClose={() => setEmailModalVisible(false)}
       >
-        <View className="flex-1 bg-black/60 items-center justify-center p-5">
-          <View className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
-            <View className="w-12 h-12 rounded-2xl bg-blue-50 items-center justify-center mb-4">
-              <Ionicons name="mail" size={24} color={colors.blue[600]} />
-            </View>
-
-            <Text className="text-lg font-bold text-slate-900 tracking-tight">
-              Update Email Address
-            </Text>
-            <Text className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: 24,
+              padding: 24,
+              width: "100%",
+              maxWidth: 380,
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
+            <Text variant="headline">Update Email Address</Text>
+            <Text
+              variant="caption"
+              color="muted"
+              style={{ marginTop: 6, marginBottom: 18, lineHeight: 18 }}
+            >
               We will send a confirmation link to your new address to verify
               ownership before updating your account.
             </Text>
 
-            <TextInput
+            <TextField
               value={newEmail}
               onChangeText={setNewEmail}
               placeholder="Enter new email address"
-              placeholderTextColor={colors.slate[400]}
               keyboardType="email-address"
               autoCapitalize="none"
-              className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 bg-slate-50 mb-5 font-medium"
+              autoCorrect={false}
+              containerStyle={{ marginBottom: 20 }}
             />
 
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={() => setEmailModalVisible(false)}
-                disabled={updatingEmail}
-                className="flex-1 py-3 rounded-xl border border-slate-200 items-center justify-center bg-slate-100"
-              >
-                <Text className="text-sm font-semibold text-slate-700">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleUpdateEmail}
-                disabled={updatingEmail}
-                className="flex-1 py-3 rounded-xl bg-blue-600 items-center justify-center shadow-sm"
-              >
-                {updatingEmail ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text className="text-sm font-semibold text-white">
-                    Send Link
-                  </Text>
-                )}
-              </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  disabled={updatingEmail}
+                  onPress={() => setEmailModalVisible(false)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Send Link"
+                  variant="primary"
+                  loading={updatingEmail}
+                  onPress={handleUpdateEmail}
+                />
+              </View>
             </View>
           </View>
         </View>
@@ -516,53 +706,61 @@ export default function PersonalDetails() {
         animationType="fade"
         onRequestClose={() => setPhoneModalVisible(false)}
       >
-        <View className="flex-1 bg-black/60 items-center justify-center p-5">
-          <View className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
-            <View className="w-12 h-12 rounded-2xl bg-slate-100 items-center justify-center mb-4">
-              <Ionicons name="call" size={24} color={colors.slate[700]} />
-            </View>
-
-            <Text className="text-lg font-bold text-slate-900 tracking-tight">
-              Phone Number
-            </Text>
-            <Text className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: 24,
+              padding: 24,
+              width: "100%",
+              maxWidth: 380,
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
+            <Text variant="headline">Phone Number</Text>
+            <Text
+              variant="caption"
+              color="muted"
+              style={{ marginTop: 6, marginBottom: 18, lineHeight: 18 }}
+            >
               Add or update your phone number for two-factor authentication and
               account recovery.
             </Text>
 
-            <TextInput
+            <TextField
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               placeholder="+1 (555) 000-0000"
-              placeholderTextColor={colors.slate[400]}
               keyboardType="phone-pad"
-              className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 bg-slate-50 mb-5 font-medium"
+              containerStyle={{ marginBottom: 20 }}
             />
 
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={() => setPhoneModalVisible(false)}
-                disabled={savingPhone}
-                className="flex-1 py-3 rounded-xl border border-slate-200 items-center justify-center bg-slate-100"
-              >
-                <Text className="text-sm font-semibold text-slate-700">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleSavePhone}
-                disabled={savingPhone}
-                className="flex-1 py-3 rounded-xl bg-blue-600 items-center justify-center shadow-sm"
-              >
-                {savingPhone ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text className="text-sm font-semibold text-white">
-                    Save Phone
-                  </Text>
-                )}
-              </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  disabled={savingPhone}
+                  onPress={() => setPhoneModalVisible(false)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Save Phone"
+                  variant="primary"
+                  loading={savingPhone}
+                  onPress={handleSavePhone}
+                />
+              </View>
             </View>
           </View>
         </View>
@@ -575,58 +773,66 @@ export default function PersonalDetails() {
         animationType="fade"
         onRequestClose={() => setBirthdayModalVisible(false)}
       >
-        <View className="flex-1 bg-black/60 items-center justify-center p-5">
-          <View className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
-            <View className="w-12 h-12 rounded-2xl bg-pink-50 items-center justify-center mb-4">
-              <Ionicons name="gift" size={24} color={colors.pink[500]} />
-            </View>
-
-            <Text className="text-lg font-bold text-slate-900 tracking-tight">
-              Date of Birth
-            </Text>
-            <Text className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderRadius: 24,
+              padding: 24,
+              width: "100%",
+              maxWidth: 380,
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
+            <Text variant="headline">Date of Birth</Text>
+            <Text
+              variant="caption"
+              color="muted"
+              style={{ marginTop: 6, marginBottom: 18, lineHeight: 18 }}
+            >
               Providing your birthday helps make sure you get the right age-appropriate
               {" experience. This won't be made public without your permission."}
             </Text>
 
-            <TextInput
+            <TextField
               value={birthday}
               onChangeText={setBirthday}
               placeholder="e.g. October 15, 1998"
-              placeholderTextColor={colors.slate[400]}
-              className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 bg-slate-50 mb-5 font-medium"
+              containerStyle={{ marginBottom: 20 }}
             />
 
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={() => setBirthdayModalVisible(false)}
-                disabled={savingBirthday}
-                className="flex-1 py-3 rounded-xl border border-slate-200 items-center justify-center bg-slate-100"
-              >
-                <Text className="text-sm font-semibold text-slate-700">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleSaveBirthday}
-                disabled={savingBirthday}
-                className="flex-1 py-3 rounded-xl bg-blue-600 items-center justify-center shadow-sm"
-              >
-                {savingBirthday ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text className="text-sm font-semibold text-white">
-                    Save Birthday
-                  </Text>
-                )}
-              </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  disabled={savingBirthday}
+                  onPress={() => setBirthdayModalVisible(false)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Save Birthday"
+                  variant="primary"
+                  loading={savingBirthday}
+                  onPress={handleSaveBirthday}
+                />
+              </View>
             </View>
           </View>
         </View>
       </Modal>
-      {/* Custom Notification Modal */}
+
       <NotificationModal {...notifyModal} />
-    </SafeAreaView>
+    </Screen>
   );
 }

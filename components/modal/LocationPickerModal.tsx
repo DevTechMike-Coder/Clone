@@ -245,10 +245,10 @@ export default function LocationPickerModal({
                   style={{
                     backgroundColor: isDark
                       ? colors.emerald[950] + "50"
-                      : "#ECFDF5",
+                      : colors.emerald[50],
                     borderColor: isDark
                       ? colors.emerald[900] + "70"
-                      : "#A7F3D0",
+                      : colors.emerald[200],
                   }}
                 >
                   <View className="flex-row items-center gap-3 flex-1 mr-2">
@@ -260,7 +260,7 @@ export default function LocationPickerModal({
                         <Text
                           className="text-sm font-bold"
                           style={{
-                            color: isDark ? colors.emerald[200] : "#064E3B",
+                            color: isDark ? colors.emerald[200] : colors.emerald[900],
                           }}
                           numberOfLines={1}
                         >

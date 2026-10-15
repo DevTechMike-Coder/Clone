@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   Switch,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { colors } from "@/constants/theme";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   notificationService,
@@ -23,9 +22,10 @@ import {
   requestPermission,
   type PushPermissionState,
 } from "@/services/pushService";
-import { colors } from "@/constants/theme";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Button } from "@/components/ui/Button";
 
 type ToggleKey = keyof NotificationPreferences;
 
@@ -34,72 +34,50 @@ type ToggleItem = {
   title: string;
   subtitle: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
-  iconColor: string;
-  iconBg: string;
 };
 
-/**
- * Ordered by how much the user is likely to care. Likes and reposts sit at the
- * bottom because they are the two that default OFF — a follow changes your
- * account, a like on a week-old post does not, and only one of those is worth
- * interrupting someone for.
- */
 const TOGGLES: ToggleItem[] = [
   {
     key: "push_follows",
     title: "New followers",
     subtitle: "When someone starts following you",
     icon: "person-add-outline",
-    iconColor: "#9333EA",
-    iconBg: "#F3E8FF",
   },
   {
     key: "push_messages",
     title: "Messages",
     subtitle: "When someone sends you a direct message",
     icon: "chatbubble-outline",
-    iconColor: colors.blue[600],
-    iconBg: colors.blue[50],
   },
   {
     key: "push_comments",
     title: "Comments",
     subtitle: "When someone comments on your post",
     icon: "chatbubble-ellipses-outline",
-    iconColor: "#0EA5E9",
-    iconBg: "#E0F2FE",
   },
   {
     key: "push_stories",
     title: "New stories",
     subtitle: "When someone you follow posts a story",
     icon: "play-circle-outline",
-    iconColor: colors.emerald[600],
-    iconBg: "#ECFDF5",
   },
   {
     key: "push_story_expiry",
     title: "Stories expiring",
     subtitle: "A story you haven't watched is about to disappear",
     icon: "timer-outline",
-    iconColor: colors.orange[500],
-    iconBg: "#FFF7ED",
   },
   {
     key: "push_likes",
     title: "Likes",
     subtitle: "When someone likes your post",
     icon: "heart-outline",
-    iconColor: colors.red[500],
-    iconBg: "#FEF2F2",
   },
   {
     key: "push_reposts",
     title: "Reposts",
     subtitle: "When someone reposts your post",
     icon: "repeat-outline",
-    iconColor: colors.emerald[600],
-    iconBg: "#ECFDF5",
   },
 ];
 
@@ -131,6 +109,7 @@ const PERMISSION_COPY: Record<
 
 const PushNotifications = () => {
   const { user } = useAuth();
+  const { palette } = useTheme();
 
   const [prefs, setPrefs] = useState<NotificationPreferences>(
     DEFAULT_NOTIFICATION_PREFERENCES,
@@ -169,8 +148,6 @@ const PushNotifications = () => {
   }, []);
 
   const handleToggle = async (key: ToggleKey, value: boolean) => {
-    // Optimistic: the switch should never feel like it is waiting on a network
-    // round-trip. Reverted below only if the write actually fails.
     const previous = prefs;
     setPrefs((current) => ({ ...current, [key]: value }));
     setSavingKey(key);
@@ -198,106 +175,133 @@ const PushNotifications = () => {
   const masterOn = prefs.push_enabled;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-10 h-10 rounded-full items-center justify-center -ml-2 active:bg-slate-100"
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.slate[800]} />
-        </TouchableOpacity>
-
-        <View className="items-center">
-          <Text className="text-base font-bold text-slate-900 tracking-tight">
-            Push Notifications
-          </Text>
-        </View>
-
-        <View className="w-10" />
-      </View>
+    <Screen
+      scrollable
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <ScreenHeader
+        title="Push Notifications"
+        showBack
+        onBackPress={() => router.back()}
+        borderBottom
+      />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.blue[600]} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80 }}>
+          <ActivityIndicator size="large" color={palette.primary} />
         </View>
       ) : (
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-        >
+        <View>
           {/* Intro */}
-          <View className="px-5 pt-6 pb-4">
-            <Text className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Push Notifications
-            </Text>
-            <Text className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+          <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+            <Text variant="title">Push Notifications</Text>
+            <Text
+              variant="body"
+              color="muted"
+              style={{ marginTop: 6, lineHeight: 22 }}
+            >
               Choose what reaches your phone. These settings control the alerts
               you receive — your inbox still keeps a record of everything.
             </Text>
           </View>
 
           {/* Device permission status */}
-          <View className="px-5 mt-2">
+          <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
             <View
-              className="rounded-2xl p-4 border flex-row items-start gap-3"
               style={{
-                backgroundColor: status.tone === "ok" ? "#ECFDF5" : "#FFFBEB",
-                borderColor: status.tone === "ok" ? "#A7F3D0" : "#FDE68A",
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: 12,
+                backgroundColor:
+                  status.tone === "ok"
+                    ? palette.success + "1A"
+                    : palette.warning + "1A",
+                borderColor:
+                  status.tone === "ok"
+                    ? palette.success + "33"
+                    : palette.warning + "33",
               }}
             >
               <Ionicons
                 name={status.tone === "ok" ? "checkmark-circle" : "warning-outline"}
-                size={20}
-                color={status.tone === "ok" ? colors.emerald[600] : "#D97706"}
-                style={{ marginTop: 1 }}
+                size={22}
+                color={status.tone === "ok" ? palette.success : palette.warning}
+                style={{ marginTop: 2 }}
               />
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-slate-900">
+              <View style={{ flex: 1 }}>
+                <Text variant="headline" style={{ fontSize: 15 }}>
                   {status.title}
                 </Text>
-                <Text className="text-xs text-slate-600 mt-1 leading-relaxed">
+                <Text
+                  variant="caption"
+                  color="muted"
+                  style={{ marginTop: 4, lineHeight: 18 }}
+                >
                   {status.body}
                 </Text>
 
                 {permission === "undetermined" && (
-                  <TouchableOpacity
-                    onPress={handleEnableNotifications}
-                    className="mt-3 self-start rounded-xl px-4 py-2"
-                    style={{ backgroundColor: colors.blue[600] }}
-                  >
-                    <Text className="text-xs font-bold text-white">
-                      Allow notifications
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={{ marginTop: 12, alignSelf: "flex-start" }}>
+                    <Button
+                      title="Allow notifications"
+                      variant="primary"
+                      size="sm"
+                      onPress={handleEnableNotifications}
+                    />
+                  </View>
                 )}
               </View>
             </View>
           </View>
 
           {/* Master switch */}
-          <View className="px-5 mt-6">
-            <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
+          <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+            <Text
+              variant="caption"
+              weight="bold"
+              color="muted"
+              style={{
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 10,
+                paddingHorizontal: 4,
+              }}
+            >
               All notifications
             </Text>
 
-            <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
-              <View className="flex-row items-center justify-between p-4">
-                <View className="flex-1 pr-3">
-                  <Text className="text-base font-semibold text-slate-800 tracking-tight">
+            <View
+              style={{
+                backgroundColor: palette.surface,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: palette.border,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: 16,
+                }}
+              >
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text variant="body" weight="semibold">
                     Pause all
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
+                  <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
                     Silence every push without losing your choices below
                   </Text>
                 </View>
                 <Switch
                   value={!masterOn}
                   onValueChange={(v) => handleToggle("push_enabled", !v)}
-                  trackColor={{ false: colors.slate[200], true: colors.red[500] }}
+                  trackColor={{ false: palette.border, true: palette.danger }}
                   thumbColor={colors.white}
                 />
               </View>
@@ -305,65 +309,114 @@ const PushNotifications = () => {
           </View>
 
           {/* Per-event switches */}
-          <View className="px-5 mt-6">
-            <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
+          <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+            <Text
+              variant="caption"
+              weight="bold"
+              color="muted"
+              style={{
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 10,
+                paddingHorizontal: 4,
+              }}
+            >
               What you get notified about
             </Text>
 
             <View
-              className="bg-white rounded-2xl border border-slate-200/90 shadow-sm divide-y divide-slate-100 overflow-hidden"
-              style={masterOn ? undefined : { opacity: 0.5 }}
+              style={[
+                {
+                  backgroundColor: palette.surface,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  overflow: "hidden",
+                },
+                !masterOn && { opacity: 0.5 },
+              ]}
               pointerEvents={masterOn ? "auto" : "none"}
             >
-              {TOGGLES.map((item) => (
-                <View
-                  key={item.key}
-                  className="flex-row items-center justify-between p-4"
-                >
-                  <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                    <View
-                      className="w-10 h-10 rounded-xl items-center justify-center"
-                      style={{ backgroundColor: item.iconBg }}
-                    >
-                      <Ionicons
-                        name={item.icon}
-                        size={20}
-                        color={item.iconColor}
-                      />
-                    </View>
-
-                    <View className="flex-1">
-                      <Text className="text-base font-semibold text-slate-800 tracking-tight">
-                        {item.title}
-                      </Text>
-                      <Text className="text-xs text-slate-400 mt-0.5">
-                        {item.subtitle}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Switch
-                    value={prefs[item.key]}
-                    onValueChange={(v) => handleToggle(item.key, v)}
-                    disabled={savingKey === item.key}
-                    trackColor={{
-                      false: colors.slate[200],
-                      true: colors.blue[600],
+              {TOGGLES.map((item, index) => {
+                const isLast = index === TOGGLES.length - 1;
+                return (
+                  <View
+                    key={item.key}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: 16,
+                      borderBottomWidth: isLast ? 0 : 1,
+                      borderBottomColor: palette.borderSubtle,
                     }}
-                    thumbColor={colors.white}
-                  />
-                </View>
-              ))}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        flex: 1,
+                        paddingRight: 12,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: palette.accent + "1A",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Ionicons
+                          name={item.icon}
+                          size={20}
+                          color={palette.accent}
+                        />
+                      </View>
+
+                      <View style={{ flex: 1, marginLeft: 14 }}>
+                        <Text variant="body" weight="semibold">
+                          {item.title}
+                        </Text>
+                        <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                          {item.subtitle}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Switch
+                      value={prefs[item.key]}
+                      onValueChange={(v) => handleToggle(item.key, v)}
+                      disabled={savingKey === item.key}
+                      trackColor={{
+                        false: palette.border,
+                        true: palette.accent,
+                      }}
+                      thumbColor={colors.white}
+                    />
+                  </View>
+                );
+              })}
             </View>
           </View>
 
-          <Text className="px-6 mt-4 text-xs text-slate-400 leading-relaxed">
+          <Text
+            variant="micro"
+            color="muted"
+            style={{
+              paddingHorizontal: 24,
+              marginTop: 16,
+              lineHeight: 18,
+            }}
+          >
             Turning something off here stops it reaching your phone. It will
             still appear in your inbox.
           </Text>
-        </ScrollView>
+        </View>
       )}
-    </SafeAreaView>
+    </Screen>
   );
 };
 

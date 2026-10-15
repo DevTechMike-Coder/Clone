@@ -1,29 +1,28 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { styled } from "nativewind";
+
 import {
   ProfileSearchResult,
   profileService,
 } from "@/services/profileService";
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
-import { colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { Screen } from "@/components/ui/Screen";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { TextField } from "@/components/ui/TextField";
+import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const CATEGORIES = [
   "All",
@@ -39,11 +38,6 @@ const CATEGORIES = [
 type Category = (typeof CATEGORIES)[number];
 type SearchTab = "users" | "posts";
 
-/**
- * Keyword bags used to filter the explore grid client-side. Posts have no
- * dedicated category column, so we match caption / sound metadata / username
- * against these terms. "All" is unfiltered; "Trending" is sorted by engagement.
- */
 const CATEGORY_KEYWORDS: Record<Exclude<Category, "All" | "Trending">, string[]> = {
   Photography: [
     "photo",
@@ -150,12 +144,12 @@ function engagementScore(post: Post): number {
 }
 
 export default function Search() {
-  const { isDark, palette } = useTheme();
+  const { palette } = useTheme();
   const [searchText, setSearchText] = useState("");
   const [searchTab, setSearchTab] = useState<SearchTab>("users");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
 
-  // Explore grid state (default view)
+  // Explore grid state
   const [explorePosts, setExplorePosts] = useState<Post[]>([]);
   const [exploreLoading, setExploreLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -169,8 +163,6 @@ export default function Search() {
   const fetchExplorePosts = useCallback(async () => {
     try {
       setExploreLoading(true);
-      // Bound the explore grid so the whole `posts` table is never loaded at
-      // once (the unbounded read was the source of the OkHttp OOM on Android).
       const posts = await postService.getPosts({ limit: 40, offset: 0 });
       setExplorePosts(posts);
     } catch (error) {
@@ -204,7 +196,7 @@ export default function Search() {
     return matched;
   }, [explorePosts, selectedCategory]);
 
-  // Search logic debounce
+  // Debounced search logic
   useEffect(() => {
     const trimmed = searchText.trim();
     if (!trimmed) {
@@ -241,8 +233,8 @@ export default function Search() {
     if (isSearching) {
       if (searchLoading) {
         return (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.blue[600]} />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator size="large" color={palette.primary} />
           </View>
         );
       }
@@ -250,15 +242,11 @@ export default function Search() {
       if (searchTab === "users") {
         if (userResults.length === 0 && searched) {
           return (
-            <View className="flex-1 items-center justify-center px-10">
-              <Ionicons name="people-outline" size={48} color={colors.slate[300]} />
-              <Text className="mt-4 text-base font-semibold text-slate-800">
-                No people found
-              </Text>
-              <Text className="mt-1 text-center text-xs text-slate-400">
-                Try searching for another username or full name.
-              </Text>
-            </View>
+            <EmptyState
+              icon="people-outline"
+              title="No people found"
+              description="Try searching for another username or full name."
+            />
           );
         }
 
@@ -274,10 +262,16 @@ export default function Search() {
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel={`View profile of ${item.full_name || item.username || "user"}`}
-                className="flex-row items-center gap-3.5 rounded-2xl px-4 py-3 mb-2.5 border shadow-sm"
                 style={{
+                  flexDirection: "row",
+                  alignItems: "center",
                   backgroundColor: palette.surface,
                   borderColor: palette.border,
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  marginBottom: 10,
                 }}
                 onPress={() =>
                   router.push({
@@ -286,44 +280,29 @@ export default function Search() {
                   })
                 }
               >
-                <View
-                  className="h-12 w-12 rounded-full overflow-hidden items-center justify-center border"
-                  style={{
-                    backgroundColor: isDark
-                      ? colors.slate[800]
-                      : colors.slate[100],
-                    borderColor: palette.border,
-                  }}
-                >
-                  {item.avatar_url ? (
-                    <Image
-                      source={{ uri: item.avatar_url }}
-                      className="h-full w-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require("@/assets/homeIcons/profileUser.png")}
-                      className="h-7 w-7"
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
+                <Avatar
+                  url={item.avatar_url}
+                  name={item.full_name || item.username}
+                  size={46}
+                />
 
-                <View className="flex-1">
-                  <Text
-                    className="text-base font-bold leading-tight"
-                    style={{ color: palette.text }}
-                  >
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text variant="body" weight="semibold" numberOfLines={1}>
                     {item.full_name || item.username || "User"}
                   </Text>
-                  <Text className="text-xs mt-0.5" style={{ color: palette.muted }}>
+                  <Text
+                    variant="caption"
+                    color="muted"
+                    style={{ marginTop: 2 }}
+                    numberOfLines={1}
+                  >
                     @{item.username || "user"}
                   </Text>
                   {item.bio ? (
                     <Text
-                      className="text-xs mt-1"
-                      style={{ color: palette.muted }}
+                      variant="micro"
+                      color="muted"
+                      style={{ marginTop: 2 }}
                       numberOfLines={1}
                     >
                       {item.bio}
@@ -331,7 +310,11 @@ export default function Search() {
                   ) : null}
                 </View>
 
-                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={palette.muted}
+                />
               </TouchableOpacity>
             )}
           />
@@ -340,18 +323,11 @@ export default function Search() {
         // Posts search
         if (postResults.length === 0 && searched) {
           return (
-            <View className="flex-1 items-center justify-center px-10">
-              <Ionicons name="images-outline" size={48} color={colors.slate[400]} />
-              <Text
-                className="mt-4 text-base font-semibold"
-                style={{ color: palette.text }}
-              >
-                No posts found
-              </Text>
-              <Text className="mt-1 text-center text-xs" style={{ color: palette.muted }}>
-                Try searching for different keywords or tags.
-              </Text>
-            </View>
+            <EmptyState
+              icon="images-outline"
+              title="No posts found"
+              description="Try searching for different keywords or tags."
+            />
           );
         }
 
@@ -366,19 +342,21 @@ export default function Search() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel={item.caption ? `Open post: ${item.caption}` : "Open post"}
+                accessibilityLabel={
+                  item.caption ? `Open post: ${item.caption}` : "Open post"
+                }
                 onPress={() =>
                   router.push({
                     pathname: "/(pages)/viewPost",
                     params: { postId: item.id },
                   })
                 }
-                className="w-1/3 aspect-square border"
                 style={{
+                  width: "33.333%",
+                  aspectRatio: 1,
+                  borderWidth: 0.5,
                   borderColor: palette.border,
-                  backgroundColor: isDark
-                    ? colors.slate[900]
-                    : colors.slate[100],
+                  backgroundColor: palette.surface,
                 }}
               >
                 <PostGridThumbnail post={item} />
@@ -392,38 +370,29 @@ export default function Search() {
     // Default Explore View
     if (exploreLoading && !refreshing) {
       return (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.blue[600]} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={palette.primary} />
         </View>
       );
     }
 
     if (explorePosts.length === 0) {
       return (
-        <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="compass-outline" size={54} color={colors.slate[300]} />
-          <Text className="mt-4 text-lg font-bold text-slate-900">
-            Explore Content
-          </Text>
-          <Text className="mt-1 text-center text-sm text-slate-500">
-            No posts discovered yet. Be the first to share!
-          </Text>
-        </View>
+        <EmptyState
+          icon="compass-outline"
+          title="Explore Content"
+          description="No posts discovered yet. Be the first to share!"
+        />
       );
     }
 
     if (filteredExplorePosts.length === 0) {
       return (
-        <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="funnel-outline" size={48} color={colors.slate[300]} />
-          <Text className="mt-4 text-lg font-bold text-slate-900">
-            No {selectedCategory} posts
-          </Text>
-          <Text className="mt-1 text-center text-sm text-slate-500">
-            Nothing in this category yet. Try another filter or be the first to
-            share.
-          </Text>
-        </View>
+        <EmptyState
+          icon="funnel-outline"
+          title={`No ${selectedCategory} posts`}
+          description="Nothing in this category yet. Try another filter or be the first to share."
+        />
       );
     }
 
@@ -445,19 +414,21 @@ export default function Search() {
           <TouchableOpacity
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={item.caption ? `Open post: ${item.caption}` : "Open post"}
+            accessibilityLabel={
+              item.caption ? `Open post: ${item.caption}` : "Open post"
+            }
             onPress={() =>
               router.push({
                 pathname: "/(pages)/viewPost",
                 params: { postId: item.id },
               })
             }
-            className="w-1/3 aspect-square border"
             style={{
+              width: "33.333%",
+              aspectRatio: 1,
+              borderWidth: 0.5,
               borderColor: palette.border,
-              backgroundColor: isDark
-                ? colors.slate[900]
-                : colors.slate[100],
+              backgroundColor: palette.surface,
             }}
           >
             <PostGridThumbnail post={item} />
@@ -468,103 +439,43 @@ export default function Search() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: palette.background }}
-    >
+    <Screen>
       {/* Search Input Bar */}
-      <View className="px-5 pt-3 pb-2">
-        <View
-          className="flex-row items-center rounded-2xl px-4 py-2.5 border"
-          style={{
-            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-            borderColor: palette.border,
-          }}
-        >
-          <Ionicons name="search-outline" size={20} color={palette.muted} />
-          <TextInput
-            placeholder="Search creators, topics, captions..."
-            className="flex-1 ml-3 text-base"
-            style={{ color: palette.text }}
-            placeholderTextColor={palette.placeholder}
-            value={searchText}
-            onChangeText={setSearchText}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            accessibilityLabel="Search creators, topics, and captions"
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchText("")}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="close-circle" size={18} color={palette.muted} />
-            </TouchableOpacity>
-          )}
-        </View>
+      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6 }}>
+        <TextField
+          placeholder="Search creators, topics, captions..."
+          leftIcon={
+            <Ionicons name="search-outline" size={18} color={palette.muted} />
+          }
+          rightIcon={
+            searchText ? (
+              <TouchableOpacity onPress={() => setSearchText("")}>
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
+              </TouchableOpacity>
+            ) : undefined
+          }
+          value={searchText}
+          onChangeText={setSearchText}
+        />
 
         {/* Search Switcher Tabs (When Searching) */}
         {isSearching && (
-          <View
-            className="flex-row mt-3 border-t pt-2"
-            style={{ borderColor: palette.borderSubtle }}
-          >
-            <TouchableOpacity
-              onPress={() => setSearchTab("users")}
-              accessibilityRole="tab"
-              accessibilityLabel="People results"
-              accessibilityState={{ selected: searchTab === "users" }}
-              className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 border-b-2 ${
-                searchTab === "users" ? "border-blue-600" : "border-transparent"
-              }`}
-            >
-              <Ionicons
-                name="people-outline"
-                size={16}
-                color={searchTab === "users" ? palette.primary : palette.muted}
-              />
-              <Text
-                className="text-sm font-bold"
-                style={{
-                  color: searchTab === "users" ? palette.primary : palette.muted,
-                }}
-              >
-                People ({userResults.length})
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setSearchTab("posts")}
-              accessibilityRole="tab"
-              accessibilityLabel="Post results"
-              accessibilityState={{ selected: searchTab === "posts" }}
-              className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 border-b-2 ${
-                searchTab === "posts" ? "border-blue-600" : "border-transparent"
-              }`}
-            >
-              <Ionicons
-                name="images-outline"
-                size={16}
-                color={searchTab === "posts" ? palette.primary : palette.muted}
-              />
-              <Text
-                className="text-sm font-bold"
-                style={{
-                  color: searchTab === "posts" ? palette.primary : palette.muted,
-                }}
-              >
-                Posts ({postResults.length})
-              </Text>
-            </TouchableOpacity>
+          <View style={{ marginTop: 10 }}>
+            <SegmentedTabs
+              tabs={[
+                { key: "users", label: "People", badge: userResults.length },
+                { key: "posts", label: "Posts", badge: postResults.length },
+              ]}
+              activeTab={searchTab}
+              onTabChange={(key) => setSearchTab(key)}
+            />
           </View>
         )}
       </View>
 
       {/* Category Pills (When Not Searching) */}
       {!isSearching && (
-        <View className="py-3.5">
+        <View style={{ paddingVertical: 10 }}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -580,25 +491,23 @@ export default function Search() {
                   accessibilityRole="tab"
                   accessibilityLabel={`${cat} category`}
                   accessibilityState={{ selected: active }}
-                  className={`px-4 py-1.5 rounded-full ${
-                    active ? "bg-blue-600 shadow-sm" : "border"
-                  }`}
-                  style={
-                    active
-                      ? undefined
-                      : {
-                          backgroundColor: isDark
-                            ? colors.slate[800]
-                            : colors.slate[100],
-                          borderColor: palette.border,
-                        }
-                  }
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 7,
+                    borderRadius: 20,
+                    backgroundColor: active
+                      ? palette.primary
+                      : palette.surface,
+                    borderWidth: 1,
+                    borderColor: active
+                      ? palette.primary
+                      : palette.border,
+                  }}
                 >
                   <Text
-                    className="text-xs font-bold"
-                    style={{
-                      color: active ? colors.white : palette.muted,
-                    }}
+                    variant="caption"
+                    weight="bold"
+                    color={active ? "white" : "muted"}
                   >
                     {cat}
                   </Text>
@@ -611,6 +520,6 @@ export default function Search() {
 
       {/* Content Area */}
       {renderContent()}
-    </SafeAreaView>
+    </Screen>
   );
 }

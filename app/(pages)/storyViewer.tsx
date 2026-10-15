@@ -544,7 +544,7 @@ export default function StoryViewer() {
           <View className="w-full bg-white rounded-2xl overflow-hidden">
             <TouchableOpacity
               onPress={handleDeleteStory}
-              className="py-4 items-center border-b border-slate-100"
+              className="py-4 items-center border-b border-black/10"
             >
               <Text className="text-red-500 font-bold">Delete</Text>
             </TouchableOpacity>
@@ -552,7 +552,7 @@ export default function StoryViewer() {
               onPress={() => setShowDeleteMenu(false)}
               className="py-4 items-center"
             >
-              <Text className="text-slate-700 font-semibold">Cancel</Text>
+              <Text className="text-black/80 font-semibold">Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

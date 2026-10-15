@@ -137,8 +137,7 @@ const SignUp = () => {
       <ScreenHeader
         title=""
         showBack
-        onBack={() => router.back()}
-        border={false}
+        borderBottom={false}
       />
 
       <KeyboardAvoidingView

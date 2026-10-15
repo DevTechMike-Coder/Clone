@@ -1,7 +1,5 @@
-import { styled } from "nativewind";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Image,
-  Text,
   View,
   TouchableOpacity,
   Animated,
@@ -11,13 +9,15 @@ import {
   Alert,
   Pressable,
   Share,
+  ScrollView,
+  StyleSheet,
 } from "react-native";
-import {
-  SafeAreaView as RNSafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 import { router, useNavigation, useFocusEffect } from "expo-router";
-import * as WebBrowser from 'expo-web-browser';
+import * as WebBrowser from "expo-web-browser";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import Toast from "react-native-toast-message";
+
 import { useAuth } from "@/context/AuthContext";
 import { profileService } from "@/services/profileService";
 import { Post, postService } from "@/services/postService";
@@ -27,15 +27,18 @@ import { repostService } from "@/services/repostService";
 import { followService, UserStats } from "@/services/followService";
 import { authService } from "@/services/authService";
 import { storyService } from "@/services/storyService";
-import Toast from "react-native-toast-message";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "@/components/StyledLinearGradient";
-import * as Haptics from "expo-haptics";
-import { colors, storyRingGradient } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/ui/IconButton";
+import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PressableScale } from "@/components/ui/PressableScale";
+
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function Profile() {
@@ -59,11 +62,10 @@ export default function Profile() {
   const [privacySaving, setPrivacySaving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [postMenuPost, setPostMenuPost] = useState<Post | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "repeat" | "bookmark">("overview");
+
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
 
   const fetchProfile = useCallback(async () => {
@@ -142,7 +144,6 @@ export default function Profile() {
   };
 
   const handleDeletePost = async (postId: string) => {
-    setDeleteConfirmId(null);
     setPostMenuPost(null);
     setDeletingId(postId);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -188,7 +189,7 @@ export default function Profile() {
     setMenuOpen(true);
     Animated.timing(slideAnim, {
       toValue: 0,
-      duration: 300,
+      duration: 250,
       useNativeDriver: true,
     }).start();
   };
@@ -196,93 +197,69 @@ export default function Profile() {
   const closeMenu = () => {
     Animated.timing(slideAnim, {
       toValue: SCREEN_WIDTH,
-      duration: 300,
+      duration: 250,
       useNativeDriver: true,
     }).start(() => setMenuOpen(false));
   };
 
-  const openPostMenu = (post: Post) => {
-    setPostMenuPost(post);
-  };
+  const openPostMenu = (post: Post) => setPostMenuPost(post);
   const closePostMenu = () => setPostMenuPost(null);
 
+  const tabs: TabItem<"overview" | "repeat" | "bookmark">[] = [
+    { key: "overview", label: "Posts", badge: posts.length },
+    { key: "repeat", label: "Reposts", badge: reposts.length },
+    { key: "bookmark", label: "Saved", badge: bookmarks.length },
+  ];
+
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: palette.background }}
-    >
-      {/* Backdrop — closes menu when tapped */}
+    <Screen style={{ backgroundColor: palette.background }}>
+      {/* Backdrop */}
       {menuOpen && (
         <TouchableOpacity
           onPress={closeMenu}
           activeOpacity={1}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: palette.overlay,
-            zIndex: 10,
-          }}
+          style={[StyleSheet.absoluteFill, { backgroundColor: palette.overlay, zIndex: 10 }]}
         />
       )}
 
-      {/* Sliding Drawer Panel */}
+      {/* Settings Drawer Panel */}
       <Animated.View
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: "82%",
-          backgroundColor: palette.surface,
-          borderLeftWidth: 1,
-          borderLeftColor: palette.border,
-          zIndex: 20,
-          transform: [{ translateX: slideAnim }],
-          shadowColor: isDark ? "#000000" : colors.slate[900],
-          shadowOffset: { width: -4, height: 0 },
-          shadowOpacity: isDark ? 0.4 : 0.15,
-          shadowRadius: 12,
-          elevation: 20,
-        }}
+        style={[
+          styles.drawerPanel,
+          {
+            backgroundColor: palette.surface,
+            borderLeftColor: palette.borderSubtle,
+            transform: [{ translateX: slideAnim }],
+          },
+        ]}
       >
         <View
-          className="px-5 pt-14 pb-4 flex-row items-center justify-between border-b"
-          style={{ borderColor: palette.borderSubtle }}
+          style={[
+            styles.drawerHeader,
+            { borderBottomColor: palette.borderSubtle },
+          ]}
         >
-          <View className="flex-row items-center gap-3">
-            <Ionicons
-              name="settings-outline"
-              size={22}
-              color={palette.text}
-            />
-            <Text
-              className="text-lg font-bold tracking-tight"
-              style={{ color: palette.text }}
-            >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Ionicons name="settings-outline" size={20} color={palette.text} />
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
               Settings
             </Text>
           </View>
 
-          <TouchableOpacity
+          <IconButton
+            icon={<Ionicons name="close" size={20} color={palette.text} />}
+            variant="ghost"
+            size="sm"
             onPress={closeMenu}
-            accessibilityRole="button"
             accessibilityLabel="Close settings"
-            className="w-9 h-9 rounded-full items-center justify-center"
-            style={{
-              backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-            }}
-          >
-            <Ionicons name="close" size={20} color={palette.text} />
-          </TouchableOpacity>
+          />
         </View>
 
-        <View className="px-5 pt-3">
+        <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
           <Text
-            className="text-xs font-semibold uppercase tracking-widest mb-2"
-            style={{ color: palette.muted }}
+            variant="micro"
+            weight="semibold"
+            style={{ color: palette.muted, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}
           >
             Account & Appearance
           </Text>
@@ -292,16 +269,11 @@ export default function Profile() {
               closeMenu();
               router.push("/(pages)/accountCenter");
             }}
-            className="flex-row items-center justify-between py-4 border-b"
-            style={{ borderColor: palette.borderSubtle }}
+            style={[styles.menuItem, { borderBottomColor: palette.borderSubtle }]}
           >
-            <View className="flex-row items-center gap-3">
-              <Ionicons
-                name="person-circle-outline"
-                size={20}
-                color={palette.primary}
-              />
-              <Text className="text-base" style={{ color: palette.text }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons name="person-circle-outline" size={20} color={palette.accent} />
+              <Text variant="bodyMedium" style={{ color: palette.text }}>
                 Accounts Center
               </Text>
             </View>
@@ -313,16 +285,11 @@ export default function Profile() {
               closeMenu();
               router.push("/(pages)/accountCenter");
             }}
-            className="flex-row items-center justify-between py-4 border-b"
-            style={{ borderColor: palette.borderSubtle }}
+            style={[styles.menuItem, { borderBottomColor: palette.borderSubtle }]}
           >
-            <View className="flex-row items-center gap-3">
-              <Ionicons
-                name="color-palette-outline"
-                size={20}
-                color={palette.primary}
-              />
-              <Text className="text-base" style={{ color: palette.text }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons name="color-palette-outline" size={20} color={palette.accent} />
+              <Text variant="bodyMedium" style={{ color: palette.text }}>
                 Appearance & Theme
               </Text>
             </View>
@@ -332,55 +299,48 @@ export default function Profile() {
           <TouchableOpacity
             onPress={handleTogglePrivate}
             disabled={privacySaving}
-            className="flex-row items-center justify-between py-4 border-b"
-            style={{ borderColor: palette.borderSubtle }}
+            style={[styles.menuItem, { borderBottomColor: palette.borderSubtle }]}
           >
-            <View className="flex-row items-center gap-3 flex-1 pr-3">
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={palette.muted}
-              />
-              <View className="flex-1">
-                <Text className="text-base" style={{ color: palette.text }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1, paddingRight: 12 }}>
+              <Ionicons name="lock-closed-outline" size={20} color={palette.muted} />
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyMedium" style={{ color: palette.text }}>
                   Private account
                 </Text>
-                <Text
-                  className="text-xs mt-0.5"
-                  style={{ color: palette.muted }}
-                >
-                  Only people who follow you can see your posts
+                <Text variant="micro" style={{ color: palette.muted, marginTop: 2 }}>
+                  Only followers can see your posts
                 </Text>
               </View>
             </View>
             <View
-              className={`w-11 h-6 rounded-full justify-center ${
-                profile?.is_private
-                  ? "bg-blue-600"
-                  : isDark
-                  ? "bg-slate-700"
-                  : "bg-slate-200"
-              }`}
+              style={[
+                styles.togglePill,
+                {
+                  backgroundColor: profile?.is_private
+                    ? palette.accent
+                    : palette.surfaceMuted,
+                },
+              ]}
             >
               <View
-                className={`w-5 h-5 rounded-full bg-white ${
-                  profile?.is_private ? "self-end mr-0.5" : "self-start ml-0.5"
-                }`}
+                style={[
+                  styles.toggleThumb,
+                  {
+                    alignSelf: profile?.is_private ? "flex-end" : "flex-start",
+                    backgroundColor: palette.onAccent,
+                  },
+                ]}
               />
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleSignOut}
-            className="flex-row items-center justify-between py-4"
+            style={[styles.menuItem, { borderBottomWidth: 0, marginTop: 8 }]}
           >
-            <View className="flex-row items-center gap-3">
-              <Ionicons
-                name="log-out-outline"
-                size={20}
-                color={colors.red[500]}
-              />
-              <Text className="text-base text-red-500 font-semibold">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons name="log-out-outline" size={20} color={palette.danger} />
+              <Text variant="bodyMedium" weight="semibold" style={{ color: palette.danger }}>
                 Sign Out
               </Text>
             </View>
@@ -388,337 +348,237 @@ export default function Profile() {
         </View>
       </Animated.View>
 
-      {/* Header Row */}
-      <View className="flex-row items-center justify-between px-5 py-4">
-        <View className="flex-row items-center gap-3">
-          <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
-            My Profile
-          </Text>
-        </View>
-
-        {isOwnProfile && (
-          <View className="flex-row items-center gap-2">
-            <TouchableOpacity
+      {/* Screen Header */}
+      <ScreenHeader
+        title={profile?.username ? `@${profile.username}` : "Profile"}
+        showBack={false}
+        rightAction={
+          isOwnProfile ? (
+            <IconButton
+              icon={<Ionicons name="menu-outline" size={24} color={palette.text} />}
+              variant="ghost"
+              size="md"
               onPress={openMenu}
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-              className="w-10 h-10 rounded-full items-center justify-center"
-            >
-              <Image
-                source={require("@/assets/homeIcons/burgermenu.png")}
-                className="w-9 h-9"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+              accessibilityLabel="Open settings menu"
+            />
+          ) : undefined
+        }
+        borderBottom
+      />
 
-      {/* Avatar */}
-      <View className="flex items-center pt-4">
-        {loading ? (
-          <ActivityIndicator size="large" color={colors.blue[600]} />
-        ) : (
-          <>
-            <View className="relative">
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  if (activeStoryCount > 0) {
-                    router.push({
-                      pathname: "/(pages)/storyViewer",
-                      params: { initialUserId: targetUserId },
-                    });
-                  }
-                }}
-                disabled={activeStoryCount === 0}
-              >
-                <LinearGradient
-                  colors={activeStoryCount > 0 ? [...storyRingGradient] : [colors.slate[200], colors.slate[200]]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: 104,
-                    height: 104,
-                    borderRadius: 52,
-                    alignItems: "center",
-                    justifyContent: "center",
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* Profile Hero Block */}
+        <View style={styles.heroBlock}>
+          {loading ? (
+            <ActivityIndicator size="large" color={palette.accent} style={{ paddingVertical: 24 }} />
+          ) : (
+            <>
+              {/* Avatar with Story Ring and Add Story Button */}
+              <View style={{ position: "relative" }}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (activeStoryCount > 0) {
+                      router.push({
+                        pathname: "/(pages)/storyViewer",
+                        params: { initialUserId: targetUserId },
+                      });
+                    }
                   }}
+                  disabled={activeStoryCount === 0}
                 >
-                  <View className="w-[96px] h-[96px] rounded-full bg-white items-center justify-center overflow-hidden">
-                    {profile?.avatar_url ? (
-                      <Image
-                        source={{ uri: profile.avatar_url }}
-                        className="w-full h-full"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Image
-                        source={require("@/assets/homeIcons/profileUser.png")}
-                        className="w-14 h-14"
-                        resizeMode="contain"
-                      />
-                    )}
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-              {/* Add story button — sits outside the story-ring tap target so it never triggers the viewer */}
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/(pages)/createNew",
-                    params: { mode: "Story" },
-                  })
-                }
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Add story"
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 items-center justify-center border-[3px] border-white z-10"
-              >
-                <Ionicons name="add" size={19} color="white" />
-              </TouchableOpacity>
-            </View>
+                  <Avatar
+                    url={profile?.avatar_url}
+                    name={profile?.full_name || profile?.username}
+                    size="2xl"
+                    hasStory={activeStoryCount > 0}
+                    isStoryViewed={false}
+                  />
+                </TouchableOpacity>
 
-            <View className="items-center pt-2">
-              <Text
-                className="text-lg font-semibold tracking-tight"
-                style={{ color: palette.text }}
-              >
-                {profile?.full_name || authUser?.email?.split("@")[0] || "User"}
-              </Text>
-              {profile?.username && (
-                <Text className="text-sm" style={{ color: palette.muted }}>
-                  @{profile.username}
+                {/* Add Story Button Badge */}
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(pages)/createNew",
+                      params: { mode: "Story" },
+                    })
+                  }
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add story"
+                  style={[
+                    styles.addStoryBadge,
+                    {
+                      backgroundColor: palette.accent,
+                      borderColor: palette.background,
+                    },
+                  ]}
+                >
+                  <Ionicons name="add" size={16} color={palette.onAccent} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Names & Private Status */}
+              <View style={{ alignItems: "center", marginTop: 12 }}>
+                <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+                  {profile?.full_name || authUser?.email?.split("@")[0] || "User"}
                 </Text>
-              )}
-              {profile?.is_private && (
-                <View className="flex-row items-center gap-1 mt-1">
-                  <Ionicons name="lock-closed" size={12} color={palette.muted} />
-                  <Text className="text-xs" style={{ color: palette.muted }}>
-                    Private account
+                {profile?.username && (
+                  <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+                    @{profile.username}
                   </Text>
-                </View>
-              )}
-            </View>
-          </>
-        )}
-      </View>
+                )}
+                {profile?.is_private && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                    <Ionicons name="lock-closed" size={12} color={palette.muted} />
+                    <Text variant="micro" style={{ color: palette.muted }}>
+                      Private account
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+        </View>
 
-      {/* Bio & Social Links */}
-      <View className="p-5 flex-col items-center justify-center">
-        <Text className="text-base text-center" style={{ color: palette.muted }}>
-          {profile?.bio || "No bio yet. Tap edit to add one!"}
-        </Text>
+        {/* Bio & Social Links */}
+        <View style={styles.bioBlock}>
+          <Text variant="body" align="center" style={{ color: palette.muted, lineHeight: 20 }}>
+            {profile?.bio || "No bio yet. Tap edit to add one!"}
+          </Text>
 
-        {profile?.website && (
-          <View className="flex-row items-center gap-2 mt-2">
-            <TouchableOpacity onPress={() => WebBrowser.openBrowserAsync(profile.website.startsWith('http') ? profile.website : `https://${profile.website}`)}>
-              <Text className="font-medium" style={{ color: palette.primary }}>
-                {profile.website.replace(/^https?:\/\//, '')}
+          {profile?.website && (
+            <TouchableOpacity
+              onPress={() =>
+                WebBrowser.openBrowserAsync(
+                  profile.website.startsWith("http") ? profile.website : `https://${profile.website}`
+                )
+              }
+              style={{ marginTop: 8 }}
+            >
+              <Text variant="bodyMedium" weight="semibold" style={{ color: palette.accent }}>
+                {profile.website.replace(/^https?:\/\//, "")}
               </Text>
             </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionsBlock}>
+          <Button
+            title="Edit Profile"
+            variant="secondary"
+            size="md"
+            onPress={() => router.push("/(pages)/editProfile")}
+            style={{ flex: 1 }}
+          />
+
+          <Button
+            title="New Post"
+            variant="secondary"
+            size="md"
+            onPress={() => router.push("/(pages)/createNew")}
+            style={{ flex: 1 }}
+          />
+
+          <IconButton
+            icon={<Ionicons name="share-outline" size={20} color={palette.text} />}
+            variant="filled"
+            size="md"
+            onPress={handleShareProfile}
+            accessibilityLabel="Share profile"
+          />
+        </View>
+
+        {/* Stats Row */}
+        <View style={[styles.statsRow, { borderColor: palette.borderSubtle }]}>
+          <View style={styles.statItem}>
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.postsCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Posts
+            </Text>
           </View>
-        )}
-      </View>
 
-      {/* Edit Profile + Share buttons */}
-      <View className="flex-row px-5 gap-3 mb-2">
-        <TouchableOpacity
-          onPress={() => router.push("/(pages)/editProfile")}
-          activeOpacity={0.8}
-          className="flex-1 h-11 border rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-            borderColor: palette.border,
-          }}
-        >
-          <Text className="font-bold" style={{ color: palette.text }}>
-            Edit Profile
-          </Text>
-        </TouchableOpacity>
+          <View style={[styles.statDivider, { backgroundColor: palette.borderSubtle }]} />
 
-        <TouchableOpacity
-          onPress={() => router.push("/(pages)/createNew")}
-          activeOpacity={0.8}
-          className="flex-1 h-11 border rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-            borderColor: palette.border,
-          }}
-        >
-          <Text className="font-bold" style={{ color: palette.text }}>
-            New Post
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              if (targetUserId) {
+                router.push({
+                  pathname: "/(pages)/followList",
+                  params: {
+                    userId: targetUserId,
+                    initialTab: "following",
+                    username: profile?.username || "user",
+                  },
+                });
+              }
+            }}
+            style={styles.statItem}
+          >
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.followingCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Following
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleShareProfile}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel="Share profile"
-          className="w-11 h-11 border rounded-xl items-center justify-center"
-          style={{
-            backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-            borderColor: palette.border,
-          }}
-        >
-          <Ionicons name="share-outline" size={20} color={palette.text} />
-        </TouchableOpacity>
-      </View>
+          <View style={[styles.statDivider, { backgroundColor: palette.borderSubtle }]} />
 
-      {/* Stats Row */}
-      <View className="flex-row items-center justify-center gap-1 py-4">
-        <View className="items-center px-3 py-1">
-          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
-            {stats.postsCount}
-          </Text>
-          <Text className="text-sm" style={{ color: palette.muted }}>
-            Posts
-          </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              if (targetUserId) {
+                router.push({
+                  pathname: "/(pages)/followList",
+                  params: {
+                    userId: targetUserId,
+                    initialTab: "followers",
+                    username: profile?.username || "user",
+                  },
+                });
+              }
+            }}
+            style={styles.statItem}
+          >
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.followersCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Followers
+            </Text>
+          </TouchableOpacity>
+
+          <View style={[styles.statDivider, { backgroundColor: palette.borderSubtle }]} />
+
+          <View style={styles.statItem}>
+            <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              {stats.likesCount}
+            </Text>
+            <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
+              Likes
+            </Text>
+          </View>
         </View>
 
-        <View
-          className="h-5 w-px"
-          style={{ backgroundColor: palette.border }}
-        />
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => {
-            if (targetUserId) {
-              router.push({
-                pathname: "/(pages)/followList",
-                params: {
-                  userId: targetUserId,
-                  initialTab: "following",
-                  username: profile?.username || "user",
-                },
-              });
-            }
-          }}
-          className="items-center px-3 py-1"
-        >
-          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
-            {stats.followingCount}
-          </Text>
-          <Text className="text-sm" style={{ color: palette.muted }}>
-            Following
-          </Text>
-        </TouchableOpacity>
-
-        <View
-          className="h-5 w-px"
-          style={{ backgroundColor: palette.border }}
-        />
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => {
-            if (targetUserId) {
-              router.push({
-                pathname: "/(pages)/followList",
-                params: {
-                  userId: targetUserId,
-                  initialTab: "followers",
-                  username: profile?.username || "user",
-                },
-              });
-            }
-          }}
-          className="items-center px-3 py-1"
-        >
-          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
-            {stats.followersCount}
-          </Text>
-          <Text className="text-sm" style={{ color: palette.muted }}>
-            Followers
-          </Text>
-        </TouchableOpacity>
-
-        <View
-          className="h-5 w-px"
-          style={{ backgroundColor: palette.border }}
-        />
-
-        <View className="items-center px-3 py-1">
-          <Text className="text-2xl font-bold" style={{ color: palette.text }}>
-            {stats.likesCount}
-          </Text>
-          <Text className="text-sm" style={{ color: palette.muted }}>
-            Likes
-          </Text>
+        {/* Segmented Tabs */}
+        <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 12 }}>
+          <SegmentedTabs<"overview" | "repeat" | "bookmark">
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab)}
+          />
         </View>
-      </View>
 
-      {/* Tabs */}
-      <View
-        className="flex-row border-b"
-        style={{ borderColor: palette.border }}
-      >
-        <TouchableOpacity
-          onPress={() => setActiveTab("overview")}
-          accessibilityRole="tab"
-          accessibilityLabel="Posts"
-          accessibilityState={{ selected: activeTab === "overview" }}
-          className={`flex-1 items-center py-3 border-b-2 ${
-            activeTab === "overview" ? "border-blue-600" : "border-transparent"
-          }`}
-        >
-          <Image
-            source={require("@/assets/homeIcons/overview.png")}
-            className="w-5 h-5"
-            resizeMode="contain"
-            style={{
-              tintColor:
-                activeTab === "overview" ? palette.primary : palette.muted,
-            }}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab("repeat")}
-          accessibilityRole="tab"
-          accessibilityLabel="Reposts"
-          accessibilityState={{ selected: activeTab === "repeat" }}
-          className={`flex-1 items-center py-3 border-b-2 ${
-            activeTab === "repeat" ? "border-blue-600" : "border-transparent"
-          }`}
-        >
-          <Image
-            source={require("@/assets/homeIcons/repeat.png")}
-            className="w-5 h-5"
-            resizeMode="contain"
-            style={{
-              tintColor:
-                activeTab === "repeat" ? palette.primary : palette.muted,
-            }}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab("bookmark")}
-          accessibilityRole="tab"
-          accessibilityLabel="Bookmarks"
-          accessibilityState={{ selected: activeTab === "bookmark" }}
-          className={`flex-1 items-center py-3 border-b-2 ${
-            activeTab === "bookmark" ? "border-blue-600" : "border-transparent"
-          }`}
-        >
-          <Image
-            source={require("@/assets/homeIcons/bookmark.png")}
-            className="w-5 h-5"
-            resizeMode="contain"
-            style={{
-              tintColor:
-                activeTab === "bookmark" ? palette.primary : palette.muted,
-            }}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Content Area */}
-      <View className="flex-1">
+        {/* Content Grids */}
         {activeTab === "overview" && (
           posts.length > 0 ? (
-            <View className="flex-row flex-wrap">
+            <View style={styles.gridContainer}>
               {posts.map((post) => (
                 <TouchableOpacity
                   key={post.id}
@@ -730,41 +590,31 @@ export default function Profile() {
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
+                  style={[styles.gridCell, { borderColor: palette.background }]}
                 >
                   <PostGridThumbnail post={post} />
                   {deletingId === post.id && (
-                    <View className="absolute inset-0 bg-black/60 items-center justify-center">
-                      <ActivityIndicator color="white" />
+                    <View style={styles.deletingOverlay}>
+                      <ActivityIndicator color={palette.onAccent} />
                     </View>
                   )}
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
-            <View className="flex-1 items-center justify-center py-20 px-10">
-              <Ionicons name="document-text-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
-                No posts yet
-              </Text>
-              <Text className="text-slate-500 text-center mt-2 mb-6">
-                Share your first moment with the world!
-              </Text>
-              {isOwnProfile && (
-                <TouchableOpacity
-                  onPress={() => router.push("/(pages)/createNew")}
-                  className="bg-blue-600 px-6 py-3 rounded-full shadow-sm"
-                >
-                  <Text className="text-white font-bold">Create New Post</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            <EmptyState
+              icon={<Ionicons name="document-text-outline" size={44} color={palette.muted} />}
+              title="No posts yet"
+              description="Share your first moment with the world!"
+              actionTitle={isOwnProfile ? "Create New Post" : undefined}
+              onActionPress={isOwnProfile ? () => router.push("/(pages)/createNew") : undefined}
+            />
           )
         )}
 
         {activeTab === "repeat" && (
           reposts.length > 0 ? (
-            <View className="flex-row flex-wrap">
+            <View style={styles.gridContainer}>
               {reposts.map((post) => (
                 <TouchableOpacity
                   key={post.id}
@@ -776,28 +626,24 @@ export default function Profile() {
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
+                  style={[styles.gridCell, { borderColor: palette.background }]}
                 >
                   <PostGridThumbnail post={post} />
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
-            <View className="flex-1 items-center justify-center py-20 px-10">
-              <Ionicons name="repeat-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
-                No reposts yet
-              </Text>
-              <Text className="text-slate-500 text-center mt-2">
-                Posts you repost will appear here on your profile.
-              </Text>
-            </View>
+            <EmptyState
+              icon={<Ionicons name="repeat-outline" size={44} color={palette.muted} />}
+              title="No reposts yet"
+              description="Posts you repost will appear here on your profile."
+            />
           )
         )}
 
         {activeTab === "bookmark" && (
           bookmarks.length > 0 ? (
-            <View className="flex-row flex-wrap">
+            <View style={styles.gridContainer}>
               {bookmarks.map((post) => (
                 <TouchableOpacity
                   key={post.id}
@@ -809,86 +655,64 @@ export default function Profile() {
                       params: { postId: post.id },
                     })
                   }
-                  className="w-1/3 aspect-square border border-slate-100 bg-slate-100 relative"
+                  style={[styles.gridCell, { borderColor: palette.background }]}
                 >
                   <PostGridThumbnail post={post} />
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
-            <View className="flex-1 items-center justify-center py-20 px-10">
-              <Ionicons name="bookmark-outline" size={48} color={colors.slate[300]} />
-              <Text className="text-lg font-semibold text-slate-900 mt-4">
-                No bookmarks yet
-              </Text>
-              <Text className="text-slate-500 text-center mt-2">
-                Save posts to watch or view them later.
-              </Text>
-            </View>
+            <EmptyState
+              icon={<Ionicons name="bookmark-outline" size={44} color={palette.muted} />}
+              title="No bookmarks yet"
+              description="Save posts to watch or view them later."
+            />
           )
         )}
-      </View>
+      </ScrollView>
 
       {/* Post Options Modal */}
       <Modal
         transparent
-        visible={!!postMenuPost}
+        visible={Boolean(postMenuPost)}
         animationType="fade"
         onRequestClose={closePostMenu}
       >
         <Pressable
-          className="flex-1 justify-end"
-          style={{ backgroundColor: palette.overlay }}
+          style={[styles.modalOverlay, { backgroundColor: palette.overlay }]}
           onPress={closePostMenu}
         >
           <Pressable
-            className="rounded-t-3xl p-5 pb-8 border-t"
-            style={{
-              backgroundColor: palette.surface,
-              borderColor: palette.border,
-            }}
+            style={[
+              styles.modalSheet,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.borderSubtle,
+              },
+            ]}
             onPress={(e) => e.stopPropagation()}
           >
-            <View className="items-center mb-4">
-              <View
-                className="w-12 h-1 rounded-full"
-                style={{
-                  backgroundColor: isDark
-                    ? colors.slate[700]
-                    : colors.slate[300],
-                }}
-              />
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
+              <View style={[styles.handleBar, { backgroundColor: palette.borderSubtle }]} />
             </View>
 
-            {/* Post thumbnail */}
             {postMenuPost && (
-              <View className="flex-row items-center gap-3 mb-4 px-2">
-                <View
-                  className="w-14 h-14 rounded-lg overflow-hidden"
-                  style={{
-                    backgroundColor: isDark
-                      ? colors.slate[800]
-                      : colors.slate[100],
-                  }}
-                >
+              <View style={styles.postModalPreview}>
+                <View style={[styles.postModalThumb, { backgroundColor: palette.surfaceMuted }]}>
                   <PostGridThumbnail post={postMenuPost} />
                 </View>
-                <View className="flex-1">
-                  <Text
-                    numberOfLines={1}
-                    className="text-sm font-bold"
-                    style={{ color: palette.text }}
-                  >
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyMedium" weight="bold" numberOfLines={1} style={{ color: palette.text }}>
                     {postMenuPost.caption || "Post"}
                   </Text>
-                  <Text className="text-xs" style={{ color: palette.muted }}>
+                  <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
                     {postMenuPost.media_type === "video" ? "Video" : "Photo"}
                   </Text>
                 </View>
               </View>
             )}
 
-            <View className="gap-2">
+            <View style={{ gap: 4 }}>
               {postMenuPost && postMenuPost.user_id === targetUserId && (
                 <TouchableOpacity
                   onPress={() => {
@@ -904,14 +728,15 @@ export default function Profile() {
                           style: "destructive",
                           onPress: () => handleDeletePost(id),
                         },
-                      ],
+                      ]
                     );
                   }}
-                  className="flex-row items-center gap-3 py-4 px-2 border-b"
-                  style={{ borderColor: palette.borderSubtle }}
+                  style={[styles.modalRow, { borderBottomColor: palette.borderSubtle }]}
                 >
-                  <Ionicons name="trash-outline" size={22} color={colors.red[500]} />
-                  <Text className="text-red-500 font-bold text-base">Delete post</Text>
+                  <Ionicons name="trash-outline" size={20} color={palette.danger} />
+                  <Text variant="bodyMedium" weight="semibold" style={{ color: palette.danger }}>
+                    Delete post
+                  </Text>
                 </TouchableOpacity>
               )}
 
@@ -925,14 +750,10 @@ export default function Profile() {
                     closePostMenu();
                   }
                 }}
-                className="flex-row items-center gap-3 py-4 px-2 border-b"
-                style={{ borderColor: palette.borderSubtle }}
+                style={[styles.modalRow, { borderBottomColor: palette.borderSubtle }]}
               >
-                <Ionicons name="eye-outline" size={22} color={palette.text} />
-                <Text
-                  className="font-semibold text-base"
-                  style={{ color: palette.text }}
-                >
+                <Ionicons name="eye-outline" size={20} color={palette.text} />
+                <Text variant="bodyMedium" weight="medium" style={{ color: palette.text }}>
                   View post
                 </Text>
               </TouchableOpacity>
@@ -950,27 +771,20 @@ export default function Profile() {
                   }
                   closePostMenu();
                 }}
-                className="flex-row items-center gap-3 py-4 px-2 border-b"
-                style={{ borderColor: palette.borderSubtle }}
+                style={[styles.modalRow, { borderBottomColor: palette.borderSubtle }]}
               >
-                <Ionicons name="share-outline" size={22} color={palette.text} />
-                <Text
-                  className="font-semibold text-base"
-                  style={{ color: palette.text }}
-                >
+                <Ionicons name="share-outline" size={20} color={palette.text} />
+                <Text variant="bodyMedium" weight="medium" style={{ color: palette.text }}>
                   Share post
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={closePostMenu}
-                className="flex-row items-center gap-3 py-4 px-2"
+                style={[styles.modalRow, { borderBottomWidth: 0, marginTop: 4 }]}
               >
-                <Ionicons name="close-circle-outline" size={22} color={palette.muted} />
-                <Text
-                  className="font-semibold text-base"
-                  style={{ color: palette.muted }}
-                >
+                <Ionicons name="close-circle-outline" size={20} color={palette.muted} />
+                <Text variant="bodyMedium" style={{ color: palette.muted }}>
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -978,6 +792,151 @@ export default function Profile() {
           </Pressable>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  drawerPanel: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: "82%",
+    borderLeftWidth: 1,
+    zIndex: 20,
+    elevation: 20,
+  },
+  drawerHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  togglePill: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  heroBlock: {
+    alignItems: "center",
+    paddingTop: 16,
+  },
+  addStoryBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2.5,
+    zIndex: 10,
+  },
+  bioBlock: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  actionsBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    gap: 8,
+    marginVertical: 8,
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 22,
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  gridCell: {
+    width: "33.333%",
+    aspectRatio: 1,
+    borderWidth: 0.5,
+    position: "relative",
+  },
+  deletingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  handleBar: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+  },
+  postModalPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  postModalThumb: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  modalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+});
+

@@ -19,6 +19,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { Post } from "@/services/postService";
 import SoundChip from "@/components/SoundChip";
+import { colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { Text } from "@/components/ui/Text";
 
@@ -61,7 +62,7 @@ function FeedVideoMedia({ uri, active }: { uri: string; active: boolean }) {
           <Ionicons
             name={muted ? "volume-mute" : "volume-high"}
             size={18}
-            color="#FFFFFF"
+            color={colors.white}
           />
         </TouchableOpacity>
       )}
@@ -172,7 +173,7 @@ export const PostMedia: React.FC<PostMediaProps> = ({
 
         {/* Double-tap Like Heart Popup */}
         <Animated.View style={[styles.doubleTapHeart, heartAnimatedStyle]} pointerEvents="none">
-          <Ionicons name="heart" size={80} color="#EF4444" />
+          <Ionicons name="heart" size={80} color={colors.red[500]} />
         </Animated.View>
 
         {/* Sound Chip Overlay */}

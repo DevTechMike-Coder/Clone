@@ -1,36 +1,38 @@
 import React, { useState, useEffect } from "react";
 import {
-  Text,
-  TouchableOpacity,
   View,
   ScrollView,
   ActivityIndicator,
   Modal,
+  TouchableOpacity,
 } from "react-native";
-import { styled } from "nativewind";
 import { router } from "expo-router";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/context/AuthContext";
-import { authService } from "@/services/authService";
-import { colors } from "@/constants/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { copyToClipboard } from "@/lib/safeClipboard";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import Toast from "react-native-toast-message";
-import NotificationModal from "@/components/modal/NotificationModal";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { authService } from "@/services/authService";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Button } from "@/components/ui/Button";
+import NotificationModal from "@/components/modal/NotificationModal";
 
 export default function YourInformation() {
   const { user } = useAuth();
+  const { palette } = useTheme();
+
   const [downloading, setDownloading] = useState(false);
   const [clearingSearches, setClearingSearches] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportedData, setExportedData] = useState<any>(null);
 
-  // Notification / Alert Modal State
+  // Notification Modal State
   const [notifyModal, setNotifyModal] = useState<{
     visible: boolean;
     title: string;
@@ -103,7 +105,6 @@ export default function YourInformation() {
     };
   }, []);
 
-  // Clear Search History
   const handleClearSearchHistory = () => {
     showNotify({
       title: "Clear Search History?",
@@ -139,7 +140,6 @@ export default function YourInformation() {
     });
   };
 
-  // Download / Export User Information
   const handleDownloadInformation = async () => {
     if (!user) return;
     setDownloading(true);
@@ -158,7 +158,6 @@ export default function YourInformation() {
     }
   };
 
-  // Copy Export JSON to Clipboard
   const handleCopyExport = async () => {
     if (!exportedData) return;
     const jsonString = JSON.stringify(exportedData, null, 2);
@@ -182,246 +181,331 @@ export default function YourInformation() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-10 h-10 rounded-full items-center justify-center -ml-2 active:bg-slate-100"
+    <Screen
+      scrollable
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <ScreenHeader
+        title="Your Information & Permissions"
+        showBack
+        onBackPress={() => router.back()}
+        borderBottom
+      />
+
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+        <Text variant="title">Your Information & Permissions</Text>
+        <Text
+          variant="body"
+          color="muted"
+          style={{ marginTop: 6, lineHeight: 22 }}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.slate[800]} />
-        </TouchableOpacity>
-
-        <View className="items-center">
-          <Text className="text-base font-bold text-slate-900 tracking-tight">
-            Your Information & Permissions
-          </Text>
-        </View>
-
-        <View className="w-10" />
+          Manage, review, and download the data associated with your Clone
+          account.
+        </Text>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Intro */}
-        <View className="px-5 pt-6 pb-4">
-          <Text className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Your Information and Permissions
-          </Text>
-          <Text className="text-sm text-slate-500 mt-1.5 leading-relaxed">
-            Manage, review, and download the data associated with your Clone
-            account.
-          </Text>
-        </View>
+      {/* Activity & Data Section */}
+      <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+        <Text
+          variant="caption"
+          weight="bold"
+          color="muted"
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          Activity & Data
+        </Text>
 
-        {/* Activity & Data Management */}
-        <View className="px-5 mt-2">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            Activity & Data
-          </Text>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm divide-y divide-slate-100 overflow-hidden">
-            {/* Search History */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleClearSearchHistory}
-              disabled={clearingSearches}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            overflow: "hidden",
+          }}
+        >
+          {/* Search History */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleClearSearchHistory}
+            disabled={clearingSearches}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
             >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-violet-50 items-center justify-center">
-                  <Ionicons name="search-outline" size={20} color={colors.violet[600]} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-semibold text-slate-900 tracking-tight">
-                    Search history
-                  </Text>
-                  <Text className="text-xs text-slate-500 mt-0.5">
-                    Clear your recent search queries and keywords
-                  </Text>
-                </View>
-              </View>
-
-              {clearingSearches ? (
-                <ActivityIndicator size="small" color={colors.violet[600]} />
-              ) : (
-                <Ionicons
-                  name="trash-outline"
-                  size={18}
-                  color={colors.slate[400]}
-                />
-              )}
-            </TouchableOpacity>
-
-            {/* Download Data */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleDownloadInformation}
-              disabled={downloading}
-              className="p-4 flex-row items-center justify-between active:bg-slate-50"
-            >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
-                  <Ionicons
-                    name="cloud-download-outline"
-                    size={20}
-                    color={colors.blue[600]}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-semibold text-slate-900 tracking-tight">
-                    Download your information
-                  </Text>
-                  <Text className="text-xs text-slate-500 mt-0.5">
-                    Generate an archive of your profile, posts, and bookmarks
-                  </Text>
-                </View>
-              </View>
-
-              {downloading ? (
-                <ActivityIndicator size="small" color={colors.blue[600]} />
-              ) : (
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.slate[300]}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Device Permissions Overview */}
-        <View className="px-5 mt-6">
-          <View className="flex-row items-center justify-between mb-2.5 px-1">
-            <Text className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Device Permissions
-            </Text>
-            <TouchableOpacity onPress={checkAppPermissions} disabled={checkingPermissions}>
-              <Text className="text-xs font-bold text-blue-600">
-                {checkingPermissions ? "Refreshing..." : "Refresh"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 divide-y divide-slate-100">
-            {/* Photos Permission */}
-            <View className="flex-row items-center justify-between pb-3">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="images-outline" size={20} color={colors.slate[700]} />
-                <View>
-                  <Text className="text-sm font-semibold text-slate-800">
-                    Photo Library
-                  </Text>
-                  <Text className="text-xs text-slate-400">
-                    Required for uploading posts & stories
-                  </Text>
-                </View>
-              </View>
               <View
-                className={`px-2.5 py-1 rounded-full ${
-                  photosPermission ? "bg-emerald-100" : "bg-slate-100"
-                }`}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.accent + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                <Text
-                  className={`text-[10px] font-bold ${
-                    photosPermission ? "text-emerald-800" : "text-slate-600"
-                  }`}
-                >
-                  {photosPermission ? "Allowed" : "Not Allowed"}
+                <Ionicons name="search-outline" size={20} color={palette.accent} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="body" weight="semibold">
+                  Search history
+                </Text>
+                <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                  Clear your recent search queries and keywords
                 </Text>
               </View>
             </View>
 
-            {/* Camera Permission */}
-            <View className="flex-row items-center justify-between py-3">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="camera-outline" size={20} color={colors.slate[700]} />
-                <View>
-                  <Text className="text-sm font-semibold text-slate-800">
-                    Camera Access
-                  </Text>
-                  <Text className="text-xs text-slate-400">
-                    Used for capturing photos & recording video
-                  </Text>
-                </View>
-              </View>
-              <View
-                className={`px-2.5 py-1 rounded-full ${
-                  cameraPermission ? "bg-emerald-100" : "bg-slate-100"
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-bold ${
-                    cameraPermission ? "text-emerald-800" : "text-slate-600"
-                  }`}
-                >
-                  {cameraPermission ? "Allowed" : "Not Allowed"}
-                </Text>
-              </View>
-            </View>
-
-            {/* Location Permission */}
-            <View className="flex-row items-center justify-between pt-3">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="location-outline" size={20} color={colors.slate[700]} />
-                <View>
-                  <Text className="text-sm font-semibold text-slate-800">
-                    Precise Location
-                  </Text>
-                  <Text className="text-xs text-slate-400">
-                    Used for tagging real-time places on posts
-                  </Text>
-                </View>
-              </View>
-              <View
-                className={`px-2.5 py-1 rounded-full ${
-                  locationPermission ? "bg-emerald-100" : "bg-slate-100"
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-bold ${
-                    locationPermission ? "text-emerald-800" : "text-slate-600"
-                  }`}
-                >
-                  {locationPermission ? "Allowed" : "Not Allowed"}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Data Governance & Privacy Guarantee */}
-        <View className="px-5 mt-6">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 px-1">
-            Data Governance & Privacy
-          </Text>
-
-          <View className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 gap-3">
-            <View className="flex-row items-start gap-3">
+            {clearingSearches ? (
+              <ActivityIndicator size="small" color={palette.accent} />
+            ) : (
               <Ionicons
-                name="shield-outline"
+                name="trash-outline"
                 size={18}
-                color={colors.slate[600]}
+                color={palette.muted}
               />
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-slate-800">
-                  End-to-End Control
+            )}
+          </TouchableOpacity>
+
+          {/* Download Data */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleDownloadInformation}
+            disabled={downloading}
+            style={{
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                paddingRight: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: palette.accent + "1A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="cloud-download-outline"
+                  size={20}
+                  color={palette.accent}
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="body" weight="semibold">
+                  Download your information
                 </Text>
-                <Text className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                  You own your media and personal data. Export or remove your
-                  information at any time without restrictions.
+                <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                  Generate an archive of your profile, posts, and bookmarks
                 </Text>
               </View>
             </View>
+
+            {downloading ? (
+              <ActivityIndicator size="small" color={palette.primary} />
+            ) : (
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={palette.muted}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Device Permissions Overview */}
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+            paddingHorizontal: 4,
+          }}
+        >
+          <Text
+            variant="caption"
+            weight="bold"
+            color="muted"
+            style={{
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}
+          >
+            Device Permissions
+          </Text>
+          <TouchableOpacity onPress={checkAppPermissions} disabled={checkingPermissions}>
+            <Text variant="caption" weight="bold" color="accent">
+              {checkingPermissions ? "Refreshing..." : "Refresh"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View
+          style={{
+            backgroundColor: palette.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: palette.border,
+            padding: 16,
+          }}
+        >
+          {/* Photos */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingBottom: 14,
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons name="images-outline" size={20} color={palette.text} />
+              <View>
+                <Text variant="body" weight="semibold">
+                  Photo Library
+                </Text>
+                <Text variant="micro" color="muted">
+                  Required for uploading posts & stories
+                </Text>
+              </View>
+            </View>
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                borderRadius: 12,
+                backgroundColor: photosPermission
+                  ? palette.success + "20"
+                  : palette.surfaceMuted,
+              }}
+            >
+              <Text
+                variant="micro"
+                weight="bold"
+                color={photosPermission ? "success" : "muted"}
+              >
+                {photosPermission ? "Allowed" : "Not Allowed"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Camera */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 14,
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons name="camera-outline" size={20} color={palette.text} />
+              <View>
+                <Text variant="body" weight="semibold">
+                  Camera Access
+                </Text>
+                <Text variant="micro" color="muted">
+                  Used for capturing photos & recording video
+                </Text>
+              </View>
+            </View>
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                borderRadius: 12,
+                backgroundColor: cameraPermission
+                  ? palette.success + "20"
+                  : palette.surfaceMuted,
+              }}
+            >
+              <Text
+                variant="micro"
+                weight="bold"
+                color={cameraPermission ? "success" : "muted"}
+              >
+                {cameraPermission ? "Allowed" : "Not Allowed"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Location */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingTop: 14,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons name="location-outline" size={20} color={palette.text} />
+              <View>
+                <Text variant="body" weight="semibold">
+                  Precise Location
+                </Text>
+                <Text variant="micro" color="muted">
+                  Used for tagging real-time places on posts
+                </Text>
+              </View>
+            </View>
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                borderRadius: 12,
+                backgroundColor: locationPermission
+                  ? palette.success + "20"
+                  : palette.surfaceMuted,
+              }}
+            >
+              <Text
+                variant="micro"
+                weight="bold"
+                color={locationPermission ? "success" : "muted"}
+              >
+                {locationPermission ? "Allowed" : "Not Allowed"}
+              </Text>
+            </View>
           </View>
         </View>
-      </ScrollView>
+      </View>
 
       {/* Export Data Summary Modal */}
       <Modal
@@ -430,87 +514,106 @@ export default function YourInformation() {
         animationType="slide"
         onRequestClose={() => setExportModalVisible(false)}
       >
-        <View className="flex-1 bg-black/60 items-center justify-end">
-          <View className="bg-white rounded-t-3xl p-6 w-full max-h-[80%] shadow-2xl">
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
-                  <Ionicons name="document-text" size={20} color={colors.blue[600]} />
-                </View>
-                <Text className="text-lg font-bold text-slate-900 tracking-tight">
-                  Account Data Archive
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={() => setExportModalVisible(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center"
-              >
-                <Ionicons name="close" size={18} color={colors.slate[600]} />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            alignItems: "center",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: palette.surface,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              padding: 24,
+              width: "100%",
+              maxHeight: "80%",
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <Text variant="headline">Account Data Archive</Text>
+              <TouchableOpacity onPress={() => setExportModalVisible(false)}>
+                <Ionicons name="close" size={20} color={palette.muted} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="max-h-72 mb-4" showsVerticalScrollIndicator={false}>
-              <View className="bg-slate-50 p-4 rounded-2xl border border-slate-200 gap-2">
-                <Text className="text-xs font-bold text-slate-700 uppercase">
+            <ScrollView style={{ maxHeight: 260, marginBottom: 16 }} showsVerticalScrollIndicator={false}>
+              <View
+                style={{
+                  backgroundColor: palette.surfaceMuted,
+                  padding: 16,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  gap: 8,
+                }}
+              >
+                <Text variant="caption" weight="bold">
                   Export Summary
                 </Text>
-                <Text selectable={true} className="text-xs text-slate-600">
+                <Text selectable variant="caption" color="muted">
                   • User ID: {exportedData?.user_id}
                 </Text>
-                <Text selectable={true} className="text-xs text-slate-600">
+                <Text selectable variant="caption" color="muted">
                   • Handle: @{exportedData?.profile?.username || "N/A"}
                 </Text>
-                <Text selectable={true} className="text-xs text-slate-600">
+                <Text selectable variant="caption" color="muted">
                   • Total Posts: {exportedData?.posts_count}
                 </Text>
-                <Text selectable={true} className="text-xs text-slate-600">
+                <Text selectable variant="caption" color="muted">
                   • Bookmarked Posts: {exportedData?.bookmarks_count}
                 </Text>
-                <Text selectable={true} className="text-xs text-slate-600">
+                <Text selectable variant="caption" color="muted">
                   • Likes Recorded: {exportedData?.likes_count}
                 </Text>
-                <Text selectable={true} className="text-xs text-slate-600">
+                <Text selectable variant="caption" color="muted">
                   • Export Date: {exportedData?.exported_at}
                 </Text>
               </View>
             </ScrollView>
 
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={handleCopyExport}
-                className="flex-1 py-3.5 rounded-xl border border-slate-200 bg-slate-100 items-center justify-center"
-              >
-                <Text className="text-sm font-semibold text-slate-800">
-                  Copy JSON
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => {
-                  setExportModalVisible(false);
-                  showNotify({
-                    title: "Download Scheduled",
-                    message: `A complete export bundle has also been queued for delivery to ${user?.email || "your registered email"}.`,
-                    type: "info",
-                    icon: "mail-outline",
-                    confirmText: "OK",
-                    onConfirm: closeNotify,
-                  });
-                }}
-                className="flex-1 py-3.5 rounded-xl bg-blue-600 items-center justify-center shadow-sm"
-              >
-                <Text className="text-sm font-bold text-white">
-                  Email Archive
-                </Text>
-              </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Copy JSON"
+                  variant="outline"
+                  onPress={handleCopyExport}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Email Archive"
+                  variant="primary"
+                  onPress={() => {
+                    setExportModalVisible(false);
+                    showNotify({
+                      title: "Download Scheduled",
+                      message: `A complete export bundle has also been queued for delivery to ${user?.email || "your registered email"}.`,
+                      type: "info",
+                      icon: "mail-outline",
+                      confirmText: "OK",
+                      onConfirm: closeNotify,
+                    });
+                  }}
+                />
+              </View>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Notification / Confirmation Modal */}
       <NotificationModal {...notifyModal} />
-    </SafeAreaView>
+    </Screen>
   );
 }

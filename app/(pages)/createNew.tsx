@@ -1,27 +1,16 @@
-import TestCamera, { CaptureMode } from "@/components/TestCamera";
-import { router, useLocalSearchParams } from "expo-router";
-import { styled } from "nativewind";
 import React, { useState } from "react";
-import { Image, Pressable, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-
-const SafeAreaView = styled(RNSafeAreaView);
+import { StyleSheet, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import TestCamera, { CaptureMode } from "@/components/TestCamera";
+import { colors } from "@/constants/theme";
 
 type FlashMode = "off" | "on" | "auto";
 
 const FLASH_CYCLE: FlashMode[] = ["off", "on", "auto"];
-const FLASH_ICON: Record<FlashMode, keyof typeof Ionicons.glyphMap> = {
-  off: "flash-off-outline",
-  on: "flash",
-  auto: "flash-outline",
-};
-
 const VALID_MODES: CaptureMode[] = ["Photo", "Video", "Story"];
 
-const CreateNew = () => {
-  // Optional "mode" param lets callers deep-link straight into a capture mode,
-  // e.g. router.push({ pathname: "/(pages)/createNew", params: { mode: "Story" } })
+export default function CreateNew() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const initialMode: CaptureMode = VALID_MODES.includes(mode as CaptureMode)
     ? (mode as CaptureMode)
@@ -34,7 +23,8 @@ const CreateNew = () => {
     setFlash((f) => FLASH_CYCLE[(FLASH_CYCLE.indexOf(f) + 1) % 3]);
 
   return (
-    <View className="flex-1 bg-black">
+    <View style={styles.container}>
+      <StatusBar style="light" />
       <TestCamera
         flash={flash}
         onFlashCycle={cycleFlash}
@@ -44,6 +34,13 @@ const CreateNew = () => {
       />
     </View>
   );
-};
+}
 
-export default CreateNew;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.black,
+    width: "100%",
+    height: "100%",
+  },
+});

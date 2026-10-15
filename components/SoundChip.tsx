@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTrackSound } from "@/lib/useTrackSound";
 import { colors } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 type SoundChipProps = {
   trackKey?: string | null;
@@ -20,20 +21,10 @@ type SoundChipProps = {
 
 const formatPlays = (count?: number | null) => {
   if (!count || count <= 0) return null;
-  // Reads correctly after the " • " separator, which is all this sits in.
   if (count < 1000) return `${count} ${count === 1 ? "use" : "uses"}`;
   return `${(count / 1000).toFixed(count < 10000 ? 1 : 0)}k uses`;
 };
 
-/**
- * The sound pill on a post.
- *
- * Previously this was a static label: `postDetails.tsx` wrote the track onto the
- * row, and the feed and post screen printed "🎵 title - artist" and stopped
- * there. It is now the control that actually plays the track (and stops it),
- * while degrading to the old static label for a post whose audio cannot be
- * resolved -- an unplayable *button* is worse than no button.
- */
 export default function SoundChip({
   trackKey,
   title,
@@ -45,15 +36,13 @@ export default function SoundChip({
   variant = "card",
   className = "",
 }: SoundChipProps) {
+  const { palette } = useTheme();
   const overlay = variant === "overlay";
   const { canPlay, isPlaying, isBuffering, toggle, stop } = useTrackSound({
     trackKey,
     audioUrl,
   });
 
-  // Scrolled out of view, or the screen blurred → silence. The bus already
-  // guarantees only one track plays, but nobody claims the next post while a
-  // half-visible row is still making noise.
   useEffect(() => {
     if (!active && isPlaying) stop();
   }, [active, isPlaying, stop]);
@@ -65,19 +54,44 @@ export default function SoundChip({
     return (
       <View
         pointerEvents="none"
-        className={`${
+        style={
           overlay
-            ? "flex-row items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/15"
-            : "flex-row items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 self-start"
-        } ${className}`}
+            ? {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: "rgba(0,0,0,0.55)",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.15)",
+              }
+            : {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                backgroundColor: palette.surfaceMuted,
+                borderWidth: 1,
+                borderColor: palette.border,
+                borderRadius: 20,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                alignSelf: "flex-start",
+              }
+        }
       >
         <Ionicons
           name="musical-notes"
           size={overlay ? 13 : 14}
-          color={overlay ? colors.sky[400] : colors.blue[600]}
+          color={overlay ? colors.sky[400] : palette.accent}
         />
         <Text
-          className={`${overlay ? "text-white text-[11px] font-bold" : "text-xs font-bold text-slate-700"}`}
+          style={
+            overlay
+              ? { color: colors.white, fontSize: 11, fontWeight: "700" }
+              : { fontSize: 12, fontWeight: "700", color: palette.text }
+          }
           numberOfLines={1}
         >
           {label}
@@ -94,30 +108,66 @@ export default function SoundChip({
         onPress={toggle}
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? `Pause ${label}` : `Play ${label}`}
-        className={
+        style={
           overlay
-            ? "flex-row items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/15 self-start max-w-[85%]"
-            : "flex-row items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 self-start max-w-full"
+            ? {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: "rgba(0,0,0,0.55)",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.15)",
+                alignSelf: "flex-start",
+                maxWidth: "85%",
+              }
+            : {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                backgroundColor: palette.surfaceMuted,
+                borderWidth: 1,
+                borderColor: palette.border,
+                borderRadius: 20,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                alignSelf: "flex-start",
+                maxWidth: "100%",
+              }
         }
       >
         {isBuffering ? (
-          <ActivityIndicator size="small" color={overlay ? colors.sky[400] : colors.blue[600]} />
+          <ActivityIndicator size="small" color={overlay ? colors.sky[400] : palette.accent} />
         ) : (
           <Ionicons
             name={isPlaying ? "pause" : "musical-notes"}
             size={overlay ? 13 : 14}
-            color={overlay ? colors.sky[400] : colors.blue[600]}
+            color={overlay ? colors.sky[400] : palette.accent}
           />
         )}
         <Text
-          className={overlay ? "text-white text-[11px] font-bold" : "text-xs font-bold text-slate-700"}
+          style={
+            overlay
+              ? { color: colors.white, fontSize: 11, fontWeight: "700" }
+              : { fontSize: 12, fontWeight: "700", color: palette.text }
+          }
           numberOfLines={1}
         >
           {label}
           {subLabel ? ` • ${subLabel}` : ""}
         </Text>
         {!overlay && (
-          <Text className="text-[10px] font-bold uppercase tracking-wide text-blue-600">
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "700",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              color: palette.accent,
+            }}
+          >
             {isPlaying ? "Playing" : "Play"}
           </Text>
         )}
@@ -125,9 +175,12 @@ export default function SoundChip({
 
       {!!attribution && (
         <Text
-          className={`text-[10px] mt-1 ${overlay ? "text-white/70" : "text-slate-400"} ${
-            variant === "card" ? "px-0.5" : ""
-          }`}
+          style={{
+            fontSize: 10,
+            marginTop: 4,
+            color: overlay ? "rgba(255,255,255,0.7)" : palette.muted,
+            paddingHorizontal: variant === "card" ? 2 : 0,
+          }}
           numberOfLines={2}
         >
           {attribution}

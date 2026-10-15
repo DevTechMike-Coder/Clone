@@ -22,7 +22,7 @@ import {
 } from "expo-camera";
 import type { CameraType, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "@/components/StyledLinearGradient";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import {
   MusicTrackItem,
@@ -106,7 +106,7 @@ export default function TestCamera({
   const [countdownTimer, setCountdownTimer] = useState<number>(0);
   const [activeCountdown, setActiveCountdown] = useState<number | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [, setMountError] = useState<string | null>(null);
+  const [mountError, setMountError] = useState<string | null>(null);
 
   // Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -175,7 +175,7 @@ export default function TestCamera({
 
   // Photo Capture
   const takePhoto = async () => {
-    if (!isCameraReady || isRecording) return;
+    if (isRecording) return;
 
     if (countdownTimer > 0) {
       runCountdown(async () => {
@@ -189,7 +189,16 @@ export default function TestCamera({
   const executeTakePhoto = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const photo = await cameraRef.current?.takePictureAsync({
+      if (!cameraRef.current) {
+        Toast.show({
+          type: "info",
+          text1: "Camera Initializing",
+          text2: "Camera sensor is still warming up...",
+        });
+        return;
+      }
+
+      const photo = await cameraRef.current.takePictureAsync({
         quality: 0.85,
         base64: false,
         exif: false,
@@ -200,14 +209,27 @@ export default function TestCamera({
         setCapturedUri(photo.uri);
         setCapturedType("image");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Take photo error:", err);
+      Toast.show({
+        type: "error",
+        text1: "Photo Capture Failed",
+        text2: err?.message || "Camera sensor error. Try picking from gallery.",
+      });
     }
   };
 
   // Video Recording
   const startRecording = async () => {
-    if (!isCameraReady || isRecording) return;
+    if (isRecording) return;
+    if (!cameraRef.current) {
+      Toast.show({
+        type: "info",
+        text1: "Camera Initializing",
+        text2: "Please wait for the video sensor to initialize",
+      });
+      return;
+    }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsRecording(true);
@@ -233,8 +255,13 @@ export default function TestCamera({
         setCapturedUri(video.uri);
         setCapturedType("video");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Recording error:", err);
+      Toast.show({
+        type: "error",
+        text1: "Recording Failed",
+        text2: err?.message || "Could not record video. Mode requires camera permissions.",
+      });
     } finally {
       clearInterval(recordIntervalRef.current);
       setIsRecording(false);
@@ -452,7 +479,7 @@ export default function TestCamera({
   // -------------------------------------------------------------
   if (capturedUri) {
     return (
-      <View className="flex-1 bg-black">
+      <View style={styles.container}>
         {/* Backdrop Media Preview */}
         <Pressable
           style={StyleSheet.absoluteFill}
@@ -715,8 +742,10 @@ export default function TestCamera({
         {!isDraggingOverlay && (
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.65)", "rgba(0,0,0,0.96)"]}
-            className="absolute left-0 right-0 bottom-0 px-6 pt-10"
-            style={{ paddingBottom: insets.bottom + 14 }}
+            style={[
+              styles.studioBottomBar,
+              { paddingBottom: Math.max(insets.bottom, 16) + 14 },
+            ]}
           >
             {/* Filter Carousel in Studio if open */}
             {showFilterPicker && (
@@ -766,10 +795,10 @@ export default function TestCamera({
           >
             <View className="w-full bg-white rounded-3xl p-6 items-center">
               <Ionicons name="trash-outline" size={32} color={colors.red[500]} />
-              <Text className="text-slate-900 text-lg font-bold mt-3 mb-1">
+              <Text className="text-black text-lg font-bold mt-3 mb-1">
                 Discard Capture?
               </Text>
-              <Text className="text-slate-500 text-center text-xs mb-6">
+              <Text className="text-black/60 text-center text-xs mb-6">
                 If you go back, you will lose this photo/video and all edits.
               </Text>
 
@@ -787,9 +816,9 @@ export default function TestCamera({
 
                 <TouchableOpacity
                   onPress={() => setShowDiscardModal(false)}
-                  className="w-full h-12 bg-slate-100 rounded-xl items-center justify-center"
+                  className="w-full h-12 bg-black/5 rounded-xl items-center justify-center"
                 >
-                  <Text className="text-slate-700 font-bold text-sm">
+                  <Text className="text-black/80 font-bold text-sm">
                     Keep Editing
                   </Text>
                 </TouchableOpacity>
@@ -822,7 +851,15 @@ export default function TestCamera({
   // -------------------------------------------------------------
   // PERMISSIONS SCREEN
   // -------------------------------------------------------------
-  if (!camPermission?.granted) {
+  if (!camPermission) {
+    return (
+      <View className="flex-1 bg-black items-center justify-center">
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
+  }
+
+  if (!camPermission.granted) {
     return (
       <View className="flex-1 bg-black items-center justify-center px-8">
         <Ionicons name="camera-outline" size={54} color="white" />
@@ -849,7 +886,7 @@ export default function TestCamera({
   // LIVE CAMERA VIEW
   // -------------------------------------------------------------
   return (
-    <View className="flex-1 bg-black">
+    <View style={styles.container}>
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
@@ -857,9 +894,40 @@ export default function TestCamera({
         flash={flash}
         zoom={currentZoom.zoom}
         mode={activeMode === "Video" ? "video" : "picture"}
-        onCameraReady={() => setIsCameraReady(true)}
+        onCameraReady={() => {
+          setIsCameraReady(true);
+          setMountError(null);
+        }}
         onMountError={({ message }) => setMountError(message)}
       />
+
+      {/* Camera Sensor Fallback (e.g. Emulator / Hardware Busy) */}
+      {mountError && (
+        <View
+          style={StyleSheet.absoluteFill}
+          className="items-center justify-center bg-black/85 px-8 z-30"
+        >
+          <Ionicons name="videocam-off-outline" size={54} color={colors.white} />
+          <Text className="text-white text-lg font-bold mt-4 text-center">
+            Camera Sensor Unavailable
+          </Text>
+          <Text className="text-white/60 text-xs text-center mt-2 mb-6">
+            {mountError.toLowerCase().includes("simulator") ||
+            mountError.toLowerCase().includes("emulator") ||
+            mountError.toLowerCase().includes("hardware")
+              ? "Virtual devices have no camera sensor. You can import from your photo gallery to test all editing and post tools."
+              : mountError}
+          </Text>
+          <TouchableOpacity
+            onPress={pickMedia}
+            activeOpacity={0.8}
+            className="bg-blue-600 px-6 py-3 rounded-full flex-row items-center gap-2"
+          >
+            <Ionicons name="images-outline" size={18} color="white" />
+            <Text className="text-white font-bold text-sm">Choose from Gallery</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Applied Filter Tint on live viewfinder */}
       {activeFilterObj?.overlayColor && (
@@ -1090,8 +1158,10 @@ export default function TestCamera({
       {/* Bottom Controls Area */}
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.96)"]}
-        className="absolute left-0 right-0 bottom-0 pt-4"
-        style={{ paddingBottom: insets.bottom + 12 }}
+        style={[
+          styles.liveBottomBar,
+          { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+        ]}
       >
         {/* Live Filter Carousel Drawer (Cleanly stacked above mode selector) */}
         {showFilterPicker && (
@@ -1105,7 +1175,7 @@ export default function TestCamera({
 
         {/* Mode Selector (Photo / Video / Story) */}
         {!isRecording && (
-          <View className="flex-row items-center justify-center gap-8 mb-6">
+          <View style={styles.modeSelectorRow}>
             {MODES.map((mode) => {
               const active = activeMode === mode;
               return (
@@ -1132,19 +1202,20 @@ export default function TestCamera({
         )}
 
         {/* Shutter Controls */}
-        <View className="flex-row items-center justify-between px-10">
+        <View style={styles.shutterRow}>
           {/* Gallery Picker */}
           {!isRecording ? (
             <TouchableOpacity
               onPress={pickMedia}
               accessibilityRole="button"
               accessibilityLabel="Choose from gallery"
-              className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 items-center justify-center active:opacity-80"
+              style={styles.galleryBtn}
+              activeOpacity={0.8}
             >
               <Ionicons name="images-outline" size={22} color="white" />
             </TouchableOpacity>
           ) : (
-            <View className="w-12 h-12" />
+            <View style={{ width: 48, height: 48 }} />
           )}
 
           {/* Shutter Button */}
@@ -1183,7 +1254,7 @@ export default function TestCamera({
             />
           </TouchableOpacity>
 
-          <View className="w-12 h-12" />
+          <View style={{ width: 48, height: 48 }} />
         </View>
       </LinearGradient>
 
@@ -1199,6 +1270,53 @@ export default function TestCamera({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.black,
+    width: "100%",
+    height: "100%",
+  },
+  liveBottomBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingTop: 16,
+    zIndex: 25,
+  },
+  studioBottomBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    zIndex: 25,
+  },
+  modeSelectorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 32,
+    marginBottom: 20,
+  },
+  shutterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 36,
+    width: "100%",
+  },
+  galleryBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   shutterRing: {
     width: SHUTTER_OUTER,
     height: SHUTTER_OUTER,

@@ -1,29 +1,17 @@
-import React, { useEffect, useCallback } from "react";
+import React from "react";
 import {
   Dimensions,
   Modal,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
   ViewStyle,
 } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-} from "react-native-gesture-handler";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  runOnJS,
-  useReducedMotion,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/context/ThemeContext";
-import { radius, motion } from "@/constants/theme";
+import { radius } from "@/constants/theme";
 import { Text } from "./Text";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -39,6 +27,11 @@ export interface BottomSheetProps {
   style?: ViewStyle;
 }
 
+/**
+ * Lightweight, crash-proof native slide-up sheet.
+ * Built with native platform modal animations so it requires zero gesture-handler
+ * dependencies, eliminating GestureDetector errors on Android and iOS.
+ */
 export const BottomSheet: React.FC<BottomSheetProps> = ({
   visible,
   onClose,
@@ -50,91 +43,27 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   style,
 }) => {
   const insets = useSafeAreaInsets();
-  const { palette, isDark } = useTheme();
-  const translateY = useSharedValue(snapHeight);
-  const backdropOpacity = useSharedValue(0);
-  const reducedMotion = useReducedMotion();
-
-  const handleClose = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  const closeSheet = useCallback(() => {
-    if (reducedMotion) {
-      translateY.value = snapHeight;
-      backdropOpacity.value = 0;
-      handleClose();
-      return;
-    }
-    backdropOpacity.value = withTiming(0, { duration: 180 });
-    translateY.value = withTiming(snapHeight, { duration: 220 }, (finished) => {
-      if (finished) {
-        runOnJS(handleClose)();
-      }
-    });
-  }, [snapHeight, handleClose, reducedMotion, translateY, backdropOpacity]);
-
-  useEffect(() => {
-    if (visible) {
-      if (reducedMotion) {
-        translateY.value = 0;
-        backdropOpacity.value = 1;
-      } else {
-        backdropOpacity.value = withTiming(1, { duration: 200 });
-        translateY.value = withSpring(0, motion.sheet);
-      }
-    } else {
-      translateY.value = snapHeight;
-      backdropOpacity.value = 0;
-    }
-  }, [visible, snapHeight, reducedMotion, translateY, backdropOpacity]);
-
-  const panGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      if (event.translationY > 0) {
-        translateY.value = event.translationY;
-      }
-    })
-    .onEnd((event) => {
-      if (event.translationY > 120 || event.velocityY > 600) {
-        runOnJS(closeSheet)();
-      } else {
-        translateY.value = withSpring(0, motion.sheet);
-      }
-    });
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value,
-  }));
-
-  if (!visible) return null;
+  const { palette } = useTheme();
 
   return (
     <Modal
       transparent
       visible={visible}
-      animationType="none"
-      onRequestClose={closeSheet}
+      animationType="slide"
+      onRequestClose={onClose}
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        {/* Backdrop */}
-        <TouchableWithoutFeedback onPress={closeSheet}>
-          <Animated.View
-            style={[
-              styles.backdrop,
-              { backgroundColor: palette.overlay },
-              backdropAnimatedStyle,
-            ]}
-          />
-        </TouchableWithoutFeedback>
+        {/* Backdrop: tap outside to dismiss */}
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: palette.overlay }]}
+          onPress={onClose}
+          accessibilityLabel="Dismiss sheet"
+          accessibilityRole="button"
+        />
 
-        {/* Sheet Content */}
-        <Animated.View
+        {/* Sheet Card */}
+        <View
           style={[
             styles.sheetContainer,
             {
@@ -142,58 +71,57 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               backgroundColor: palette.surface,
               paddingBottom: Math.max(insets.bottom, 16),
             },
-            sheetAnimatedStyle,
             style,
           ]}
         >
-          <GestureDetector gesture={panGesture}>
-            <View style={styles.dragArea}>
-              {showHandle && (
-                <View
-                  style={[
-                    styles.handle,
-                    { backgroundColor: palette.border },
-                  ]}
-                />
-              )}
+          {/* Drag Handle & Header */}
+          <View style={styles.dragArea}>
+            {showHandle && (
+              <View
+                style={[
+                  styles.handle,
+                  { backgroundColor: palette.border },
+                ]}
+              />
+            )}
 
-              {(title || showClose) && (
-                <View style={styles.header}>
+            {(title || showClose) && (
+              <View style={styles.header}>
+                <View style={styles.headerSpacer} />
+                {title ? (
+                  <Text
+                    variant="headline"
+                    weight="semibold"
+                    align="center"
+                    style={styles.headerTitle}
+                  >
+                    {title}
+                  </Text>
+                ) : null}
+                {showClose ? (
+                  <TouchableOpacity
+                    onPress={onClose}
+                    accessibilityLabel="Close sheet"
+                    accessibilityRole="button"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={styles.closeBtn}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={22}
+                      color={palette.muted}
+                    />
+                  </TouchableOpacity>
+                ) : (
                   <View style={styles.headerSpacer} />
-                  {title ? (
-                    <Text
-                      variant="headline"
-                      weight="semibold"
-                      align="center"
-                      style={styles.headerTitle}
-                    >
-                      {title}
-                    </Text>
-                  ) : null}
-                  {showClose ? (
-                    <TouchableOpacity
-                      onPress={closeSheet}
-                      accessibilityLabel="Close sheet"
-                      accessibilityRole="button"
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      style={styles.closeBtn}
-                    >
-                      <Ionicons
-                        name="close"
-                        size={22}
-                        color={palette.muted}
-                      />
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={styles.headerSpacer} />
-                  )}
-                </View>
-              )}
-            </View>
-          </GestureDetector>
+                )}
+              </View>
+            )}
+          </View>
 
+          {/* Sheet Body Content */}
           <View style={styles.content}>{children}</View>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );
@@ -243,6 +171,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   content: {
-    flex: 1,
+    flexShrink: 1,
   },
 });

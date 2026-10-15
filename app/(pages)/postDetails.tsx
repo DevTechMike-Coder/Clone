@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { postService } from "@/services/postService";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { colors } from "@/constants/theme";
 import {
   getPendingPostData,
   clearPendingPostData,
@@ -156,7 +157,7 @@ export default function PostDetails() {
                 )}
                 {mediaType === "video" && (
                   <View style={styles.videoBadge}>
-                    <Ionicons name="videocam" size={12} color="#FFFFFF" />
+                    <Ionicons name="videocam" size={12} color={colors.white} />
                   </View>
                 )}
               </>
@@ -207,7 +208,7 @@ export default function PostDetails() {
                   { backgroundColor: palette.accent },
                 ]}
               >
-                <Ionicons name="musical-notes" size={18} color="#FFFFFF" />
+                <Ionicons name="musical-notes" size={18} color={colors.white} />
               </View>
             )}
             <View style={styles.flex1}>

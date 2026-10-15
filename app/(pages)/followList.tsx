@@ -1,30 +1,35 @@
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   RefreshControl,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
+  StyleSheet,
 } from "react-native";
-import React, { useCallback, useState } from "react";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { followService, SuggestedUser } from "@/services/followService";
-import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
-import { colors } from "@/constants/theme";
 
-const SafeAreaView = styled(RNSafeAreaView);
+import { followService, SuggestedUser } from "@/services/followService";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
+import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type TabType = "followers" | "following";
 
 export default function FollowList() {
   const { user: authUser } = useAuth();
+  const { palette } = useTheme();
   const { userId, initialTab, username } = useLocalSearchParams<{
     userId: string;
     initialTab?: TabType;
@@ -72,16 +77,12 @@ export default function FollowList() {
 
   const handleToggleFollow = async (user: SuggestedUser) => {
     if (togglingIds[user.id]) return;
-    // You can appear in someone else's follower list, so this is reachable
-    // — not just defensive. The service rejects it too, but that surfaces as
-    // an error toast after an optimistic flip, which reads as a bug.
     if (authUser?.id && user.id === authUser.id) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const prevFollowing = user.is_following;
     const nextFollowing = !prevFollowing;
 
-    // Optimistic update in both lists
     const updater = (list: SuggestedUser[]) =>
       list.map((u) =>
         u.id === user.id ? { ...u, is_following: nextFollowing } : u
@@ -103,7 +104,6 @@ export default function FollowList() {
       });
     } catch (error: any) {
       console.error("Error toggling follow:", error);
-      // Rollback
       const rollback = (list: SuggestedUser[]) =>
         list.map((u) =>
           u.id === user.id ? { ...u, is_following: prevFollowing } : u
@@ -130,185 +130,110 @@ export default function FollowList() {
     );
   });
 
+  const tabs: TabItem<TabType>[] = [
+    { key: "followers", label: "Followers", badge: followers.length },
+    { key: "following", label: "Following", badge: following.length },
+  ];
+
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.slate[900]} />
-          </TouchableOpacity>
-          <View>
-            <Text className="text-xl font-bold uppercase tracking-tighter text-blue-600">
-              Connections
-            </Text>
-            {username && (
-              <Text className="text-xs text-slate-400">@{username}</Text>
-            )}
-          </View>
-        </View>
-      </View>
+    <Screen style={{ backgroundColor: palette.background }}>
+      <ScreenHeader
+        title={username ? `@${username}` : "Connections"}
+        showBack
+        borderBottom
+      />
 
       {/* Tabs */}
-      <View className="flex-row border-b border-slate-200 bg-white">
-        <TouchableOpacity
-          onPress={() => setActiveTab("followers")}
-          className={`flex-1 flex-row items-center justify-center gap-2 py-3.5 border-b-2 ${
-            activeTab === "followers"
-              ? "border-blue-600"
-              : "border-transparent"
-          }`}
-        >
-          <Text
-            className={`font-bold text-sm ${
-              activeTab === "followers" ? "text-blue-600" : "text-slate-500"
-            }`}
-          >
-            Followers
-          </Text>
-          <View
-            className={`px-2 py-0.5 rounded-full ${
-              activeTab === "followers" ? "bg-blue-100" : "bg-slate-100"
-            }`}
-          >
-            <Text
-              className={`text-xs font-bold ${
-                activeTab === "followers" ? "text-blue-600" : "text-slate-500"
-              }`}
-            >
-              {followers.length}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab("following")}
-          className={`flex-1 flex-row items-center justify-center gap-2 py-3.5 border-b-2 ${
-            activeTab === "following"
-              ? "border-blue-600"
-              : "border-transparent"
-          }`}
-        >
-          <Text
-            className={`font-bold text-sm ${
-              activeTab === "following" ? "text-blue-600" : "text-slate-500"
-            }`}
-          >
-            Following
-          </Text>
-          <View
-            className={`px-2 py-0.5 rounded-full ${
-              activeTab === "following" ? "bg-blue-100" : "bg-slate-100"
-            }`}
-          >
-            <Text
-              className={`text-xs font-bold ${
-                activeTab === "following" ? "text-blue-600" : "text-slate-500"
-              }`}
-            >
-              {following.length}
-            </Text>
-          </View>
-        </TouchableOpacity>
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+        <SegmentedTabs<TabType>
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+        />
       </View>
 
       {/* Search Input */}
-      <View className="px-5 pt-3 pb-2">
-        <View className="flex-row items-center bg-white rounded-2xl px-4 py-2.5 border border-slate-200 shadow-sm">
-          <Ionicons name="search-outline" size={18} color={colors.slate[400]} />
-          <TextInput
-            placeholder={`Search ${activeTab}...`}
-            className="flex-1 ml-3 text-base text-slate-800"
-            placeholderTextColor={colors.slate[400]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery("")}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="close-circle" size={18} color={colors.slate[400]} />
-            </TouchableOpacity>
-          )}
-        </View>
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <TextField
+          placeholder={`Search ${activeTab}...`}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          leftIcon={<Ionicons name="search-outline" size={18} color={palette.muted} />}
+          rightIcon={
+            searchQuery.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
+              </TouchableOpacity>
+            ) : undefined
+          }
+        />
       </View>
 
       {/* List Content */}
       {loading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.blue[600]} />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={palette.accent} />
         </View>
       ) : filteredList.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-10">
-          <Ionicons name="people-outline" size={48} color={colors.slate[300]} />
-          <Text className="text-lg font-semibold text-slate-900 mt-4">
-            No {activeTab} yet
-          </Text>
-          <Text className="text-slate-500 text-center mt-2">
-            {activeTab === "followers"
+        <EmptyState
+          icon={<Ionicons name="people-outline" size={44} color={palette.muted} />}
+          title={`No ${activeTab} yet`}
+          description={
+            activeTab === "followers"
               ? "When someone follows this profile, they will appear here."
-              : "When this profile follows creators, they will appear here."}
-          </Text>
-        </View>
+              : "When this profile follows creators, they will appear here."
+          }
+        />
       ) : (
         <FlatList
           data={filteredList}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 30, paddingTop: 6 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.blue[600]}
+              tintColor={palette.primary}
             />
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              activeOpacity={0.85}
+              activeOpacity={0.8}
               onPress={() =>
                 router.push({
                   pathname: "/(pages)/userProfile",
                   params: { userId: item.id },
                 })
               }
-              className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3.5 mb-2.5 border border-slate-200/70 shadow-sm"
+              style={[
+                styles.userCard,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.borderSubtle,
+                },
+              ]}
             >
-              <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                <View className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 items-center justify-center border border-slate-200">
-                  {item.avatar_url ? (
-                    <Image
-                      source={{ uri: item.avatar_url }}
-                      className="h-full w-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require("@/assets/homeIcons/profileUser.png")}
-                      className="h-7 w-7"
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1, paddingRight: 12 }}>
+                <Avatar
+                  url={item.avatar_url}
+                  name={item.full_name || item.username}
+                  size="md"
+                />
 
-                <View className="flex-1">
-                  <Text className="text-base font-bold text-slate-900 leading-tight">
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyMedium" weight="bold" style={{ color: palette.text }}>
                     {item.full_name || item.username}
                   </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
+                  <Text variant="caption" style={{ color: palette.muted, marginTop: 2 }}>
                     @{item.username}
                   </Text>
                   {item.bio ? (
-                    <Text className="text-xs text-slate-500 mt-1" numberOfLines={1}>
+                    <Text variant="micro" style={{ color: palette.muted, marginTop: 2 }} numberOfLines={1}>
                       {item.bio}
                     </Text>
                   ) : null}
@@ -316,29 +241,36 @@ export default function FollowList() {
               </View>
 
               {item.id !== authUser?.id && (
-                <TouchableOpacity
+                <Button
+                  title={item.is_following ? "Following" : "Follow"}
+                  variant={item.is_following ? "outline" : "primary"}
+                  size="sm"
+                  loading={Boolean(togglingIds[item.id])}
                   onPress={() => handleToggleFollow(item)}
-                  disabled={togglingIds[item.id]}
-                  activeOpacity={0.7}
-                  className={`px-4 py-1.5 rounded-xl items-center justify-center ${
-                    item.is_following
-                      ? "bg-slate-100 border border-slate-300"
-                      : "bg-blue-600"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold ${
-                      item.is_following ? "text-slate-700" : "text-white"
-                    }`}
-                  >
-                    {item.is_following ? "Following" : "Follow"}
-                  </Text>
-                </TouchableOpacity>
+                />
               )}
             </TouchableOpacity>
           )}
         />
       )}
-    </SafeAreaView>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+});
+
