@@ -1,10 +1,5 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect } from "react";
 import { Stack } from "expo-router";
-import {
-  ThemeProvider as NavigationThemeProvider,
-  DarkTheme,
-  DefaultTheme,
-} from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { AuthProvider } from "@/context/AuthContext";
@@ -24,26 +19,16 @@ function RootNavigation() {
   // Registers this device's push token for the signed-in user and routes taps
   usePushNotifications();
 
-  const navigationTheme = useMemo(() => {
-    const base = isDark ? DarkTheme : DefaultTheme;
-    return {
-      ...base,
-      colors: {
-        ...base.colors,
-        background: palette.background,
-        card: palette.surface,
-        text: palette.text,
-        border: palette.border,
-        primary: palette.primary,
-      },
-    };
-  }, [isDark, palette]);
-
   return (
-    <NavigationThemeProvider value={navigationTheme}>
+    <>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false }} />
-    </NavigationThemeProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: palette.background },
+        }}
+      />
+    </>
   );
 }
 
