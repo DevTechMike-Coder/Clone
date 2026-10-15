@@ -180,25 +180,9 @@ export default function Profile() {
 
   useEffect(() => {
     navigation.setOptions({
-      tabBarStyle: menuOpen
-        ? { display: "none" }
-        : {
-            position: "absolute",
-            bottom: Math.max(insets.bottom, 16),
-            height: 70,
-            marginHorizontal: 20,
-            borderRadius: 20,
-            borderTopWidth: 1,
-            borderColor: palette.border,
-            backgroundColor: palette.surface,
-            elevation: 6,
-            shadowColor: isDark ? "#000000" : colors.slate[900],
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: isDark ? 0.35 : 0.08,
-            shadowRadius: 18,
-          },
+      tabBarStyle: menuOpen ? { display: "none" } : undefined,
     });
-  }, [menuOpen, navigation, insets, palette, isDark]);
+  }, [menuOpen, navigation]);
 
   const openMenu = () => {
     setMenuOpen(true);

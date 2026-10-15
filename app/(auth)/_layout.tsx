@@ -1,9 +1,11 @@
 import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import AuthSplash from "@/components/AuthSplash";
 
 export default function AuthLayout() {
   const { session, loading } = useAuth();
+  const { palette } = useTheme();
 
   if (loading) {
     return <AuthSplash />;
@@ -13,5 +15,12 @@ export default function AuthLayout() {
     return <Redirect href="/home" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: palette.background },
+      }}
+    />
+  );
 }

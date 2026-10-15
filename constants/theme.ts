@@ -1,10 +1,8 @@
 /**
- * Design tokens matching the Tailwind / NativeWind palette used in `className`.
+ * Design tokens matching the Tailwind / NativeWind palette and UI Overhaul specs.
  *
- * Tailwind utilities (`bg-blue-600`, `text-slate-900`, …) stay in className.
- * These tokens are the source of truth for RN props that cannot consume
- * Tailwind: `tintColor`, `color`, `placeholderTextColor`, `ActivityIndicator`,
- * `RefreshControl`, `StyleSheet`, `LinearGradient`, etc.
+ * Single source of truth for all color values, typography, spacing, radius,
+ * and motion presets across the app.
  */
 export const colors = {
   blue: {
@@ -187,6 +185,8 @@ export interface ThemePalette {
   primary: string;
   primaryDark: string;
   primaryLight: string;
+  accent: string;
+  onAccent: string;
   text: string;
   muted: string;
   placeholder: string;
@@ -195,58 +195,186 @@ export interface ThemePalette {
   surface: string;
   surfaceElevated: string;
   surfaceMuted: string;
+  surfacePressed: string;
   background: string;
   danger: string;
+  warning: string;
+  info: string;
   success: string;
+  like: string;
+  repost: string;
   overlay: string;
   shadowColor: string;
   card: string;
   inputBg: string;
 }
 
-/** Light Theme semantic tokens */
+/** Light Theme semantic tokens (Clean, neutral, content-first) */
 export const lightPalette: ThemePalette = {
   primary: colors.blue[600],
   primaryDark: colors.blue[700],
   primaryLight: colors.blue[500],
-  text: colors.slate[900],
-  muted: colors.slate[500],
-  placeholder: colors.slate[400],
-  border: colors.slate[200],
-  borderSubtle: colors.slate[100],
-  surface: colors.white,
-  surfaceElevated: colors.white,
-  surfaceMuted: colors.slate[100],
-  background: colors.slate[50],
-  danger: colors.red[500],
-  success: colors.emerald[500],
+  accent: colors.blue[600],
+  onAccent: "#FFFFFF",
+  text: "#111827",
+  muted: "#6B7280",
+  placeholder: "#9CA3AF",
+  border: "#E5E7EB",
+  borderSubtle: "#F3F4F6",
+  surface: "#FFFFFF",
+  surfaceElevated: "#FFFFFF",
+  surfaceMuted: "#F3F4F6",
+  surfacePressed: "#E5E7EB",
+  background: "#F7F7F8",
+  danger: colors.red[600],
+  warning: colors.amber[600],
+  info: colors.sky[600],
+  success: colors.emerald[600],
+  like: colors.red[600],
+  repost: colors.emerald[600],
   overlay: "rgba(15, 23, 42, 0.4)",
-  shadowColor: colors.slate[900],
-  card: colors.white,
-  inputBg: colors.white,
+  shadowColor: "#0F172A",
+  card: "#FFFFFF",
+  inputBg: "#FFFFFF",
 };
 
-/** Dark Theme semantic tokens */
+/** Dark Theme semantic tokens (OLED Neutral deep dark) */
 export const darkPalette: ThemePalette = {
   primary: colors.blue[500],
   primaryDark: colors.blue[600],
   primaryLight: colors.blue[400],
-  text: "#F8FAFC",
-  muted: colors.slate[400],
-  placeholder: colors.slate[500],
-  border: colors.slate[800],
-  borderSubtle: "#1E293B",
-  surface: "#0F172A",
-  surfaceElevated: "#1E293B",
-  surfaceMuted: "#1E293B",
-  background: "#020617",
+  accent: colors.blue[500],
+  onAccent: "#FFFFFF",
+  text: "#F4F4F6",
+  muted: "#9A9AA3",
+  placeholder: "#66666E",
+  border: "#26262A",
+  borderSubtle: "#1A1A1D",
+  surface: "#0B0B0C",
+  surfaceElevated: "#161618",
+  surfaceMuted: "#161618",
+  surfacePressed: "#222226",
+  background: "#000000",
   danger: colors.red[500],
+  warning: colors.amber[500],
+  info: colors.sky[400],
   success: colors.emerald[500],
-  overlay: "rgba(0, 0, 0, 0.7)",
+  like: colors.red[500],
+  repost: colors.emerald[500],
+  overlay: "rgba(0, 0, 0, 0.75)",
   shadowColor: "#000000",
-  card: "#0F172A",
-  inputBg: "#1E293B",
+  card: "#0B0B0C",
+  inputBg: "#161618",
 };
+
+/** Fixed media tokens for camera and full-screen video overlay chrome */
+export const mediaTokens = {
+  background: "#000000",
+  overlay: "rgba(0, 0, 0, 0.5)",
+  overlayHeavy: "rgba(0, 0, 0, 0.8)",
+  icon: "#FFFFFF",
+  iconMuted: "rgba(255, 255, 255, 0.7)",
+  text: "#FFFFFF",
+  textMuted: "rgba(255, 255, 255, 0.75)",
+  badgeBg: "rgba(0, 0, 0, 0.6)",
+  border: "rgba(255, 255, 255, 0.15)",
+} as const;
+
+/** Typography scale using Plus Jakarta Sans */
+export const typography = {
+  display: {
+    fontSize: 32,
+    lineHeight: 38,
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontWeight: "700" as const,
+  },
+  title: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontWeight: "600" as const,
+  },
+  headline: {
+    fontSize: 17,
+    lineHeight: 24,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontWeight: "600" as const,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontWeight: "400" as const,
+  },
+  bodyMedium: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontWeight: "500" as const,
+  },
+  caption: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontWeight: "500" as const,
+  },
+  micro: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontWeight: "500" as const,
+  },
+} as const;
+
+/** 4pt grid spacing scale */
+export const spacing = {
+  0: 0,
+  0.5: 2,
+  1: 4,
+  1.5: 6,
+  2: 8,
+  2.5: 10,
+  3: 12,
+  4: 16,
+  5: 20,
+  6: 24,
+  7: 28,
+  8: 32,
+  9: 36,
+  10: 40,
+  12: 48,
+  14: 56,
+  16: 64,
+} as const;
+
+/** Radius tokens */
+export const radius = {
+  none: 0,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 9999,
+} as const;
+
+/** Reanimated motion presets */
+export const motion = {
+  press: {
+    scale: 0.97,
+    duration: 90,
+  },
+  pop: {
+    damping: 12,
+    stiffness: 200,
+  },
+  sheet: {
+    damping: 20,
+    stiffness: 250,
+  },
+  fade: {
+    duration: 200,
+  },
+} as const;
 
 /** Default semantic aliases for backwards compatibility */
 export const palette = lightPalette;
@@ -265,14 +393,14 @@ export const getCardShadow = (isDark: boolean) =>
     ? {
         shadowColor: "#000000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.35,
+        shadowOpacity: 0.45,
         shadowRadius: 6,
         elevation: 3,
       }
     : {
-        shadowColor: colors.slate[900],
+        shadowColor: "#0F172A",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.05,
         shadowRadius: 12,
         elevation: 3,
       };
@@ -282,5 +410,10 @@ export const theme = {
   palette,
   lightPalette,
   darkPalette,
+  mediaTokens,
+  typography,
+  spacing,
+  radius,
+  motion,
   getCardShadow,
 } as const;

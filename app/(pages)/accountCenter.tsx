@@ -509,8 +509,27 @@ const AccountCenter = () => {
           </View>
         </View>
 
+        {/* Developer UI Gallery Link */}
+        {__DEV__ && (
+          <View className="px-5 mt-4 items-center">
+            <TouchableOpacity
+              onPress={() => router.push("/uiGallery")}
+              className="py-2 px-4 rounded-full border flex-row items-center gap-2"
+              style={{
+                borderColor: palette.accent,
+                backgroundColor: palette.surface,
+              }}
+            >
+              <Ionicons name="color-palette-outline" size={16} color={palette.accent} />
+              <Text style={{ color: palette.accent, fontSize: 13, fontWeight: "600" }}>
+                Open UI Component Gallery
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Legal & Help Footer */}
-        <View className="px-5 mt-8 items-center">
+        <View className="px-5 mt-6 items-center">
           <Text
             className="text-xs tracking-tight"
             style={{ color: palette.muted }}
