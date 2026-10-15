@@ -1,43 +1,71 @@
+import React, { useState } from "react";
 import {
   View,
-  Text,
-  TouchableOpacity,
-  Image,
-  TextInput,
   KeyboardAvoidingView,
-  ActivityIndicator,
   Platform,
   ScrollView,
+  StyleSheet,
+  Image,
 } from "react-native";
-import React, { useState } from "react";
 import { router } from "expo-router";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
+import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 import { authService } from "@/services/authService";
-import Toast from "react-native-toast-message";
-import { colors } from "@/constants/theme";
-
-const SafeAreaView = styled(RNSafeAreaView);
-
-const eyeOutline = require("@/assets/authicons/eye.png");
-const eyeOffOutline = require("@/assets/authicons/eyeInvincible.png");
+import { useTheme } from "@/context/ThemeContext";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Text } from "@/components/ui/Text";
+import { TextField } from "@/components/ui/TextField";
+import { Button } from "@/components/ui/Button";
+import { PressableScale } from "@/components/ui/PressableScale";
 
 const SignUp = () => {
-  const [showPassword, setShowPassword] = useState(false);
+  const { palette } = useTheme();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
+
+  const [fullNameError, setFullNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  const validate = () => {
+    let isValid = true;
+    setFullNameError("");
+    setEmailError("");
+    setPasswordError("");
+
+    if (!fullName.trim()) {
+      setFullNameError("Full name is required");
+      isValid = false;
+    }
+
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
+      setEmailError("Please enter a valid email address");
+      isValid = false;
+    }
+
+    if (!password) {
+      setPasswordError("Password is required");
+      isValid = false;
+    } else if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      isValid = false;
+    }
+
+    return isValid;
+  };
 
   const handleGoogleSignUp = async () => {
     try {
       setOauthLoading("google");
       const data = await authService.signInWithGoogle();
-      // `data` is null when the user cancels the Google account picker —
-      // stay on this screen instead of navigating.
       if (data) {
         router.replace("/home");
       }
@@ -73,20 +101,11 @@ const SignUp = () => {
   };
 
   const handleSignUp = async () => {
-    if (!email || !password || !fullName) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Please fill in all fields",
-      });
-      return;
-    }
+    if (!validate()) return;
 
     try {
       setLoading(true);
-      const data = await authService.signUp(email, password, fullName);
-
-      console.log("Signup success, session:", !!data?.session);
+      const data = await authService.signUp(email.trim(), password, fullName.trim());
 
       if (data?.session) {
         Toast.show({
@@ -103,7 +122,6 @@ const SignUp = () => {
         });
       }
     } catch (error: any) {
-      console.error("Signup error:", error);
       Toast.show({
         type: "error",
         text1: "Sign Up Error",
@@ -115,178 +133,211 @@ const SignUp = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <Screen style={{ backgroundColor: palette.background }}>
+      <ScreenHeader
+        title=""
+        showBack
+        onBack={() => router.back()}
+        border={false}
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-1 px-5 pb-8 pt-2">
-            <View className="h-12 justify-center">
-              <TouchableOpacity
-                onPress={() => router.back()}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-                className="h-10 w-10 items-center justify-center"
+          <View style={styles.formContainer}>
+            {/* Header Titles */}
+            <View style={styles.headerBlock}>
+              <Text variant="title" weight="bold" style={{ color: palette.text }}>
+                Create account
+              </Text>
+              <Text
+                variant="body"
+                style={{ color: palette.muted, marginTop: 6, textAlign: "center" }}
               >
-                <Image
-                  source={require("@/assets/homeIcons/chevronleft.png")}
-                  className="h-6 w-6"
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
+                Join the community and discover what is trending
+              </Text>
             </View>
 
-            <View className="flex-1 items-center justify-center py-8">
-              <View className="w-full gap-6" style={{ maxWidth: 420 }}>
-                <View className="items-center gap-2">
-                  <Text className="text-2xl font-bold text-slate-950">
-                    Create Account
-                  </Text>
-                  <Text className="text-center text-slate-600">
-                    Join the community
-                  </Text>
-                </View>
+            {/* Inputs */}
+            <View style={styles.inputsBlock}>
+              <TextField
+                label="Full Name"
+                placeholder="Jane Doe"
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+                value={fullName}
+                onChangeText={(val) => {
+                  setFullName(val);
+                  if (fullNameError) setFullNameError("");
+                }}
+                errorText={fullNameError}
+                leftIcon={
+                  <Ionicons name="person-outline" size={18} color={palette.muted} />
+                }
+              />
 
-                <View className="w-full gap-6">
-                  <View className="w-full gap-4">
-                    <TextInput
-                      placeholder="Full Name"
-                      placeholderTextColor={colors.slate[400]}
-                      value={fullName}
-                      onChangeText={setFullName}
-                      className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
-                    />
+              <TextField
+                label="Email"
+                placeholder="you@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                value={email}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  if (emailError) setEmailError("");
+                }}
+                errorText={emailError}
+                leftIcon={
+                  <Ionicons name="mail-outline" size={18} color={palette.muted} />
+                }
+              />
 
-                    <TextInput
-                      placeholder="Email"
-                      placeholderTextColor={colors.slate[400]}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={email}
-                      onChangeText={setEmail}
-                      className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
-                    />
+              <TextField
+                label="Password"
+                placeholder="Create a strong password"
+                secureTextEntry
+                showPasswordToggle
+                autoCapitalize="none"
+                autoComplete="new-password"
+                textContentType="newPassword"
+                value={password}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (passwordError) setPasswordError("");
+                }}
+                errorText={passwordError}
+                helperText="Must be at least 6 characters"
+                leftIcon={
+                  <Ionicons name="lock-closed-outline" size={18} color={palette.muted} />
+                }
+              />
+            </View>
 
-                    <View className="relative w-full">
-                      <TextInput
-                        placeholder="Password"
-                        placeholderTextColor={colors.slate[400]}
-                        secureTextEntry={!showPassword}
-                        value={password}
-                        onChangeText={setPassword}
-                        className="h-12 rounded-2xl border border-slate-200 bg-white pl-4 pr-12 text-slate-900"
-                      />
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => setShowPassword((v) => !v)}
-                        accessibilityRole="button"
-                        accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                        className="absolute right-3 top-0 h-12 w-10 items-center justify-center"
-                      >
-                        <Image
-                          source={showPassword ? eyeOffOutline : eyeOutline}
-                          className="h-6 w-6"
-                          style={{ tintColor: colors.slate[500] }}
-                          resizeMode="contain"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+            {/* Primary Submit Button */}
+            <Button
+              title="Create Account"
+              size="lg"
+              fullWidth
+              loading={loading}
+              onPress={handleSignUp}
+              style={{ marginTop: 8 }}
+            />
 
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={handleSignUp}
-                    disabled={loading}
-                    className={`h-12 w-full items-center justify-center rounded-2xl ${
-                      loading ? "bg-blue-400" : "bg-blue-600"
-                    }`}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text className="text-base font-semibold text-white">
-                        Sign Up
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: palette.borderSubtle }]} />
+              <Text variant="caption" weight="semibold" style={{ color: palette.muted, marginHorizontal: 12 }}>
+                OR
+              </Text>
+              <View style={[styles.dividerLine, { backgroundColor: palette.borderSubtle }]} />
+            </View>
 
-                  <View className="w-full flex-row items-center gap-3">
-                    <View className="h-px flex-1 bg-slate-200" />
-                    <Text className="text-sm font-semibold text-slate-500">
-                      OR
-                    </Text>
-                    <View className="h-px flex-1 bg-slate-200" />
-                  </View>
+            {/* Social Auth */}
+            <View style={styles.socialRow}>
+              <Button
+                variant="outline"
+                size="md"
+                fullWidth
+                loading={oauthLoading === "google"}
+                disabled={Boolean(oauthLoading)}
+                onPress={handleGoogleSignUp}
+                leftIcon={
+                  <Image
+                    source={require("@/assets/brandIcon/google.png")}
+                    style={{ width: 18, height: 18 }}
+                    resizeMode="contain"
+                  />
+                }
+                title="Google"
+                style={{ flex: 1 }}
+              />
 
-                  <View className="w-full flex-row items-center justify-center gap-4">
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onPress={handleGoogleSignUp}
-                      disabled={!!oauthLoading}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
-                    >
-                      {oauthLoading === "google" ? (
-                        <ActivityIndicator size="small" color={colors.blue[600]} />
-                      ) : (
-                        <>
-                          <Image
-                            source={require("@/assets/brandIcon/google.png")}
-                            className="h-5 w-5"
-                            resizeMode="contain"
-                          />
-                          <Text className="text-base font-semibold text-slate-900">
-                            Google
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
+              <Button
+                variant="outline"
+                size="md"
+                fullWidth
+                loading={oauthLoading === "apple"}
+                disabled={Boolean(oauthLoading)}
+                onPress={handleAppleSignUp}
+                leftIcon={
+                  <Image
+                    source={require("@/assets/brandIcon/apple.png")}
+                    style={{ width: 18, height: 18 }}
+                    resizeMode="contain"
+                  />
+                }
+                title="Apple"
+                style={{ flex: 1 }}
+              />
+            </View>
 
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onPress={handleAppleSignUp}
-                      disabled={!!oauthLoading}
-                      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 bg-white"
-                    >
-                      {oauthLoading === "apple" ? (
-                        <ActivityIndicator size="small" color={colors.slate[900]} />
-                      ) : (
-                        <>
-                          <Image
-                            source={require("@/assets/brandIcon/apple.png")}
-                            className="h-5 w-5"
-                            resizeMode="contain"
-                          />
-                          <Text className="text-base font-semibold text-slate-900">
-                            Apple
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  <View className="flex-row items-center justify-center gap-2">
-                    <Text className="text-slate-600">
-                      Already have an account?
-                    </Text>
-                    <TouchableOpacity onPress={() => router.push("/signIn")}>
-                      <Text className="font-semibold text-blue-600">
-                        Sign In
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
+            {/* Bottom Redirect Link */}
+            <View style={styles.footerRow}>
+              <Text variant="bodyMedium" style={{ color: palette.muted }}>
+                Already have an account?{" "}
+              </Text>
+              <PressableScale onPress={() => router.push("/signIn")}>
+                <Text variant="bodyMedium" weight="semibold" style={{ color: palette.accent }}>
+                  Sign In
+                </Text>
+              </PressableScale>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 };
 
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  formContainer: {
+    width: "100%",
+    maxWidth: 440,
+    alignSelf: "center",
+  },
+  headerBlock: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  inputsBlock: {
+    gap: 4,
+    marginBottom: 16,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  socialRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 32,
+  },
+});
+
 export default SignUp;
+

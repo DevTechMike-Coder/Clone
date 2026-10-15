@@ -1,10 +1,12 @@
-import { colors, storyRingGradient, storyRingViewed } from "@/constants/theme";
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/context/ThemeContext";
+import { storyRingGradient, storyRingViewed } from "@/constants/theme";
 import { StoryRing as StoryRingType } from "@/services/storyService";
-import { LinearGradient as RNLinearGradient } from "expo-linear-gradient";
-import { styled } from "nativewind";
-import { Image, Text, TouchableOpacity, View } from "react-native";
-
-const LinearGradient = styled(RNLinearGradient);
+import { Text } from "@/components/ui/Text";
 
 type Props = {
   ring: StoryRingType;
@@ -14,8 +16,7 @@ type Props = {
 };
 
 /**
- * Instagram-style story ring. A colourful gradient border around an avatar.
- * Viewed stories show a grey border; the first slot is the "Add Story" CTA.
+ * Instagram-style story ring with full dark/light theme support.
  */
 export default function StoryRing({
   ring,
@@ -23,6 +24,8 @@ export default function StoryRing({
   onCreateStory,
   onPress,
 }: Props) {
+  const { palette } = useTheme();
+
   if (isFirst) {
     return (
       <TouchableOpacity
@@ -30,37 +33,49 @@ export default function StoryRing({
         onPress={onCreateStory}
         accessibilityRole="button"
         accessibilityLabel="Add your story"
-        className="items-center mr-4"
-        style={{ width: 72 }}
+        style={styles.container}
       >
-        <View className="relative">
-          <View className="w-16 h-16 rounded-full bg-slate-200 items-center justify-center border-[2.5px] border-white overflow-hidden">
+        <View style={styles.avatarWrapper}>
+          <View
+            style={[
+              styles.avatarCircle,
+              {
+                backgroundColor: palette.surfaceMuted,
+                borderColor: palette.background,
+              },
+            ]}
+          >
             {ring.avatar_url ? (
               <Image
                 source={{ uri: ring.avatar_url }}
-                className="w-full h-full"
-                resizeMode="cover"
+                style={styles.avatarImage}
+                contentFit="cover"
+                transition={150}
               />
             ) : (
-              <Image
-                source={require("@/assets/homeIcons/profileUser.png")}
-                style={{ width: 30, height: 30, tintColor: colors.slate[400] }}
-                resizeMode="contain"
-              />
+              <Ionicons name="person" size={28} color={palette.muted} />
             )}
           </View>
-          <View className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-blue-600 items-center justify-center border-[2.5px] border-white">
-            <Text
-              className="text-white text-base font-bold leading-none"
-              style={{ marginTop: -1 }}
-            >
-              +
-            </Text>
+
+          {/* Plus Badge */}
+          <View
+            style={[
+              styles.plusBadge,
+              {
+                backgroundColor: palette.accent,
+                borderColor: palette.background,
+              },
+            ]}
+          >
+            <Ionicons name="add" size={14} color={palette.onAccent} />
           </View>
         </View>
+
         <Text
+          variant="micro"
+          weight="medium"
           numberOfLines={1}
-          className="text-[11px] text-slate-700 mt-1.5 font-medium"
+          style={styles.usernameText}
         >
           Your story
         </Text>
@@ -69,6 +84,7 @@ export default function StoryRing({
   }
 
   const viewed = !ring.has_unviewed;
+  const gradientColors = viewed ? storyRingViewed : storyRingGradient;
 
   return (
     <TouchableOpacity
@@ -76,37 +92,96 @@ export default function StoryRing({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`View ${ring.username}'s story`}
-      className="items-center mr-4"
-      style={{ width: 72 }}
+      style={styles.container}
     >
       <LinearGradient
-        colors={viewed ? [...storyRingViewed] : [...storyRingGradient]}
+        colors={gradientColors as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="w-[70px] h-[70px] rounded-full items-center justify-center"
+        style={styles.gradientRing}
       >
-        <View className="w-16 h-16 rounded-full bg-white items-center justify-center overflow-hidden">
+        <View
+          style={[
+            styles.innerAvatarContainer,
+            { backgroundColor: palette.background },
+          ]}
+        >
           {ring.avatar_url ? (
             <Image
               source={{ uri: ring.avatar_url }}
-              className="w-full h-full"
-              resizeMode="cover"
+              style={styles.avatarImage}
+              contentFit="cover"
+              transition={150}
             />
           ) : (
-            <Image
-              source={require("@/assets/homeIcons/profileUser.png")}
-              style={{ width: 30, height: 30, tintColor: colors.slate[400] }}
-              resizeMode="contain"
-            />
+            <Ionicons name="person" size={28} color={palette.muted} />
           )}
         </View>
       </LinearGradient>
+
       <Text
+        variant="micro"
+        weight="medium"
         numberOfLines={1}
-        className="text-[11px] text-slate-700 mt-1.5 font-medium"
+        style={styles.usernameText}
       >
         {ring.username}
       </Text>
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    marginRight: 14,
+    width: 68,
+  },
+  avatarWrapper: {
+    position: "relative",
+  },
+  avatarCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2.5,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  plusBadge: {
+    position: "absolute",
+    bottom: -1,
+    right: -1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gradientRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  innerAvatarContainer: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  usernameText: {
+    marginTop: 5,
+    textAlign: "center",
+    maxWidth: 68,
+  },
+});

@@ -1,21 +1,17 @@
-import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  StyleSheet,
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
 } from "react-native";
+import { router } from "expo-router";
 import { Image } from "expo-image";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import { Ionicons } from "@expo/vector-icons";
 import { postService } from "@/services/postService";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import {
   getPendingPostData,
   clearPendingPostData,
@@ -25,16 +21,17 @@ import { ProfileSearchResult } from "@/services/profileService";
 import TagPeopleModal from "@/components/modal/TagPeopleModal";
 import LocationPickerModal from "@/components/modal/LocationPickerModal";
 import Toast from "react-native-toast-message";
-import { colors } from "@/constants/theme";
+import { Screen, ScreenHeader, Text, Button, ListSection, ListRow } from "@/components/ui";
 
-const SafeAreaView = styled(RNSafeAreaView);
-
-const PostDetails = () => {
+export default function PostDetails() {
   const postData = getPendingPostData();
   const mediaUri = postData?.mediaUri ?? "";
   const mediaType = postData?.mediaType ?? "image";
   const filterId = postData?.filterId;
   const musicTrack = postData?.musicTrack;
+
+  const { palette } = useTheme();
+  const { session } = useAuth();
 
   const [caption, setCaption] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,8 +39,6 @@ const PostDetails = () => {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [taggedUsers, setTaggedUsers] = useState<ProfileSearchResult[]>([]);
   const [showTagModal, setShowTagModal] = useState(false);
-
-  const { session } = useAuth();
 
   useEffect(() => {
     return () => clearPendingPostData();
@@ -63,61 +58,36 @@ const PostDetails = () => {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: "No media selected.",
+        text2: "No media file selected.",
       });
       return;
     }
 
     setLoading(true);
     try {
-      const publicUrl = await postService.uploadMedia(
-        mediaUri,
-        session.user.id,
-        mediaType,
-      );
-
-      // Assemble final rich caption with tags, location and music
-      let finalCaption = caption.trim();
-
-      if (taggedUsers.length > 0) {
-        const tagString = taggedUsers.map((u) => `@${u.username || "user"}`).join(" ");
-        finalCaption = finalCaption ? `${finalCaption}\n\n👥 ${tagString}` : `👥 ${tagString}`;
-      }
-
-      if (selectedLocation) {
-        finalCaption = finalCaption
-          ? `${finalCaption}\n📍 ${selectedLocation}`
-          : `📍 ${selectedLocation}`;
-      }
-
-      if (musicTrack) {
-        finalCaption = finalCaption
-          ? `${finalCaption}\n🎵 ${musicTrack.title} - ${musicTrack.artist}`
-          : `🎵 ${musicTrack.title} - ${musicTrack.artist}`;
-      }
+      const activeFilter = CAMERA_FILTERS.find((f) => f.id === filterId);
 
       await postService.createPost({
         user_id: session.user.id,
-        media_url: publicUrl,
+        media_url: mediaUri,
         media_type: mediaType,
-        caption: finalCaption,
+        caption: caption.trim() || undefined,
         filter_id: filterId,
         music_track_id: musicTrack?.id,
         music_track_title: musicTrack?.title,
         music_track_artist: musicTrack?.artist,
-        music_track_cover_url: musicTrack?.coverUrl,
-        music_track_audio_url: musicTrack?.audioUrl,
-        music_track_attribution: musicTrack?.attribution,
-        duration_seconds: musicTrack?.durationSeconds,
-        has_sound: Boolean(musicTrack),
+        music_track_audio_url: musicTrack?.audioUrl ?? undefined,
+        music_track_attribution: musicTrack?.attribution ?? undefined,
+        has_sound: Boolean(musicTrack?.audioUrl),
       });
 
       Toast.show({
         type: "success",
-        text1: "Published!",
-        text2: "Your post is now live.",
+        text1: "Posted!",
+        text2: "Your post is now live on your feed.",
       });
 
+      clearPendingPostData();
       router.replace("/home");
     } catch (error: any) {
       console.error("Error creating post:", error);
@@ -138,276 +108,417 @@ const PostDetails = () => {
   const activeFilterObj = CAMERA_FILTERS.find((f) => f.id === filterId);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        {/* Top App Bar */}
-        <View className="flex-row items-center justify-between px-5 py-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            className="p-1"
-          >
-            <Ionicons name="chevron-back" size={26} color={colors.slate[900]} />
-          </TouchableOpacity>
-          <TouchableOpacity
+    <Screen edges={["top", "bottom"]} keyboardAvoiding>
+      <ScreenHeader
+        title="New Post"
+        rightAction={
+          <Button
+            title="Share"
+            size="sm"
+            variant="primary"
+            loading={loading}
             onPress={handlePost}
-            disabled={loading}
-            className="bg-blue-600 px-5 py-2 rounded-full active:opacity-80"
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
+          />
+        }
+      />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Media Thumbnail & Caption Box */}
+        <View
+          style={[
+            styles.captionCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <View style={styles.thumbnailWrapper}>
+            {mediaUri ? (
+              <>
+                <Image
+                  source={{ uri: mediaUri }}
+                  style={styles.thumbnail}
+                  contentFit="cover"
+                  transition={150}
+                />
+                {activeFilterObj?.overlayColor && (
+                  <View
+                    style={[
+                      styles.filterOverlay,
+                      { backgroundColor: activeFilterObj.overlayColor },
+                    ]}
+                  />
+                )}
+                {mediaType === "video" && (
+                  <View style={styles.videoBadge}>
+                    <Ionicons name="videocam" size={12} color="#FFFFFF" />
+                  </View>
+                )}
+              </>
             ) : (
-              <Text className="text-white font-bold text-sm">Share</Text>
+              <Ionicons name="image-outline" size={32} color={palette.muted} />
             )}
-          </TouchableOpacity>
+          </View>
+
+          <TextInput
+            placeholder="Write an engaging caption..."
+            placeholderTextColor={palette.placeholder}
+            multiline
+            numberOfLines={4}
+            value={caption}
+            onChangeText={setCaption}
+            style={[
+              styles.captionInput,
+              {
+                color: palette.text,
+                fontFamily: "PlusJakartaSans_400Regular",
+              },
+            ]}
+            textAlignVertical="top"
+          />
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-5" showsVerticalScrollIndicator={false}>
-          {/* Media Thumbnail & Caption Box */}
-          <View className="flex-row gap-4">
-            <View className="w-28 h-36 rounded-2xl bg-slate-100 items-center justify-center overflow-hidden border border-slate-200 relative shadow-sm">
-              {mediaUri ? (
-                <>
-                  <Image
-                    source={{ uri: mediaUri }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                  />
-                  {activeFilterObj?.overlayColor && (
-                    <View
-                      className="absolute inset-0"
-                      style={{ backgroundColor: activeFilterObj.overlayColor }}
-                    />
-                  )}
-                  {mediaType === "video" && (
-                    <View className="absolute bottom-2 right-2 bg-black/60 px-1.5 py-0.5 rounded-md">
-                      <Ionicons name="videocam" size={12} color="white" />
-                    </View>
-                  )}
-                </>
-              ) : (
-                <Ionicons name="image-outline" size={32} color={colors.slate[400]} />
-              )}
-            </View>
-            <View className="flex-1">
-              <TextInput
-                placeholder="Write an engaging caption..."
-                placeholderTextColor={colors.slate[400]}
-                multiline
-                numberOfLines={4}
-                value={caption}
-                onChangeText={setCaption}
-                className="text-base text-slate-900 pt-2 h-36"
-                textAlignVertical="top"
+        {/* Attached Sound Tag Pill */}
+        {musicTrack && (
+          <View
+            style={[
+              styles.soundCard,
+              {
+                backgroundColor: palette.surfaceElevated,
+                borderColor: palette.border,
+              },
+            ]}
+          >
+            {musicTrack.coverUrl ? (
+              <Image
+                source={{ uri: musicTrack.coverUrl }}
+                style={styles.soundCover}
+                contentFit="cover"
               />
+            ) : (
+              <View
+                style={[
+                  styles.soundCoverPlaceholder,
+                  { backgroundColor: palette.accent },
+                ]}
+              >
+                <Ionicons name="musical-notes" size={18} color="#FFFFFF" />
+              </View>
+            )}
+            <View style={styles.flex1}>
+              <Text variant="body" weight="semibold" numberOfLines={1}>
+                {musicTrack.title}
+              </Text>
+              <Text variant="caption" color="muted">
+                {musicTrack.artist}
+                {musicTrack.durationSeconds
+                  ? ` • ${Math.floor(musicTrack.durationSeconds / 60)}:${String(
+                      Math.floor(musicTrack.durationSeconds % 60)
+                    ).padStart(2, "0")}`
+                  : ""}
+              </Text>
             </View>
           </View>
+        )}
 
-          {/* Attached Sound Tag Pill */}
-          {musicTrack && (
-            <View className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex-row items-center gap-3 shadow-sm">
-              {musicTrack.coverUrl ? (
-                <Image
-                  source={{ uri: musicTrack.coverUrl }}
-                  className="w-10 h-10 rounded-xl"
-                  contentFit="cover"
-                />
-              ) : (
-                <View className="w-10 h-10 rounded-xl bg-blue-600 items-center justify-center">
-                  <Ionicons name="musical-notes" size={18} color="white" />
-                </View>
-              )}
-              <View className="flex-1">
-                <Text className="text-sm font-bold text-slate-900 leading-tight" numberOfLines={1}>
-                  {musicTrack.title}
-                </Text>
-                <Text className="text-xs text-slate-500">
-                  {musicTrack.artist}
-                  {musicTrack.durationSeconds
-                    ? ` • ${Math.floor(musicTrack.durationSeconds / 60)}:${String(
-                        Math.floor(musicTrack.durationSeconds % 60),
-                      ).padStart(2, "0")}`
-                    : ""}
-                </Text>
-                {musicTrack.attribution ? (
-                  <Text className="text-[10px] text-slate-400 mt-0.5" numberOfLines={1}>
-                    {musicTrack.attribution}
-                  </Text>
-                ) : null}
-              </View>
-              {musicTrack.audioUrl ? (
-                <View className="px-2 py-1 rounded-full bg-blue-100 border border-blue-200">
-                  <Text className="text-[10px] font-bold uppercase text-blue-700">
-                    {musicTrack.license ? musicTrack.license : "Sound"}
-                  </Text>
-                </View>
-              ) : (
-                <View className="px-2 py-1 rounded-full bg-amber-100 border border-amber-200">
-                  <Text className="text-[10px] font-bold uppercase text-amber-700">
-                    No audio
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Selected Location Pill */}
-          {selectedLocation && (
-            <View className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2.5 flex-1 mr-2">
-                <View className="w-8 h-8 rounded-xl bg-emerald-600 items-center justify-center">
-                  <Ionicons name="location" size={16} color="white" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs font-bold text-emerald-900" numberOfLines={1}>
-                    {selectedLocation}
-                  </Text>
-                  <Text className="text-[10px] text-emerald-600">Location Tagged</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => setSelectedLocation(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Remove location"
-                className="p-1"
+        {/* Selected Location Pill */}
+        {selectedLocation && (
+          <View
+            style={[
+              styles.locationCard,
+              {
+                backgroundColor: palette.surfaceElevated,
+                borderColor: palette.border,
+              },
+            ]}
+          >
+            <View style={styles.locationContent}>
+              <View
+                style={[
+                  styles.locationIconTile,
+                  { backgroundColor: palette.success + "20" },
+                ]}
               >
-                <Ionicons name="close-circle" size={20} color={colors.emerald[500]} />
+                <Ionicons name="location" size={16} color={palette.success} />
+              </View>
+              <View style={styles.flex1}>
+                <Text variant="caption" weight="bold" numberOfLines={1}>
+                  {selectedLocation}
+                </Text>
+                <Text variant="micro" color="muted">
+                  Location Tagged
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => setSelectedLocation(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Remove location"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={18} color={palette.muted} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Selected Tagged People Chips */}
+        {taggedUsers.length > 0 && (
+          <View
+            style={[
+              styles.taggedCard,
+              {
+                backgroundColor: palette.surfaceElevated,
+                borderColor: palette.border,
+              },
+            ]}
+          >
+            <View style={styles.taggedHeader}>
+              <View style={styles.row}>
+                <Ionicons name="people" size={16} color={palette.accent} />
+                <Text variant="caption" weight="bold" style={{ marginLeft: 6 }}>
+                  Tagged People ({taggedUsers.length})
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowTagModal(true)}>
+                <Text variant="caption" color="accent" weight="semibold">
+                  + Edit
+                </Text>
               </TouchableOpacity>
             </View>
-          )}
 
-          {/* Selected Tagged People Chips */}
-          {taggedUsers.length > 0 && (
-            <View className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-2xl">
-              <View className="flex-row items-center justify-between mb-2">
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="people" size={16} color={colors.violet[600]} />
-                  <Text className="text-xs font-bold text-purple-900">
-                    Tagged People ({taggedUsers.length})
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipsScroll}
+            >
+              {taggedUsers.map((user) => (
+                <View
+                  key={user.id}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.borderSubtle,
+                    },
+                  ]}
+                >
+                  {user.avatar_url ? (
+                    <Image
+                      source={{ uri: user.avatar_url }}
+                      style={styles.chipAvatar}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Ionicons name="person-circle" size={16} color={palette.accent} />
+                  )}
+                  <Text variant="micro" weight="semibold">
+                    @{user.username || "user"}
                   </Text>
-                </View>
-                <TouchableOpacity onPress={() => setShowTagModal(true)}>
-                  <Text className="text-xs font-bold text-purple-600">+ Edit</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8 }}
-              >
-                {taggedUsers.map((user) => (
-                  <View
-                    key={user.id}
-                    className="flex-row items-center gap-1.5 bg-white border border-purple-200 px-3 py-1.5 rounded-full shadow-sm"
+                  <TouchableOpacity
+                    onPress={() => removeTaggedUser(user.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove tag ${user.username || "user"}`}
                   >
-                    {user.avatar_url ? (
-                      <Image
-                        source={{ uri: user.avatar_url }}
-                        className="w-5 h-5 rounded-full"
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <Ionicons name="person-circle" size={18} color={colors.violet[600]} />
-                    )}
-                    <Text className="text-xs font-bold text-purple-800">
-                      @{user.username || "user"}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => removeTaggedUser(user.id)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remove tag ${user.username || "user"}`}
-                    >
-                      <Ionicons name="close-circle" size={16} color={colors.purple[600]} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Interactive Actions (Add Location, Tag People) */}
-          <View className="mt-6 gap-3.5 pb-12">
-            {/* Add Location Row */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setShowLocationModal(true)}
-              className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
-            >
-              <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
-                  <Ionicons
-                    name="location-outline"
-                    size={22}
-                    color={selectedLocation ? colors.emerald[500] : colors.slate[600]}
-                  />
+                    <Ionicons name="close-circle" size={14} color={palette.muted} />
+                  </TouchableOpacity>
                 </View>
-                <View>
-                  <Text className="text-base font-semibold text-slate-800">
-                    {selectedLocation ? "Change Location" : "Add Location"}
-                  </Text>
-                  <Text className="text-xs text-slate-400">
-                    {selectedLocation || "Show where this was captured"}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
-            </TouchableOpacity>
-
-            {/* Tag People Row */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setShowTagModal(true)}
-              className="flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
-            >
-              <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
-                  <Ionicons
-                    name="person-outline"
-                    size={22}
-                    color={taggedUsers.length > 0 ? colors.violet[600] : colors.slate[600]}
-                  />
-                </View>
-                <View>
-                  <Text className="text-base font-semibold text-slate-800">
-                    {taggedUsers.length > 0
-                      ? `Tagged People (${taggedUsers.length})`
-                      : "Tag People"}
-                  </Text>
-                  <Text className="text-xs text-slate-400">
-                    {taggedUsers.length > 0
-                      ? taggedUsers.map((u) => `@${u.username}`).join(", ")
-                      : "Tag friends in your post"}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.slate[400]} />
-            </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-        </ScrollView>
+        )}
 
-        {/* Tag People Modal */}
-        <TagPeopleModal
-          visible={showTagModal}
-          selectedUsers={taggedUsers}
-          onClose={() => setShowTagModal(false)}
-          onSave={setTaggedUsers}
-        />
+        {/* Location & Tag Section Rows */}
+        <View style={styles.settingsSection}>
+          <ListSection>
+            <ListRow
+              icon={
+                <Ionicons
+                  name="location-outline"
+                  size={20}
+                  color={selectedLocation ? palette.success : palette.muted}
+                />
+              }
+              title={selectedLocation ? "Change Location" : "Add Location"}
+              subtitle={selectedLocation || "Show where this was captured"}
+              onPress={() => setShowLocationModal(true)}
+            />
+            <ListRow
+              icon={
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={taggedUsers.length > 0 ? palette.accent : palette.muted}
+                />
+              }
+              title={
+                taggedUsers.length > 0
+                  ? `Tagged People (${taggedUsers.length})`
+                  : "Tag People"
+              }
+              subtitle={
+                taggedUsers.length > 0
+                  ? taggedUsers.map((u) => `@${u.username}`).join(", ")
+                  : "Tag friends in your post"
+              }
+              onPress={() => setShowTagModal(true)}
+            />
+          </ListSection>
+        </View>
+      </ScrollView>
 
-        {/* Location Picker Modal */}
-        <LocationPickerModal
-          visible={showLocationModal}
-          selectedLocation={selectedLocation}
-          onClose={() => setShowLocationModal(false)}
-          onSelectLocation={setSelectedLocation}
-        />
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      {/* Tag People Modal */}
+      <TagPeopleModal
+        visible={showTagModal}
+        selectedUsers={taggedUsers}
+        onClose={() => setShowTagModal(false)}
+        onSave={setTaggedUsers}
+      />
+
+      {/* Location Picker Modal */}
+      <LocationPickerModal
+        visible={showLocationModal}
+        selectedLocation={selectedLocation}
+        onClose={() => setShowLocationModal(false)}
+        onSelectLocation={setSelectedLocation}
+      />
+    </Screen>
   );
-};
+}
 
-export default PostDetails;
+const styles = StyleSheet.create({
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  captionCard: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  thumbnailWrapper: {
+    width: 100,
+    height: 130,
+    borderRadius: 12,
+    overflow: "hidden",
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  thumbnail: {
+    width: "100%",
+    height: "100%",
+  },
+  filterOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  videoBadge: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  captionInput: {
+    flex: 1,
+    height: 130,
+    fontSize: 15,
+    paddingTop: 4,
+  },
+  soundCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  soundCover: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+  },
+  soundCoverPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  locationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  locationContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  locationIconTile: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  taggedCard: {
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  taggedHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  chipsScroll: {
+    gap: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    borderWidth: 1,
+  },
+  chipAvatar: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  settingsSection: {
+    marginTop: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  flex1: {
+    flex: 1,
+  },
+});

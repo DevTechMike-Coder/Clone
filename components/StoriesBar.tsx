@@ -1,27 +1,23 @@
-import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   View,
 } from "react-native";
-
-import { colors } from "@/constants/theme";
+import { router, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import {
   StoryRing as StoryRingType,
   storyService,
 } from "@/services/storyService";
 import StoryRing from "./StoryRing";
+import { Skeleton } from "@/components/ui/Skeleton";
 
-/**
- * Horizontal bar of Instagram-style story rings shown at the top of the home feed.
- * The first slot is always "Your story" which opens the story creator (or the
- * viewer if the user already has an active story).
- */
 export default function StoriesBar() {
   const { user } = useAuth();
+  const { palette } = useTheme();
   const [rings, setRings] = useState<StoryRingType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,7 +38,7 @@ export default function StoriesBar() {
   useFocusEffect(
     useCallback(() => {
       loadStories();
-    }, [loadStories]),
+    }, [loadStories])
   );
 
   const onRefresh = () => {
@@ -64,20 +60,35 @@ export default function StoriesBar() {
 
   if (loading) {
     return (
-      <View className="py-4 items-center justify-center">
-        <ActivityIndicator color={colors.blue[600]} />
+      <View style={styles.skeletonContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {[0, 1, 2, 3, 4].map((i) => (
+            <View key={i} style={styles.skeletonItem}>
+              <Skeleton width={64} height={64} borderRadius={32} />
+              <Skeleton width={48} height={10} style={{ marginTop: 6 }} />
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   }
 
   return (
-    <View className="py-3">
+    <View style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={palette.accent}
+          />
         }
       >
         {/* Your story slot */}
@@ -121,3 +132,20 @@ export default function StoriesBar() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 10,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+  },
+  skeletonContainer: {
+    paddingVertical: 10,
+  },
+  skeletonItem: {
+    alignItems: "center",
+    marginRight: 14,
+    width: 68,
+  },
+});

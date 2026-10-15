@@ -1,405 +1,98 @@
-import { Post, postService } from "@/services/postService";
-import { likeService } from "@/services/likeService";
-import { bookmarkService } from "@/services/bookmarkService";
-import { repostService } from "@/services/repostService";
-import { shareService } from "@/services/shareService";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import CommentsModal from "@/components/modal/CommentsModal";
-import { formatRelativeTime } from "@/lib/dateUtils";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
-import SoundChip from "@/components/SoundChip";
-import StoriesBar from "@/components/StoriesBar";
-import { stopAllSounds } from "@/lib/useTrackSound";
-import { router, useFocusEffect } from "expo-router";
-import * as Haptics from "expo-haptics";
-import Toast from "react-native-toast-message";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import {
-  ActivityIndicator,
-  Animated,
   FlatList,
   ListRenderItemInfo,
   RefreshControl,
-  Text,
+  StyleSheet,
   TouchableOpacity,
   View,
+  Animated,
 } from "react-native";
-import { styled } from "nativewind";
-import { colors } from "@/constants/theme";
+import { router, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { Post } from "@/services/postService";
+import { shareService } from "@/services/shareService";
+import { stopAllSounds } from "@/lib/useTrackSound";
+import StoriesBar from "@/components/StoriesBar";
+import CommentsModal from "@/components/modal/CommentsModal";
+import { PostCard, useFeed } from "@/components/feed";
+import { Text, Skeleton, EmptyState } from "@/components/ui";
+import { useTheme } from "@/context/ThemeContext";
 
-const StyledImage = styled(Image);
-
-const AvatarMedia = ({ uri }: { uri?: string | null }) => {
-  const [hasError, setHasError] = useState(false);
-
-  if (!uri || hasError) {
-    return (
-      <StyledImage
-        source={require("@/assets/homeIcons/profileUser.png")}
-        className="h-7 w-7"
-        contentFit="contain"
-      />
-    );
-  }
-
-  return (
-    <StyledImage
-      source={{ uri }}
-      className="h-full w-full rounded-full"
-      contentFit="cover"
-      onError={() => setHasError(true)}
-    />
-  );
-};
-
-function FeedVideoMedia({ uri, active }: { uri: string; active: boolean }) {
-  const [muted, setMuted] = useState(true);
-  const player = useVideoPlayer(uri, (p) => {
-    p.loop = true;
-    p.muted = true;
-  });
-
-  React.useEffect(() => {
-    if (active) {
-      player.play();
-    } else {
-      player.pause();
-    }
-    // No cleanup on purpose. `useVideoPlayer` releases the native player on
-    // unmount (and whenever the source changes), and that release is registered
-    // inside the hook — so React runs it *before* this component's effect
-    // cleanups. Calling `player.pause()` in a cleanup threw
-    // "Cannot use shared object that was already released" every time a video
-    // scrolled out of the list. Releasing the player already stops playback.
-  }, [active, player]);
-
-  React.useEffect(() => {
-    // expo-video requires mutating the returned player object.
-    // eslint-disable-next-line react-hooks/immutability -- false positive for native player mutations
-    player.muted = muted;
-  }, [muted, player]);
-
-  return (
-    <View className="h-full w-full relative">
-      <VideoView
-        player={player}
-        style={{ width: "100%", height: "100%" }}
-        contentFit="cover"
-        nativeControls={false}
-      />
-      {active && (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setMuted((m) => !m)}
-          accessibilityRole="button"
-          accessibilityLabel={muted ? "Unmute video" : "Mute video"}
-          className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/50 items-center justify-center border border-white/20"
-        >
-          <Ionicons name={muted ? "volume-mute" : "volume-high"} size={17} color="white" />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+export interface IndexVideoFeedProps {
+  onOptionsPress: (post: Post) => void;
 }
 
-const FeedMedia = ({
-  uri,
-  thumbnailUrl,
-  mediaType,
-  active,
-}: {
-  uri: string;
-  thumbnailUrl?: string | null;
-  mediaType: "video" | "image";
-  active: boolean;
-}) => {
-  const [hasError, setHasError] = useState(false);
-
-  if (hasError || !uri) {
-    return (
-      <View className="h-full w-full items-center justify-center bg-slate-100 rounded-xl">
-        <Ionicons name="image-outline" size={44} color={colors.slate[400]} />
-        <Text className="text-xs text-slate-400 mt-2 font-medium">Image unavailable</Text>
-      </View>
-    );
-  }
-
-  if (mediaType === "video") {
-    // Only the one video currently on screen is given a real player. Mounting a
-    // `useVideoPlayer` for every clip in the render window opens an HTTP/2
-    // stream per item and lets ExoPlayer buffer each file — the largest native
-    // heap consumer in this app and exactly the shape of the OkHttp OOM on
-    // Android. Off-screen videos render a static poster/placeholder instead and
-    // spin up their player on demand when they become the active item.
-    if (!active) {
-      return (
-        <View className="h-full w-full items-center justify-center bg-slate-900 rounded-xl">
-          {thumbnailUrl ? (
-            <StyledImage
-              source={{ uri: thumbnailUrl }}
-              className="h-full w-full"
-              contentFit="cover"
-            />
-          ) : (
-            <Ionicons name="play-circle-outline" size={44} color="rgba(255,255,255,0.55)" />
-          )}
-        </View>
-      );
-    }
-
-    return <FeedVideoMedia uri={uri} active={active} />;
-  }
-
-  return (
-    <StyledImage
-      source={{ uri }}
-      className="h-full w-full rounded-xl"
-      contentFit="cover"
-      transition={300}
-      onError={() => {
-        setHasError(true);
-      }}
-    />
-  );
-};
-
-
-
-// ─── IndexVideoFeed ───────────────────────────────────────────────────────────
-
-type IndexVideoFeedProps = {
-  onOptionsPress: (item: Post) => void;
-};
-
-const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [newPostsCount, setNewPostsCount] = useState(0);
-  const [commentPostId, setCommentPostId] = useState<string | null>(null);
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
-  // Which post is *the* post right now, video or not. The sound follows this
-  // rather than activeVideoId: an image post can carry a sound too, and an
-  // image-only feed would otherwise never find an "active" item.
-  const [activePostId, setActivePostId] = useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMorePosts, setHasMorePosts] = useState(true);
-  const insets = useSafeAreaInsets();
-  const listBottomPadding = 70 + Math.max(insets.bottom, 16) + 8;
-
-  // Refs that must be readable inside the fetch callbacks without being
-  // dependencies: the scroll position at fetch time, the list handle for
-  // jumping back to the top, and the set of post ids the user has already
-  // seen in this feed session.
+export default function IndexVideoFeed({ onOptionsPress }: IndexVideoFeedProps) {
+  const { palette, isDark } = useTheme();
   const listRef = useRef<FlatList<Post>>(null);
-  const atTopRef = useRef(true);
-  const seenPostIdsRef = useRef<Set<string>>(new Set());
-  const unseenPostIdsRef = useRef<string[]>([]);
-  const newPostsCountRef = useRef(0);
-  const bannerVisibleRef = useRef(false);
-  // Infinite-scroll cursor. The feed is paged instead of loading the whole
-  // `posts` table at once — that unbounded response was the OkHttp/OOM culprit.
-  const pageRef = useRef(0);
-  const loadingMoreRef = useRef(false);
-  const PAGE_SIZE = 20;
-  // Stable Animated values for the banner (kept in state so they are never
-  // recreated; only the .setValue/.timing mutations below ever touch them).
-  const [bannerOpacity] = useState(() => new Animated.Value(0));
-  const [bannerTranslateY] = useState(() => new Animated.Value(16));
 
-  const hideNewPostsBanner = useCallback(() => {
-    if (!bannerVisibleRef.current) return;
-    bannerVisibleRef.current = false;
-    Animated.parallel([
-      Animated.timing(bannerOpacity, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(bannerTranslateY, {
-        toValue: 16,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [bannerOpacity, bannerTranslateY]);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [commentPostId, setCommentPostId] = useState<string | null>(null);
 
-  const showNewPostsBanner = useCallback(
-    (count: number) => {
-      bannerVisibleRef.current = true;
-      setNewPostsCount(count);
-      Animated.parallel([
-        Animated.timing(bannerOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bannerTranslateY, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    },
-    [bannerOpacity, bannerTranslateY],
-  );
-
-  const fetchPosts = useCallback(async () => {
-    try {
-      pageRef.current = 0;
-      const data = await postService.getPosts({ limit: PAGE_SIZE, offset: 0 });
-      setHasMorePosts(data.length === PAGE_SIZE);
-
-      // The user is only shown the newest posts when they are at the top of
-      // the list (or on the very first load). Posts fetched while scrolled
-      // down get reported through the "new posts" banner instead.
-      const isAtTop = atTopRef.current || seenPostIdsRef.current.size === 0;
-
-      const isUnseen = (post: Post) => !seenPostIdsRef.current.has(post.id);
-      const firstUnseenIndex = data.findIndex(isUnseen);
-      const hasUnseenPosts = firstUnseenIndex !== -1;
-
-      if (isAtTop) {
-        // Everything is about to be visible, so every fetched post counts as
-        // seen from here on. Wait for the render to commit before clearing
-        // the list so the ids cannot be lost in the meantime.
-        unseenPostIdsRef.current = hasUnseenPosts
-          ? data.slice(firstUnseenIndex).map((post) => post.id)
-          : [];
-        setPosts(data);
-        requestAnimationFrame(() => {
-          seenPostIdsRef.current = new Set(data.map((post) => post.id));
-          unseenPostIdsRef.current = [];
-          newPostsCountRef.current = 0;
-          setNewPostsCount(0);
-          hideNewPostsBanner();
-        });
-      } else {
-        // firstUnseenIndex is -1 when every fetched post was already seen
-        // (nothing new since the last refresh) — guard the slice so it does
-        // not accidentally drop the last post (slice(0, -1)).
-        const newPosts = hasUnseenPosts ? data.slice(0, firstUnseenIndex) : [];
-        const unseenIds = newPosts.map((post) => post.id);
-
-        if (newPosts.length > 0) {
-          unseenPostIdsRef.current = unseenIds;
-          newPostsCountRef.current = newPosts.length;
-          showNewPostsBanner(newPosts.length);
-        } else {
-          unseenPostIdsRef.current = [];
-          newPostsCountRef.current = 0;
-          hideNewPostsBanner();
-        }
-
-        // Keep the list contents fresh (new like counts, captions, etc.)
-        // without disturbing the user's scroll position.
-        setPosts(data);
-      }
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [hideNewPostsBanner, showNewPostsBanner]);
-
-  // Append the next, older page of posts when the user scrolls to the bottom.
-  // Bound to `loadingMore`/`hasMorePosts` so it can never fire twice for the
-  // same page or keep appending once the table is exhausted.
-  const loadMorePosts = useCallback(async () => {
-    // `loadingMoreRef` guards synchronously so a burst of `onEndReached`
-    // callbacks cannot issue two fetches for the same page (state updates are
-    // async, so `loadingMore` alone is not a reliable re-entrancy guard).
-    if (loadingMoreRef.current || !hasMorePosts) return;
-    loadingMoreRef.current = true;
-    setLoadingMore(true);
-
-    const nextOffset = (pageRef.current + 1) * PAGE_SIZE;
-    try {
-      const data = await postService.getPosts({ limit: PAGE_SIZE, offset: nextOffset });
-      setHasMorePosts(data.length === PAGE_SIZE);
-
-      if (data.length === 0) return;
-
-      pageRef.current += 1;
-      setPosts((prev) => {
-        const existing = new Set(prev.map((post) => post.id));
-        const fresh = data.filter((post) => !existing.has(post.id));
-        return [...prev, ...fresh];
-      });
-
-      // Older posts appended by paging are not "new" — keep the unseen-banner
-      // bookkeeping from counting them as fresh content above.
-      data.forEach((post) => seenPostIdsRef.current.add(post.id));
-    } catch (error) {
-      console.error("Error loading more posts:", error);
-    } finally {
-      loadingMoreRef.current = false;
-      setLoadingMore(false);
-    }
-  }, [hasMorePosts]);
+  const {
+    posts,
+    loading,
+    refreshing,
+    loadingMore,
+    newPostsCount,
+    bannerOpacity,
+    bannerTranslateY,
+    atTopRef,
+    seenPostIdsRef,
+    unseenPostIdsRef,
+    fetchPosts,
+    loadMorePosts,
+    onRefresh,
+    handleLike,
+    handleRepost,
+    handleBookmark,
+    hideNewPostsBanner,
+    setNewPostsCount,
+  } = useFeed();
 
   useFocusEffect(
     useCallback(() => {
       fetchPosts();
-
-      // Pushing another route does not unmount the feed under expo-router, so a
-      // sound started here would still be playing on top of the next screen.
       return () => stopAllSounds();
-    }, [fetchPosts]),
+    }, [fetchPosts])
   );
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchPosts();
-  };
-
-  const handleNewPostsPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    // Bring the unseen posts into view: mark them as seen, dismiss the
-    // banner, and jump back to the top of the list where they sit.
-    if (unseenPostIdsRef.current.length > 0) {
-      unseenPostIdsRef.current.forEach((id) => seenPostIdsRef.current.add(id));
-    }
-    unseenPostIdsRef.current = [];
-    newPostsCountRef.current = 0;
-    setNewPostsCount(0);
-    hideNewPostsBanner();
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-  };
 
   const handleScroll = (event: any) => {
     const isAtTop = event.nativeEvent.contentOffset.y <= 0;
     atTopRef.current = isAtTop;
 
-    // Reaching the top puts the unseen posts back in view, so they are no
-    // longer "new" — dismiss the banner without a scroll animation.
     if (isAtTop && unseenPostIdsRef.current.length > 0) {
       unseenPostIdsRef.current.forEach((id) => seenPostIdsRef.current.add(id));
       unseenPostIdsRef.current = [];
-      newPostsCountRef.current = 0;
       setNewPostsCount(0);
       hideNewPostsBanner();
     }
   };
 
+  const handleNewPostsPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (unseenPostIdsRef.current.length > 0) {
+      unseenPostIdsRef.current.forEach((id) => seenPostIdsRef.current.add(id));
+    }
+    unseenPostIdsRef.current = [];
+    setNewPostsCount(0);
+    hideNewPostsBanner();
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
+
   const viewabilityConfig = useMemo(
     () => ({ itemVisiblePercentThreshold: 60, minimumViewTime: 300 }),
-    [],
+    []
   );
 
   const onViewableItemsChanged = useMemo(
     () =>
       ({ viewableItems }: { viewableItems: any[] }) => {
-        // Mark posts as "seen" the moment they actually become visible, so
-        // the new-posts banner only counts posts that are still out of view
-        // (e.g. the user scrolled up partway and the newest posts slid into
-        // the screen — those are no longer new).
         const newlyVisible = viewableItems.filter(
-          (view) => view.isViewable && view.item?.id,
+          (view) => view.isViewable && view.item?.id
         );
         if (newlyVisible.length > 0) {
           let addedSeen = false;
@@ -412,176 +105,32 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
           }
           if (addedSeen) {
             unseenPostIdsRef.current = unseenPostIdsRef.current.filter(
-              (id) => !seenPostIdsRef.current.has(id),
+              (id) => !seenPostIdsRef.current.has(id)
             );
             if (unseenPostIdsRef.current.length === 0) {
-              newPostsCountRef.current = 0;
               setNewPostsCount(0);
               hideNewPostsBanner();
             }
           }
         }
 
-        const visiblePost = viewableItems.find(
-          (view) => view.isViewable && view.item?.media_type === "video",
+        const visibleVideo = viewableItems.find(
+          (view) => view.isViewable && view.item?.media_type === "video"
         );
-        setActiveVideoId(visiblePost?.item?.id ?? null);
+        setActiveVideoId(visibleVideo?.item?.id ?? null);
 
-        // The sound follows the first viewable post of any media type, so an
-        // image post with a track attached still plays it while it is on screen.
-        const visibleAny = viewableItems.find((view) => view.isViewable && view.item?.id);
+        const visibleAny = viewableItems.find(
+          (view) => view.isViewable && view.item?.id
+        );
         setActivePostId(visibleAny?.item?.id ?? null);
       },
-    [hideNewPostsBanner],
+    [hideNewPostsBanner, seenPostIdsRef, unseenPostIdsRef, setNewPostsCount]
   );
 
-  const openMenu = (item: Post) => onOptionsPress(item);
   const openComments = (postId: string) => setCommentPostId(postId);
   const closeComments = () => {
     setCommentPostId(null);
     fetchPosts();
-  };
-
-  const handleLike = async (postId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    // 1. Optimistic Update
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => {
-        if (post.id === postId) {
-          const wasLiked = post.is_liked;
-          return {
-            ...post,
-            is_liked: !wasLiked,
-            like_count: (post.like_count ?? 0) + (wasLiked ? -1 : 1),
-          };
-        }
-        return post;
-      }),
-    );
-
-    try {
-      // 2. Background API call
-      await likeService.toggleLike(postId);
-    } catch (error) {
-      console.error("Error toggling like:", error);
-      // 3. Rollback on error
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            const wasLikedNow = post.is_liked;
-            return {
-              ...post,
-              is_liked: !wasLikedNow,
-              like_count: (post.like_count ?? 0) + (wasLikedNow ? -1 : 1),
-            };
-          }
-          return post;
-        }),
-      );
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to update like",
-      });
-    }
-  };
-
-  const handleRepost = async (postId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // 1. Optimistic Update
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => {
-        if (post.id === postId) {
-          const wasReposted = post.is_reposted;
-          return {
-            ...post,
-            is_reposted: !wasReposted,
-            repost_count: (post.repost_count ?? 0) + (wasReposted ? -1 : 1),
-          };
-        }
-        return post;
-      }),
-    );
-
-    try {
-      const res = await repostService.toggleRepost(postId);
-      Toast.show({
-        type: "success",
-        text1: res.reposted ? "Reposted!" : "Removed Repost",
-        text2: res.reposted ? "Post shared to your profile." : "Repost removed.",
-        visibilityTime: 2000,
-      });
-    } catch (error: any) {
-      console.error("Error toggling repost:", error);
-      // Rollback on error
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            const wasRepostedNow = post.is_reposted;
-            return {
-              ...post,
-              is_reposted: !wasRepostedNow,
-              repost_count: (post.repost_count ?? 0) + (wasRepostedNow ? -1 : 1),
-            };
-          }
-          return post;
-        }),
-      );
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: error.message || "Failed to update repost",
-      });
-    }
-  };
-
-  const handleBookmark = async (postId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    // 1. Optimistic Update
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => {
-        if (post.id === postId) {
-          const wasBookmarked = post.is_bookmarked;
-          return {
-            ...post,
-            is_bookmarked: !wasBookmarked,
-          };
-        }
-        return post;
-      }),
-    );
-
-    try {
-      const res = await bookmarkService.toggleBookmark(postId);
-      Toast.show({
-        type: "success",
-        text1: res.bookmarked ? "Saved!" : "Removed Bookmark",
-        text2: res.bookmarked ? "Post saved to your bookmarks." : "Bookmark removed.",
-        visibilityTime: 2000,
-      });
-    } catch (error: any) {
-      console.error("Error toggling bookmark:", error);
-      // Rollback on error
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            return {
-              ...post,
-              is_bookmarked: !post.is_bookmarked,
-            };
-          }
-          return post;
-        }),
-      );
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: error.message || "Failed to update bookmark",
-      });
-    }
   };
 
   const handleShare = async (post: Post) => {
@@ -590,269 +139,166 @@ const IndexVideoFeed = ({ onOptionsPress }: IndexVideoFeedProps) => {
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<Post>) => (
-    <View>
-      {/* Header: Avatar and User Info */}
-      <View className="flex-row items-center justify-between px-5 mb-3">
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => router.push({ pathname: "/(pages)/userProfile", params: { userId: item.user_id } })}
-            accessibilityRole="button"
-            accessibilityLabel={`View profile of ${item.profiles?.full_name || item.profiles?.username || "user"}`}
-            className="h-10 w-10 items-center justify-center rounded-full border border-slate-200"
-          >
-            <AvatarMedia uri={item.profiles?.avatar_url} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push({ pathname: "/(pages)/userProfile", params: { userId: item.user_id } })}
-          >
-            <Text className="text-sm font-bold text-slate-900">
-              {item.profiles?.full_name || "Anonymous"}
-            </Text>
-            <Text className="text-xs text-slate-400">
-              @{item.profiles?.username || "user"} • {formatRelativeTime(item.created_at)}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => openMenu(item)}
-          accessibilityRole="button"
-          accessibilityLabel="More post options"
-          className="h-8 w-8 items-center justify-center"
-        >
-          <StyledImage
-            source={require("@/assets/homeIcons/menuV.png")}
-            className="h-5 w-5"
-            contentFit="contain"
-            style={{ tintColor: colors.slate[500] }}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Caption */}
-      {item.caption && (
-        <View className="px-5 mb-3">
-          <Text className="text-sm leading-5 text-slate-700">
-            {item.caption}
-          </Text>
-        </View>
-      )}
-
-      {/* Media: Full Width Image / Video */}
-      <View className="relative w-full aspect-square bg-slate-100 overflow-hidden">
-        <FeedMedia
-          uri={item.media_url}
-          thumbnailUrl={item.thumbnail_url}
-          mediaType={item.media_type}
-          active={item.media_type === "video" && activeVideoId === item.id}
-        />
-
-        {/* Attached Sound — the pill is also the play/stop control. */}
-        {(item.has_sound || item.music_track_title || item.music_track_audio_url) && (
-          <SoundChip
-            variant="overlay"
-            className="absolute left-3 bottom-3 max-w-[85%]"
-            trackKey={item.id}
-            title={item.music_track_title}
-            artist={item.music_track_artist}
-            audioUrl={item.music_track_audio_url}
-            attribution={item.music_track_attribution}
-            active={activePostId === item.id}
-          />
-        )}
-      </View>
-
-      {/* Action Bar */}
-      <View className="flex-row items-center justify-between px-5 pt-3">
-        <View className="flex-row items-center gap-5">
-          <TouchableOpacity
-            className="flex-row items-center gap-1.5"
-            activeOpacity={0.7}
-            onPress={() => handleLike(item.id)}
-            accessibilityRole="button"
-            accessibilityLabel={item.is_liked ? "Unlike post" : "Like post"}
-            accessibilityState={{ selected: !!item.is_liked }}
-          >
-            <StyledImage
-              source={require("@/assets/homeIcons/heart.png")}
-              className="h-6 w-6"
-              contentFit="contain"
-              style={{ tintColor: item.is_liked ? colors.red[500] : colors.slate[900] }}
-            />
-            <Text
-              className={`text-sm font-medium ${
-                item.is_liked ? "text-red-500" : "text-slate-600"
-              }`}
-            >
-              {item.like_count ?? 0}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Comment button */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            className="flex-row items-center gap-1.5"
-            onPress={() => openComments(item.id)}
-            accessibilityRole="button"
-            accessibilityLabel="Open comments"
-          >
-            <StyledImage
-              source={require("@/assets/homeIcons/bubbleChat.png")}
-              className="h-6 w-6"
-              contentFit="contain"
-              style={{ tintColor: colors.slate[900] }}
-            />
-            <Text className="text-sm font-medium text-slate-600">
-              {item.comment_count ?? 0}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Repost button */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            className="flex-row items-center gap-1.5"
-            onPress={() => handleRepost(item.id)}
-            accessibilityRole="button"
-            accessibilityLabel={item.is_reposted ? "Remove repost" : "Repost"}
-            accessibilityState={{ selected: !!item.is_reposted }}
-          >
-            <StyledImage
-              source={require("@/assets/homeIcons/repeat.png")}
-              className="h-6 w-6"
-              contentFit="contain"
-              style={{ tintColor: item.is_reposted ? colors.emerald[500] : colors.slate[900] }}
-            />
-            <Text
-              className={`text-sm font-medium ${
-                item.is_reposted ? "text-emerald-600" : "text-slate-600"
-              }`}
-            >
-              {item.repost_count ?? 0}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-center gap-3">
-          {/* Bookmark button */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            className="flex-row items-center gap-1.5 p-1"
-            onPress={() => handleBookmark(item.id)}
-            accessibilityRole="button"
-            accessibilityLabel={item.is_bookmarked ? "Remove bookmark" : "Bookmark post"}
-            accessibilityState={{ selected: !!item.is_bookmarked }}
-          >
-            <StyledImage
-              source={require("@/assets/homeIcons/bookmark.png")}
-              className="h-6 w-6"
-              contentFit="contain"
-              style={{ tintColor: item.is_bookmarked ? colors.blue[600] : colors.slate[900] }}
-            />
-          </TouchableOpacity>
-
-          {/* Share button */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            className="p-1"
-            onPress={() => handleShare(item)}
-            accessibilityRole="button"
-            accessibilityLabel="Share post"
-          >
-            <StyledImage
-              source={require("@/assets/homeIcons/share.png")}
-              className="h-6 w-6"
-              contentFit="contain"
-              style={{ tintColor: colors.slate[900] }}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    <PostCard
+      post={item}
+      isActiveVideo={item.media_type === "video" && activeVideoId === item.id}
+      isActiveSound={activePostId === item.id}
+      onOptionsPress={onOptionsPress}
+      onLike={handleLike}
+      onComment={openComments}
+      onRepost={handleRepost}
+      onBookmark={handleBookmark}
+      onShare={handleShare}
+    />
   );
 
+  // Skeleton loading screen
   if (loading && !refreshing) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color={colors.blue[600]} />
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <StoriesBar />
+        <Skeleton.PostCard />
+        <Skeleton.PostCard />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 pt-5">
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <FlatList
         ref={listRef}
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={<StoriesBar />}
+        ListEmptyComponent={
+          !loading ? (
+            <EmptyState
+              icon={
+                <Ionicons
+                  name="images-outline"
+                  size={32}
+                  color={palette.accent}
+                />
+              }
+              title="No Posts Yet"
+              description="Follow people or create your first post to see photos and videos in your feed."
+              actionTitle="Explore Search"
+              onActionPress={() => router.push("/search")}
+            />
+          ) : null
+        }
         viewabilityConfig={viewabilityConfig}
         onViewableItemsChanged={onViewableItemsChanged}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: listBottomPadding }}
-        ItemSeparatorComponent={() => <View className="h-5" />}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => (
+          <View
+            style={[
+              styles.separator,
+              { backgroundColor: palette.borderSubtle },
+            ]}
+          />
+        )}
         showsVerticalScrollIndicator={false}
-        scrollIndicatorInsets={{ bottom: listBottomPadding }}
-        // Keep the mounted render window small. A media feed with a player per
-        // row is the main native-heap consumer; a tight window limits how many
-        // items (and their buffers) are alive at once.
         initialNumToRender={3}
         maxToRenderPerBatch={4}
         windowSize={5}
         updateCellsBatchingPeriod={50}
-        // Infinite scroll: page the feed instead of loading the whole table.
         onEndReached={loadMorePosts}
         onEndReachedThreshold={0.4}
         ListFooterComponent={
           loadingMore ? (
-            <ActivityIndicator size="small" color={colors.blue[600]} style={{ marginVertical: 24 }} />
+            <View style={styles.footerLoader}>
+              <Skeleton width="40%" height={16} />
+            </View>
           ) : null
         }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.blue[600]}
+            tintColor={palette.accent}
           />
         }
       />
 
-      {/* New posts banner — appears when a refresh brings in posts the user
-          has not seen while the feed was scrolled down. */}
+      {/* Floating New Posts Banner */}
       {newPostsCount > 0 && (
         <Animated.View
           pointerEvents="auto"
-          style={{
-            position: "absolute",
-            top: 8,
-            alignSelf: "center",
-            opacity: bannerOpacity,
-            transform: [{ translateY: bannerTranslateY }],
-          }}
+          style={[
+            styles.bannerContainer,
+            {
+              opacity: bannerOpacity,
+              transform: [{ translateY: bannerTranslateY }],
+            },
+          ]}
         >
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleNewPostsPress}
-            className="flex-row items-center gap-2 bg-slate-900/90 border border-white/20 px-4 py-2.5 rounded-full shadow-lg"
+            style={[
+              styles.bannerButton,
+              {
+                backgroundColor: isDark ? "#1E293B" : palette.text,
+                borderColor: palette.borderSubtle,
+              },
+            ]}
           >
-            <Ionicons name="arrow-up" size={16} color={colors.white} />
-            <Text className="text-white text-sm font-semibold">
+            <Ionicons name="arrow-up" size={16} color={palette.onAccent} />
+            <Text
+              variant="caption"
+              weight="semibold"
+              style={{ color: palette.onAccent }}
+            >
               {newPostsCount} new {newPostsCount === 1 ? "post" : "posts"}
             </Text>
           </TouchableOpacity>
         </Animated.View>
       )}
 
-      {/* Comments Modal — rendered outside FlatList to avoid clipping */}
+      {/* Comments Modal Sheet */}
       {commentPostId && (
         <CommentsModal postId={commentPostId} onClose={closeComments} />
       )}
     </View>
   );
-};
+}
 
-export default IndexVideoFeed;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 24,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 12,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  bannerContainer: {
+    position: "absolute",
+    top: 10,
+    alignSelf: "center",
+    zIndex: 20,
+  },
+  bannerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+});
