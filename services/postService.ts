@@ -3,6 +3,13 @@ import { supabase } from "../lib/supabase";
 import { getAuthenticatedUserId } from "../lib/session";
 import { fetchPostInteractions } from "../lib/postInteractions";
 
+export type TaggedUser = {
+  id: string;
+  username: string;
+  full_name?: string | null;
+  avatar_url?: string | null;
+};
+
 export type Post = {
   id: string;
   user_id: string;
@@ -10,6 +17,8 @@ export type Post = {
   media_type: "video" | "image";
   thumbnail_url?: string;
   caption?: string;
+  location?: string | null;
+  tagged_users?: TaggedUser[] | string | null;
   view_count: number;
   created_at: string;
   filter_id?: string;
@@ -145,6 +154,8 @@ export const postService = {
     media_url: string;
     media_type: "video" | "image";
     caption?: string;
+    location?: string;
+    tagged_users?: TaggedUser[];
     filter_id?: string;
     music_track_id?: string;
     music_track_title?: string;
@@ -155,7 +166,7 @@ export const postService = {
     duration_seconds?: number;
     has_sound?: boolean;
   }) {
-    const { user_id, media_url, media_type, caption, ...optionalMeta } = post;
+    const { user_id, media_url, media_type, caption, location, tagged_users, ...optionalMeta } = post;
 
     // Use the user id from the token the Supabase client actually holds,
     // not just the React context. A stale/expired (or orphaned) session
@@ -171,6 +182,8 @@ export const postService = {
       media_url,
       media_type,
       caption,
+      location: location || null,
+      tagged_users: tagged_users && tagged_users.length > 0 ? tagged_users : null,
       filter_id: optionalMeta.filter_id,
       music_track_id: optionalMeta.music_track_id,
       music_track_title: optionalMeta.music_track_title,

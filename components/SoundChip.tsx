@@ -174,17 +174,33 @@ export default function SoundChip({
       </TouchableOpacity>
 
       {!!attribution && (
-        <Text
-          style={{
-            fontSize: 10,
-            marginTop: 4,
-            color: overlay ? "rgba(255,255,255,0.7)" : palette.muted,
-            paddingHorizontal: variant === "card" ? 2 : 0,
-          }}
-          numberOfLines={2}
+        <View
+          style={
+            overlay
+              ? {
+                  marginTop: 4,
+                  backgroundColor: "rgba(0,0,0,0.55)",
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 10,
+                  alignSelf: "flex-start",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.15)",
+                }
+              : { marginTop: 4, paddingHorizontal: 2 }
+          }
         >
-          {attribution}
-        </Text>
+          <Text
+            style={{
+              fontSize: 10,
+              color: overlay ? "rgba(255,255,255,0.85)" : palette.muted,
+              fontWeight: overlay ? "600" : "400",
+            }}
+            numberOfLines={1}
+          >
+            {attribution}
+          </Text>
+        </View>
       )}
     </View>
   );

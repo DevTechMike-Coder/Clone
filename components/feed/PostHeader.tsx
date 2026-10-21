@@ -45,12 +45,27 @@ export const PostHeader: React.FC<PostHeaderProps> = ({
         />
 
         <View style={styles.textContainer}>
-          <Text variant="body" weight="semibold" numberOfLines={1}>
-            {displayName}
-          </Text>
-          <Text variant="caption" color="muted" numberOfLines={1}>
-            @{username} • {timeAgo}
-          </Text>
+          <View style={styles.authorRow}>
+            <Text variant="body" weight="semibold" numberOfLines={1} style={styles.displayNameText}>
+              {displayName}
+            </Text>
+            <Text variant="caption" color="muted" numberOfLines={1} style={styles.timeDotText}>
+              • {timeAgo}
+            </Text>
+          </View>
+
+          {post.location ? (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-sharp" size={12} color={palette.accent} />
+              <Text variant="caption" weight="medium" numberOfLines={1} style={styles.locationText}>
+                {post.location}
+              </Text>
+            </View>
+          ) : (
+            <Text variant="caption" color="muted" numberOfLines={1}>
+              @{username}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
 
@@ -80,5 +95,23 @@ const styles = StyleSheet.create({
   textContainer: {
     marginLeft: 10,
     flex: 1,
+  },
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  displayNameText: {
+    maxWidth: 200,
+  },
+  timeDotText: {
+    marginLeft: 4,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 1,
+  },
+  locationText: {
+    marginLeft: 3,
   },
 });

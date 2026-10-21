@@ -1,6 +1,8 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
-import { Post } from "@/services/postService";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Post, TaggedUser } from "@/services/postService";
 import { Text } from "@/components/ui/Text";
 import { PostHeader } from "./PostHeader";
 import { PostMedia } from "./PostMedia";
@@ -32,6 +34,20 @@ export const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const { palette } = useTheme();
 
+  const taggedList: TaggedUser[] = React.useMemo(() => {
+    if (!post.tagged_users) return [];
+    if (Array.isArray(post.tagged_users)) return post.tagged_users as TaggedUser[];
+    if (typeof post.tagged_users === "string") {
+      try {
+        const parsed = JSON.parse(post.tagged_users);
+        if (Array.isArray(parsed)) return parsed as TaggedUser[];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [post.tagged_users]);
+
   return (
     <View style={[styles.card, { backgroundColor: palette.background }]}>
       {/* Header */}
@@ -43,6 +59,45 @@ export const PostCard: React.FC<PostCardProps> = ({
           <Text variant="body" style={styles.captionText}>
             {post.caption}
           </Text>
+        </View>
+      ) : null}
+
+      {/* Tagged People Badge */}
+      {taggedList.length > 0 ? (
+        <View style={styles.taggedContainer}>
+          <View
+            style={[
+              styles.taggedBadge,
+              {
+                backgroundColor: palette.surfaceElevated,
+                borderColor: palette.borderSubtle,
+              },
+            ]}
+          >
+            <Ionicons name="people" size={12} color={palette.accent} />
+            <Text variant="micro" color="muted" style={{ marginLeft: 4, marginRight: 2 }}>
+              with
+            </Text>
+            <View style={styles.taggedChipsRow}>
+              {taggedList.map((user, idx) => (
+                <TouchableOpacity
+                  key={user.id || idx}
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(pages)/userProfile",
+                      params: { userId: user.id },
+                    })
+                  }
+                >
+                  <Text variant="micro" color="accent" weight="bold">
+                    @{user.username || "user"}
+                    {idx < taggedList.length - 1 ? ", " : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </View>
       ) : null}
 
@@ -77,5 +132,26 @@ const styles = StyleSheet.create({
   },
   captionText: {
     lineHeight: 21,
+  },
+  taggedContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  taggedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexWrap: "wrap",
+  },
+  taggedChipsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 3,
   },
 });

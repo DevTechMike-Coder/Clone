@@ -16,6 +16,7 @@ import { router, useNavigation, useFocusEffect } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 import { useAuth } from "@/context/AuthContext";
@@ -43,6 +44,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function Profile() {
   const { isDark, palette } = useTheme();
+  const insets = useSafeAreaInsets();
   const { user: authUser } = useAuth();
   const targetUserId = authUser?.id;
   const isOwnProfile = true;
@@ -181,9 +183,18 @@ export default function Profile() {
 
   useEffect(() => {
     navigation.setOptions({
-      tabBarStyle: menuOpen ? { display: "none" } : undefined,
+      tabBarStyle: menuOpen
+        ? { display: "none" }
+        : {
+            backgroundColor: palette.surface,
+            borderTopColor: palette.borderSubtle,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            height: 52 + insets.bottom,
+            paddingBottom: insets.bottom > 0 ? insets.bottom - 4 : 4,
+            paddingTop: 6,
+          },
     });
-  }, [menuOpen, navigation]);
+  }, [menuOpen, navigation, palette.surface, palette.borderSubtle, insets.bottom]);
 
   const openMenu = () => {
     setMenuOpen(true);

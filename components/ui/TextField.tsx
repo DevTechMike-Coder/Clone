@@ -81,9 +81,24 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
               borderColor,
               borderWidth: isFocused || hasError ? 1.5 : 1,
             },
+            props.multiline && {
+              height: undefined,
+              minHeight: 88,
+              alignItems: "flex-start",
+              paddingVertical: 10,
+            },
           ]}
         >
-          {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
+          {leftIcon && (
+            <View
+              style={[
+                styles.leftIconContainer,
+                props.multiline && { marginTop: 2 },
+              ]}
+            >
+              {leftIcon}
+            </View>
+          )}
 
           <TextInput
             ref={ref}
@@ -96,6 +111,10 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
               {
                 color: palette.text,
                 fontFamily: "PlusJakartaSans_400Regular",
+              },
+              props.multiline && {
+                height: undefined,
+                textAlignVertical: "top",
               },
               inputStyle,
             ]}

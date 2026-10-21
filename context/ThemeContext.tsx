@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { Appearance, ColorSchemeName } from "react-native";
+import { Appearance, ColorSchemeName, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ThemeMode,
@@ -66,7 +66,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         ) {
           setThemePreferenceState(stored as ThemeMode);
           if (stored !== "system") {
-            Appearance.setColorScheme?.(stored as ColorSchemeName);
+            try {
+              Appearance.setColorScheme?.(stored as ColorSchemeName);
+            } catch {
+              // ignore
+            }
           }
         }
       } catch (err) {
@@ -99,9 +103,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       setThemePreferenceState(mode);
       await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
       if (mode === "system") {
-        (Appearance.setColorScheme as any)?.(null);
+        if (Platform.OS === "ios") {
+          try {
+            (Appearance.setColorScheme as any)?.(null);
+          } catch {
+            // ignore
+          }
+        } else {
+          try {
+            (Appearance.setColorScheme as any)?.("unspecified");
+          } catch {
+            // ignore
+          }
+        }
       } else {
-        Appearance.setColorScheme?.(mode);
+        try {
+          Appearance.setColorScheme?.(mode);
+        } catch {
+          // ignore
+        }
       }
     } catch (err) {
       console.error("Failed to save theme preference:", err);

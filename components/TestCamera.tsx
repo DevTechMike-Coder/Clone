@@ -7,6 +7,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -80,6 +81,7 @@ export default function TestCamera({
   initialMode = "Photo",
 }: TestCameraProps) {
   const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0, 16);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { user } = useAuth();
 
@@ -544,7 +546,7 @@ export default function TestCamera({
             left: 0,
             right: 0,
             top: 0,
-            paddingTop: insets.top > 0 ? insets.top + 6 : 14,
+            paddingTop: topInset + 8,
             paddingHorizontal: 16,
             flexDirection: "row",
             alignItems: "center",
@@ -557,41 +559,30 @@ export default function TestCamera({
             onPress={() => setShowDiscardModal(true)}
             accessibilityRole="button"
             accessibilityLabel="Close"
-            className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 shadow-md active:opacity-80"
+            style={styles.studioIconButton}
+            activeOpacity={0.75}
           >
-            <Ionicons name="close" size={22} color="white" />
+            <Ionicons name="close" size={22} color={colors.white} />
           </TouchableOpacity>
 
           {/* Center: Music Sound Pill */}
           <TouchableOpacity
             onPress={() => setShowMusicModal(true)}
             activeOpacity={0.8}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              backgroundColor: selectedTrack
-                ? "rgba(15, 23, 42, 0.8)"
-                : "rgba(0, 0, 0, 0.5)",
-              paddingHorizontal: 12,
-              paddingVertical: 7,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: selectedTrack
-                ? "rgba(56, 189, 248, 0.45)"
-                : "rgba(255, 255, 255, 0.2)",
-              maxWidth: screenWidth * 0.44,
-            }}
+            style={[
+              styles.studioSoundPill,
+              selectedTrack ? styles.studioSoundPillActive : null,
+              { maxWidth: screenWidth * 0.44 },
+            ]}
           >
             <Ionicons
               name="musical-notes"
               size={14}
-              color={selectedTrack ? colors.sky[400] : "white"}
+              color={selectedTrack ? colors.sky[400] : colors.white}
             />
             <Text
-              className="text-white text-xs font-bold"
+              style={styles.studioSoundPillText}
               numberOfLines={1}
-              style={{ flexShrink: 1 }}
             >
               {selectedTrack ? selectedTrack.title : "Add Sound"}
             </Text>
@@ -615,7 +606,7 @@ export default function TestCamera({
           </TouchableOpacity>
 
           {/* Right: Studio Creative Tools */}
-          <View className="flex-row items-center gap-2.5">
+          <View style={styles.studioToolsGroup}>
             {/* Add Text */}
             <TouchableOpacity
               onPress={() => {
@@ -624,9 +615,10 @@ export default function TestCamera({
               }}
               accessibilityRole="button"
               accessibilityLabel="Add text"
-              className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 shadow-md active:opacity-80"
+              style={styles.studioIconButton}
+              activeOpacity={0.75}
             >
-              <Text className="text-white font-black text-sm">Aa</Text>
+              <Text style={styles.studioToolAaText}>Aa</Text>
             </TouchableOpacity>
 
             {/* Filters */}
@@ -634,13 +626,13 @@ export default function TestCamera({
               onPress={() => setShowFilterPicker((p) => !p)}
               accessibilityRole="button"
               accessibilityLabel="Filters"
-              className={`w-10 h-10 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
-                showFilterPicker
-                  ? "bg-blue-600 border-blue-400"
-                  : "bg-black/50 border-white/20"
-              }`}
+              style={[
+                styles.studioIconButton,
+                showFilterPicker ? styles.studioIconButtonActive : null,
+              ]}
+              activeOpacity={0.75}
             >
-              <Ionicons name="color-filter-outline" size={18} color="white" />
+              <Ionicons name="color-filter-outline" size={18} color={colors.white} />
             </TouchableOpacity>
 
             {/* Stickers */}
@@ -648,13 +640,13 @@ export default function TestCamera({
               onPress={() => setShowStickerTray((p) => !p)}
               accessibilityRole="button"
               accessibilityLabel="Stickers"
-              className={`w-10 h-10 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
-                showStickerTray
-                  ? "bg-blue-600 border-blue-400"
-                  : "bg-black/50 border-white/20"
-              }`}
+              style={[
+                styles.studioIconButton,
+                showStickerTray ? styles.studioIconButtonActive : null,
+              ]}
+              activeOpacity={0.75}
             >
-              <Ionicons name="happy-outline" size={18} color="white" />
+              <Ionicons name="happy-outline" size={18} color={colors.white} />
             </TouchableOpacity>
           </View>
         </View>
@@ -664,7 +656,7 @@ export default function TestCamera({
           <View
             style={{
               position: "absolute",
-              top: (insets.top > 0 ? insets.top : 10) + 54,
+              top: topInset + 62,
               left: 16,
               right: 16,
               zIndex: 30,
@@ -766,25 +758,42 @@ export default function TestCamera({
               </View>
             )}
 
-            <View className="flex-row items-center justify-between gap-4">
+            <View style={styles.studioActionsRow}>
               <TouchableOpacity
                 onPress={() => setShowDiscardModal(true)}
-                className="h-12 flex-1 rounded-full border border-white/30 bg-black/40 items-center justify-center active:opacity-80"
+                style={styles.studioDiscardBtn}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Discard capture"
               >
-                <Text className="text-white text-base font-semibold">Discard</Text>
+                <Ionicons name="trash-outline" size={18} color={colors.white} />
+                <Text style={styles.studioDiscardText}>Discard</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleContinue}
                 disabled={publishing}
-                className="h-12 flex-1 rounded-full bg-blue-600 items-center justify-center shadow-lg active:opacity-90"
+                style={[
+                  styles.studioNextBtn,
+                  publishing ? { opacity: 0.7 } : null,
+                ]}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={activeMode === "Story" ? "Add to story" : "Next step"}
               >
                 {publishing ? (
-                  <ActivityIndicator color="white" />
+                  <ActivityIndicator color={colors.white} size="small" />
                 ) : (
-                  <Text className="text-white text-base font-bold">
-                    {activeMode === "Story" ? "Add to story" : "Next"}
-                  </Text>
+                  <>
+                    <Text style={styles.studioNextText}>
+                      {activeMode === "Story" ? "Add to story" : "Next"}
+                    </Text>
+                    <Ionicons
+                      name={activeMode === "Story" ? "sparkles" : "arrow-forward"}
+                      size={18}
+                      color={colors.white}
+                    />
+                  </>
                 )}
               </TouchableOpacity>
             </View>
@@ -935,7 +944,7 @@ export default function TestCamera({
           left: 0,
           right: 0,
           top: 0,
-          paddingTop: insets.top > 0 ? insets.top + 6 : 14,
+          paddingTop: topInset + 8,
           paddingHorizontal: 16,
           flexDirection: "row",
           alignItems: "center",
@@ -1045,7 +1054,7 @@ export default function TestCamera({
           style={{
             position: "absolute",
             right: 16,
-            top: (insets.top > 0 ? insets.top : 10) + 60,
+            top: topInset + 64,
             gap: 14,
             zIndex: 20,
             alignItems: "center",
@@ -1060,12 +1069,13 @@ export default function TestCamera({
             }}
             accessibilityRole="button"
             accessibilityLabel="Flip camera"
-            className="w-11 h-11 rounded-full bg-black/40 border border-white/20 items-center justify-center shadow-md active:opacity-80"
+            style={styles.sideToolBtn}
+            activeOpacity={0.8}
           >
             <Image
               source={require("@/assets/homeIcons/cameraflip.png")}
               style={{ width: 20, height: 20 }}
-              tintColor="white"
+              tintColor={colors.white}
             />
           </TouchableOpacity>
 
@@ -1077,13 +1087,13 @@ export default function TestCamera({
             }}
             accessibilityRole="button"
             accessibilityLabel={`Camera zoom ${currentZoom.label}`}
-            className={`w-11 h-11 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
-              currentZoom.zoom > 0
-                ? "bg-blue-600/80 border-blue-400"
-                : "bg-black/40 border-white/20"
-            }`}
+            style={[
+              styles.sideToolBtn,
+              currentZoom.zoom > 0 ? styles.sideToolBtnActive : null,
+            ]}
+            activeOpacity={0.8}
           >
-            <Text className="text-white text-xs font-bold">
+            <Text style={{ color: colors.white, fontSize: 13, fontWeight: "800" }}>
               {currentZoom.label}
             </Text>
           </TouchableOpacity>
@@ -1099,19 +1109,27 @@ export default function TestCamera({
             accessibilityLabel={
               countdownTimer > 0 ? `Timer ${countdownTimer} seconds` : "Timer off"
             }
-            className={`w-11 h-11 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
-              countdownTimer > 0
-                ? "bg-blue-600 border-blue-400"
-                : "bg-black/40 border-white/20"
-            }`}
+            style={[
+              styles.sideToolBtn,
+              countdownTimer > 0 ? styles.sideToolBtnActive : null,
+            ]}
+            activeOpacity={0.8}
           >
             <Ionicons
               name={countdownTimer > 0 ? "timer" : "timer-outline"}
               size={20}
-              color="white"
+              color={colors.white}
             />
             {countdownTimer > 0 && (
-              <Text className="text-[8px] text-white font-bold absolute bottom-0.5">
+              <Text
+                style={{
+                  position: "absolute",
+                  bottom: 2,
+                  fontSize: 8,
+                  color: colors.white,
+                  fontWeight: "800",
+                }}
+              >
                 {countdownTimer}s
               </Text>
             )}
@@ -1125,13 +1143,13 @@ export default function TestCamera({
             }}
             accessibilityRole="button"
             accessibilityLabel="Filters"
-            className={`w-11 h-11 rounded-full items-center justify-center border shadow-md active:opacity-80 ${
-              selectedFilter !== "none"
-                ? "bg-blue-600 border-blue-400"
-                : "bg-black/40 border-white/20"
-            }`}
+            style={[
+              styles.sideToolBtn,
+              selectedFilter !== "none" ? styles.sideToolBtnActive : null,
+            ]}
+            activeOpacity={0.8}
           >
-            <Ionicons name="color-filter-outline" size={20} color="white" />
+            <Ionicons name="color-filter-outline" size={20} color={colors.white} />
           </TouchableOpacity>
         </View>
       )}
@@ -1166,16 +1184,17 @@ export default function TestCamera({
                     Haptics.selectionAsync();
                     setActiveMode(mode);
                   }}
-                  className="items-center gap-1"
+                  style={[styles.modePill, active ? styles.modePillActive : null]}
+                  activeOpacity={0.8}
                 >
                   <Text
-                    className={`text-xs font-bold uppercase tracking-widest ${
-                      active ? "text-white" : "text-white/40"
-                    }`}
+                    style={[
+                      styles.modePillText,
+                      active ? styles.modePillTextActive : null,
+                    ]}
                   >
                     {mode}
                   </Text>
-                  {active && <View className="w-1 h-1 rounded-full bg-white" />}
                 </TouchableOpacity>
               );
             })}
@@ -1193,7 +1212,7 @@ export default function TestCamera({
               style={styles.galleryBtn}
               activeOpacity={0.8}
             >
-              <Ionicons name="images-outline" size={22} color="white" />
+              <Ionicons name="images-outline" size={22} color={colors.white} />
             </TouchableOpacity>
           ) : (
             <View style={{ width: 48, height: 48 }} />
@@ -1235,7 +1254,24 @@ export default function TestCamera({
             />
           </TouchableOpacity>
 
-          <View style={{ width: 48, height: 48 }} />
+          {/* Quick Flip Camera for one-handed thumb reach */}
+          {!isRecording ? (
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setFacing((f) => (f === "back" ? "front" : "back"));
+                setZoomIndex(0);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Flip camera"
+              style={styles.galleryBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="camera-reverse-outline" size={22} color={colors.white} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 48, height: 48 }} />
+          )}
         </View>
       </LinearGradient>
 
@@ -1278,8 +1314,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 32,
+    gap: 8,
     marginBottom: 20,
+  },
+  modePill: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "transparent",
+  },
+  modePillActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.35)",
+  },
+  modePillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.65)",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  modePillTextActive: {
+    color: colors.white,
+    fontWeight: "800",
+  },
+  sideToolBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  sideToolBtnActive: {
+    backgroundColor: colors.blue[600],
+    borderColor: colors.blue[400],
   },
   shutterRow: {
     flexDirection: "row",
@@ -1321,5 +1398,108 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
+  },
+  studioIconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  studioIconButtonActive: {
+    backgroundColor: colors.blue[600],
+    borderColor: colors.blue[400],
+  },
+  studioSoundPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.22)",
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  studioSoundPillActive: {
+    backgroundColor: "rgba(15, 23, 42, 0.85)",
+    borderColor: "rgba(56, 189, 248, 0.55)",
+  },
+  studioSoundPillText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  studioToolsGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  studioToolAaText: {
+    color: colors.white,
+    fontWeight: "900",
+    fontSize: 14,
+  },
+  studioActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    width: "100%",
+  },
+  studioDiscardBtn: {
+    flex: 1,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.28)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  studioDiscardText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  studioNextBtn: {
+    flex: 1.25,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.blue[600],
+    borderWidth: 1,
+    borderColor: colors.blue[400],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: colors.blue[600],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  studioNextText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
 });

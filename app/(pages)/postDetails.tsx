@@ -73,6 +73,16 @@ export default function PostDetails() {
         media_url: mediaUri,
         media_type: mediaType,
         caption: caption.trim() || undefined,
+        location: selectedLocation || undefined,
+        tagged_users:
+          taggedUsers.length > 0
+            ? taggedUsers.map((u) => ({
+                id: u.id,
+                username: u.username || "user",
+                full_name: u.full_name ?? undefined,
+                avatar_url: u.avatar_url ?? undefined,
+              }))
+            : undefined,
         filter_id: filterId,
         music_track_id: musicTrack?.id,
         music_track_title: musicTrack?.title,

@@ -27,38 +27,68 @@ export default function StoryRing({
   const { palette } = useTheme();
 
   if (isFirst) {
+    const hasStories = ring.stories && ring.stories.length > 0;
     return (
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={onCreateStory}
+        onPress={hasStories ? (onPress || onCreateStory) : onCreateStory}
         accessibilityRole="button"
-        accessibilityLabel="Add your story"
+        accessibilityLabel="Your story"
         style={styles.container}
       >
         <View style={styles.avatarWrapper}>
-          <View
-            style={[
-              styles.avatarCircle,
-              {
-                backgroundColor: palette.surfaceMuted,
-                borderColor: palette.background,
-              },
-            ]}
-          >
-            {ring.avatar_url ? (
-              <Image
-                source={{ uri: ring.avatar_url }}
-                style={styles.avatarImage}
-                contentFit="cover"
-                transition={150}
-              />
-            ) : (
-              <Ionicons name="person" size={28} color={palette.muted} />
-            )}
-          </View>
+          {hasStories ? (
+            <LinearGradient
+              colors={storyRingGradient as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientRing}
+            >
+              <View
+                style={[
+                  styles.innerAvatarContainer,
+                  { backgroundColor: palette.background },
+                ]}
+              >
+                {ring.avatar_url ? (
+                  <Image
+                    source={{ uri: ring.avatar_url }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                    transition={150}
+                  />
+                ) : (
+                  <Ionicons name="person" size={28} color={palette.muted} />
+                )}
+              </View>
+            </LinearGradient>
+          ) : (
+            <View
+              style={[
+                styles.avatarCircle,
+                {
+                  backgroundColor: palette.surfaceMuted,
+                  borderColor: palette.background,
+                },
+              ]}
+            >
+              {ring.avatar_url ? (
+                <Image
+                  source={{ uri: ring.avatar_url }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                  transition={150}
+                />
+              ) : (
+                <Ionicons name="person" size={28} color={palette.muted} />
+              )}
+            </View>
+          )}
 
           {/* Plus Badge */}
-          <View
+          <TouchableOpacity
+            onPress={onCreateStory}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             style={[
               styles.plusBadge,
               {
@@ -68,7 +98,7 @@ export default function StoryRing({
             ]}
           >
             <Ionicons name="add" size={14} color={palette.onAccent} />
-          </View>
+          </TouchableOpacity>
         </View>
 
         <Text
