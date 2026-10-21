@@ -40,7 +40,10 @@ export function getOverlayTextStyle(item: TextOverlayItem) {
   let fontFamilyStyle: any = {
     fontSize,
     textAlign,
-    color: item.color,
+    color: item.color || colors.white,
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   };
 
   switch (fontStyle) {
@@ -190,7 +193,7 @@ export default function DraggableTextOverlay({
 
         Animated.spring(dragScale, {
           toValue: 1.08,
-          useNativeDriver: true,
+          useNativeDriver: false,
           friction: 6,
         }).start();
 
@@ -214,7 +217,7 @@ export default function DraggableTextOverlay({
         pan.flattenOffset();
         Animated.spring(dragScale, {
           toValue: 1,
-          useNativeDriver: true,
+          useNativeDriver: false,
           friction: 6,
         }).start();
 
@@ -302,7 +305,8 @@ const styles = StyleSheet.create({
   overlayContainer: {
     position: "absolute",
     alignSelf: "center",
-    zIndex: 30,
+    zIndex: 35,
+    elevation: 20,
   },
   selectedBorder: {
     borderWidth: 1.5,

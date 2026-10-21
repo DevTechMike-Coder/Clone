@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {
@@ -42,10 +44,10 @@ const FONT_STYLES: { id: TextStyleMode; label: string }[] = [
 ];
 
 const BG_MODES: { id: TextBgMode; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { id: "solid", icon: "square", label: "Filled" },
-  { id: "frosted", icon: "contrast", label: "Glass" },
-  { id: "outline", icon: "square-outline", label: "Outline" },
   { id: "transparent", icon: "text", label: "Plain" },
+  { id: "frosted", icon: "contrast", label: "Glass" },
+  { id: "solid", icon: "square", label: "Filled" },
+  { id: "outline", icon: "square-outline", label: "Outline" },
 ];
 
 const FONT_SIZES = [
@@ -69,9 +71,12 @@ export default function TextOverlayModal({
   onAddText,
   onSaveText,
 }: TextOverlayModalProps) {
+  const insets = useSafeAreaInsets();
+  const inputRef = useRef<TextInput>(null);
+
   const [text, setText] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(colors.white);
-  const [bgMode, setBgMode] = useState<TextBgMode>("solid");
+  const [bgMode, setBgMode] = useState<TextBgMode>("transparent");
   const [fontStyle, setFontStyle] = useState<TextStyleMode>("bold");
   const [textAlign, setTextAlign] = useState<TextAlignMode>("center");
   const [fontSize, setFontSize] = useState<number>(28);
@@ -90,11 +95,15 @@ export default function TextOverlayModal({
       } else {
         setText("");
         setSelectedColor(colors.white);
-        setBgMode("solid");
+        setBgMode("transparent");
         setFontStyle("bold");
         setTextAlign("center");
         setFontSize(28);
       }
+      const t = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 120);
+      return () => clearTimeout(t);
     }
   }, [visible, initialItem]);
 
@@ -128,7 +137,7 @@ export default function TextOverlayModal({
       effectiveBgColor = selectedColor === colors.white ? colors.white : selectedColor;
       effectiveTextColor = selectedColor === colors.white ? colors.black : colors.white;
     } else if (bgMode === "frosted") {
-      effectiveBgColor = "rgba(0,0,0,0.5)";
+      effectiveBgColor = "rgba(0,0,0,0.55)";
       effectiveTextColor = selectedColor;
     } else if (bgMode === "outline") {
       effectiveBgColor = "transparent";
@@ -139,7 +148,7 @@ export default function TextOverlayModal({
     }
 
     const payload: TextOverlayItem = {
-      id: initialItem?.id || Date.now().toString(),
+      id: initialItem?.id || `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       text: trimmed,
       color: effectiveTextColor,
       bgColor: effectiveBgColor,
@@ -217,7 +226,7 @@ export default function TextOverlayModal({
 
     if (bgMode === "frosted") {
       return {
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backgroundColor: "rgba(0, 0, 0, 0.55)",
         borderRadius: 18,
         paddingHorizontal: 18,
         paddingVertical: 10,
@@ -244,6 +253,15 @@ export default function TextOverlayModal({
     };
   };
 
+  const getPlaceholderColor = () => {
+    if (bgMode === "solid") {
+      return selectedColor === colors.white
+        ? "rgba(0, 0, 0, 0.45)"
+        : "rgba(255, 255, 255, 0.65)";
+    }
+    return "rgba(255, 255, 255, 0.55)";
+  };
+
   const getAlignmentIcon = (): keyof typeof Ionicons.glyphMap => {
     if (textAlign === "left") return "reorder-two-outline";
     if (textAlign === "right") return "reorder-three-outline";
@@ -256,13 +274,19 @@ export default function TextOverlayModal({
       visible={visible}
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.modalBackdrop}
       >
         {/* Top Control Bar */}
-        <View style={styles.topBar}>
+        <View
+          style={[
+            styles.topBar,
+            { paddingTop: Math.max(insets.top, Platform.OS === "ios" ? 44 : 24) + 6 },
+          ]}
+        >
           <IconButton
             icon={<Ionicons name="close" size={24} color={colors.white} />}
             onPress={() => {
@@ -272,6 +296,7 @@ export default function TextOverlayModal({
             }}
             accessibilityLabel="Close text editor"
             size="md"
+            style={styles.headerIconButton}
           />
 
           {/* Center Toolbar (Alignment, Background Style, Size) */}
@@ -280,6 +305,8 @@ export default function TextOverlayModal({
             <PressableScale
               onPress={cycleAlignment}
               style={styles.toolbarPillBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Align text"
             >
               <Ionicons name={getAlignmentIcon()} size={18} color={colors.white} />
             </PressableScale>
@@ -288,6 +315,8 @@ export default function TextOverlayModal({
             <PressableScale
               onPress={cycleBgMode}
               style={styles.toolbarPillBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Highlight mode"
             >
               <Ionicons
                 name={
@@ -314,6 +343,8 @@ export default function TextOverlayModal({
                     styles.sizeBtn,
                     fontSize === sz.size && styles.sizeBtnActive,
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Size ${sz.label}`}
                 >
                   <Text
                     variant="micro"
@@ -340,28 +371,42 @@ export default function TextOverlayModal({
         </View>
 
         {/* Live Input Field (Centered in screen) */}
-        <View style={styles.inputCanvas}>
+        <Pressable
+          style={styles.inputCanvas}
+          onPress={() => inputRef.current?.focus()}
+        >
           <View style={[styles.inputBox, getPreviewContainerStyle()]}>
             <TextInput
+              ref={inputRef}
               placeholder="Type something..."
-              placeholderTextColor="rgba(255,255,255,0.45)"
+              placeholderTextColor={getPlaceholderColor()}
               value={text}
               onChangeText={setText}
               autoFocus
               multiline
               textAlign={textAlign}
               style={[styles.textInput, getPreviewTextStyle()]}
+              returnKeyType="done"
+              onSubmitEditing={handleDone}
+              blurOnSubmit={false}
+              selectionColor={selectedColor}
             />
           </View>
-        </View>
+        </Pressable>
 
         {/* Bottom Drawer: Font Styles & Color Swatches */}
-        <View style={styles.bottomDrawer}>
+        <View
+          style={[
+            styles.bottomDrawer,
+            { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+          ]}
+        >
           {/* Font Style Pills */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.fontPillRow}
+            keyboardShouldPersistTaps="always"
           >
             {FONT_STYLES.map((f) => {
               const active = fontStyle === f.id;
@@ -376,6 +421,8 @@ export default function TextOverlayModal({
                     styles.fontPill,
                     active && styles.fontPillActive,
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Font ${f.label}`}
                 >
                   <Text
                     variant="caption"
@@ -399,6 +446,7 @@ export default function TextOverlayModal({
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.colorSwatchRow}
+            keyboardShouldPersistTaps="always"
           >
             {COLOR_PALETTE.map((color) => {
               const active = selectedColor === color;
@@ -414,6 +462,8 @@ export default function TextOverlayModal({
                     { backgroundColor: color },
                     active && styles.colorCircleActive,
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Color ${color}`}
                 >
                   {active && (
                     <View
@@ -439,30 +489,32 @@ export default function TextOverlayModal({
 const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.88)",
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
     justifyContent: "space-between",
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "ios" ? 54 : 40,
     paddingHorizontal: 16,
     paddingBottom: 12,
     zIndex: 20,
   },
+  headerIconButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
   centerToolbar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   toolbarPillBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 4,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
@@ -480,15 +532,15 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.15)",
   },
   sizeBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 12,
   },
   sizeBtnActive: {
     backgroundColor: colors.white,
   },
   sizeBtnText: {
-    color: "rgba(255, 255, 255, 0.6)",
+    color: "rgba(255, 255, 255, 0.65)",
   },
   sizeBtnTextActive: {
     color: colors.black,
@@ -500,7 +552,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   inputBox: {
-    minWidth: 140,
+    minWidth: 120,
     maxWidth: "92%",
     alignItems: "center",
     justifyContent: "center",
@@ -511,14 +563,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   bottomDrawer: {
-    paddingBottom: Platform.OS === "ios" ? 36 : 24,
     paddingTop: 12,
     backgroundColor: "rgba(10, 10, 15, 0.95)",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
-    gap: 14,
+    gap: 12,
   },
   fontPillRow: {
     paddingHorizontal: 16,

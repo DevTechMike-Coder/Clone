@@ -34,6 +34,7 @@ import TextOverlayModal from "./camera/TextOverlayModal";
 import MusicPickerModal from "./camera/MusicPickerModal";
 import DraggableTextOverlay from "./camera/DraggableTextOverlay";
 import { colors } from "@/constants/theme";
+import { Dialog } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import { storyService } from "@/services/storyService";
 import Toast from "react-native-toast-message";
@@ -387,8 +388,9 @@ export default function TestCamera({
   // --- Staggered placement helper to prevent stacking ---
   const getNextStaggerPosition = () => {
     const count = textOverlays.length;
-    const yOffset = ((count % 5) - 2) * 60; // -120, -60, 0, 60, 120
-    const xOffset = ((count % 3) - 1) * 20; // -20, 0, 20
+    if (count === 0) return { x: 0, y: 0 };
+    const yOffset = ((count % 4) - 1.5) * 45;
+    const xOffset = ((count % 2) === 1 ? 1 : -1) * 15;
     return { x: xOffset, y: yOffset };
   };
 
@@ -505,9 +507,16 @@ export default function TestCamera({
 
         {/* Text / Sticker Overlays Layer */}
         <View
-          style={StyleSheet.absoluteFill}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              zIndex: 25,
+              elevation: 25,
+              alignItems: "center",
+              justifyContent: "center",
+            },
+          ]}
           pointerEvents="box-none"
-          className="items-center justify-center"
         >
           {textOverlays.map((item) => (
             <DraggableTextOverlay
@@ -782,50 +791,22 @@ export default function TestCamera({
           </LinearGradient>
         )}
 
-        {/* Discard Confirmation Modal */}
-        <Modal
-          transparent
+        {/* Discard Confirmation Dialog */}
+        <Dialog
           visible={showDiscardModal}
-          animationType="fade"
-          onRequestClose={() => setShowDiscardModal(false)}
-        >
-          <Pressable
-            className="flex-1 bg-black/70 items-center justify-center px-8"
-            onPress={() => setShowDiscardModal(false)}
-          >
-            <View className="w-full bg-white rounded-3xl p-6 items-center">
-              <Ionicons name="trash-outline" size={32} color={colors.red[500]} />
-              <Text className="text-black text-lg font-bold mt-3 mb-1">
-                Discard Capture?
-              </Text>
-              <Text className="text-black/60 text-center text-xs mb-6">
-                If you go back, you will lose this photo/video and all edits.
-              </Text>
-
-              <View className="w-full gap-2.5">
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowDiscardModal(false);
-                    setCapturedUri(null);
-                    setTextOverlays([]);
-                  }}
-                  className="w-full h-12 bg-red-500 rounded-xl items-center justify-center"
-                >
-                  <Text className="text-white font-bold text-sm">Discard</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setShowDiscardModal(false)}
-                  className="w-full h-12 bg-black/5 rounded-xl items-center justify-center"
-                >
-                  <Text className="text-black/80 font-bold text-sm">
-                    Keep Editing
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Pressable>
-        </Modal>
+          onClose={() => setShowDiscardModal(false)}
+          title="Discard Capture?"
+          message="If you go back, you will lose this photo/video and all edits."
+          confirmText="Discard"
+          destructive
+          onConfirm={() => {
+            setShowDiscardModal(false);
+            setCapturedUri(null);
+            setTextOverlays([]);
+          }}
+          cancelText="Keep Editing"
+          onCancel={() => setShowDiscardModal(false)}
+        />
 
         {/* Overlays & Modals */}
         <TextOverlayModal

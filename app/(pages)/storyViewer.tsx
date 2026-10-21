@@ -319,6 +319,20 @@ export default function StoryViewer() {
     (f) => f.id === activeStory.filter_id,
   );
 
+  let renderedOverlays: any[] = [];
+  if (activeStory?.text_overlays) {
+    if (Array.isArray(activeStory.text_overlays)) {
+      renderedOverlays = activeStory.text_overlays;
+    } else if (typeof activeStory.text_overlays === "string") {
+      try {
+        const parsed = JSON.parse(activeStory.text_overlays);
+        if (Array.isArray(parsed)) renderedOverlays = parsed;
+      } catch {
+        renderedOverlays = [];
+      }
+    }
+  }
+
   return (
     <View className="flex-1 bg-black" onLayout={(e) => setViewerWidth(e.nativeEvent.layout.width)}>
       {/* Media */}
@@ -362,8 +376,6 @@ export default function StoryViewer() {
               right: 0,
               bottom: 0,
               paddingHorizontal: 20,
-              // Keep the caption clear of the "Send message" reply bar
-              // (which sits at bottom: insets.bottom + 18, h-11 ≈ 44px tall).
               paddingBottom: insets.bottom + 84,
               paddingTop: 60,
             }}
@@ -379,13 +391,20 @@ export default function StoryViewer() {
 
         {/* Text overlays created in the camera studio. Rendered read-only
             with the same styling/positions the editor used. */}
-        {!!(activeStory.text_overlays && activeStory.text_overlays.length > 0) && (
+        {renderedOverlays.length > 0 && (
           <View
-            style={StyleSheet.absoluteFill}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                zIndex: 15,
+                elevation: 15,
+                alignItems: "center",
+                justifyContent: "center",
+              },
+            ]}
             pointerEvents="none"
-            className="items-center justify-center"
           >
-            {(activeStory.text_overlays ?? []).map((item) => (
+            {renderedOverlays.map((item) => (
               <View
                 key={item.id}
                 style={{
@@ -425,6 +444,8 @@ export default function StoryViewer() {
           right: 0,
           paddingTop: Math.max(insets.top, 12),
           paddingHorizontal: 14,
+          zIndex: 30,
+          elevation: 20,
         }}
       >
         {/* Progress Bars */}

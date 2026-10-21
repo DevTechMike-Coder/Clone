@@ -158,7 +158,13 @@ export default function MusicPickerModal({
   };
 
   return (
-    <Modal transparent visible={visible} animationType="slide" onRequestClose={close}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="slide"
+      onRequestClose={close}
+      statusBarTranslucent
+    >
       <Pressable
         style={{
           flex: 1,
