@@ -18,9 +18,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useTheme } from "@/context/ThemeContext";
-import { Avatar } from "@/components/ui/Avatar";
-import { Text } from "@/components/ui/Text";
+import {
+  Avatar,
+  EmptyState,
+  IconButton,
+  PressableScale,
+  Skeleton,
+  Text,
+} from "@/components/ui";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -99,15 +106,18 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
   };
 
   const handleReplyPress = (commentId: string, username: string) => {
+    Haptics.selectionAsync();
     setReplyingTo({ commentId, username });
     inputRef.current?.focus();
   };
 
   const cancelReply = () => {
+    Haptics.selectionAsync();
     setReplyingTo(null);
   };
 
   const toggleReplies = (commentId: string) => {
+    Haptics.selectionAsync();
     setExpandedReplies((prev) => ({
       ...prev,
       [commentId]: !prev[commentId],
@@ -115,6 +125,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
   };
 
   const toggleLikeComment = (commentId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLikedComments((prev) => ({
       ...prev,
       [commentId]: !prev[commentId],
@@ -125,6 +136,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
     const trimmed = text.trim();
     if (!trimmed || submitting) return;
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSubmitting(true);
     try {
       const parentId = replyingTo?.commentId ?? null;
@@ -175,14 +187,14 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
     const username = item.profiles?.username || item.profiles?.full_name || "user";
 
     return (
-      <View style={{ marginBottom: 16 }}>
+      <View style={styles.commentItemWrapper}>
         {/* Main Comment Row */}
-        <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+        <View style={styles.commentMainRow}>
           {/* Avatar (clickable) */}
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => handleUserPress(item.user_id)}
-            style={{ marginTop: 2 }}
+            style={styles.avatarTouchable}
           >
             <Avatar
               url={item.profiles?.avatar_url}
@@ -192,8 +204,8 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
           </TouchableOpacity>
 
           {/* Comment Content & Metadata */}
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={styles.commentContentCol}>
+            <View style={styles.metaRow}>
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => handleUserPress(item.user_id)}
@@ -201,35 +213,30 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 <Text
                   variant="bodyMedium"
                   weight="semibold"
-                  style={{ color: palette.text }}
                 >
                   {username}
                 </Text>
               </TouchableOpacity>
-              <Text variant="micro" style={{ color: palette.muted }}>
+              <Text variant="micro" color="muted">
                 {formatRelativeTime(item.created_at)}
               </Text>
             </View>
 
             <Text
               variant="body"
-              style={{
-                color: palette.text,
-                marginTop: 4,
-                lineHeight: 20,
-              }}
+              style={styles.commentBodyText}
             >
               {item.content}
             </Text>
 
             {/* Action Bar: Reply Button */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginTop: 8 }}>
+            <View style={styles.actionBarRow}>
               <TouchableOpacity
                 onPress={() => handleReplyPress(item.id, username)}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text variant="caption" weight="semibold" style={{ color: palette.muted }}>
+                <Text variant="caption" weight="semibold" color="muted">
                   Reply
                 </Text>
               </TouchableOpacity>
@@ -237,34 +244,30 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
           </View>
 
           {/* Like Heart Button */}
-          <TouchableOpacity
+          <PressableScale
             onPress={() => toggleLikeComment(item.id)}
-            style={{ padding: 4, alignItems: "center", justifyContent: "center", marginTop: 2 }}
-            activeOpacity={0.7}
+            style={styles.likeButton}
             accessibilityRole="button"
             accessibilityLabel={isLiked ? "Unlike comment" : "Like comment"}
           >
             <Ionicons
               name={isLiked ? "heart" : "heart-outline"}
-              size={16}
+              size={18}
               color={isLiked ? palette.like : palette.muted}
             />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
 
         {/* Threaded Replies */}
         {hasReplies && (
-          <View style={{ paddingLeft: 48, marginTop: 8 }}>
+          <View style={styles.threadedRepliesContainer}>
             {/* Render Nested Replies FIRST when expanded */}
             {isExpanded && (
               <View
-                style={{
-                  marginBottom: 8,
-                  gap: 12,
-                  paddingLeft: 8,
-                  borderLeftWidth: 1,
-                  borderColor: palette.borderSubtle,
-                }}
+                style={[
+                  styles.expandedRepliesBox,
+                  { borderColor: palette.borderSubtle },
+                ]}
               >
                 {item.replies!.map((reply) => {
                   const replyUsername =
@@ -272,11 +275,11 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                   const isReplyLiked = !!likedComments[reply.id];
 
                   return (
-                    <View key={reply.id} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+                    <View key={reply.id} style={styles.replyRow}>
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => handleUserPress(reply.user_id)}
-                        style={{ marginTop: 2 }}
+                        style={styles.avatarTouchable}
                       >
                         <Avatar
                           url={reply.profiles?.avatar_url}
@@ -285,8 +288,8 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                         />
                       </TouchableOpacity>
 
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <View style={styles.replyContentCol}>
+                        <View style={styles.replyMetaRow}>
                           <TouchableOpacity
                             activeOpacity={0.7}
                             onPress={() => handleUserPress(reply.user_id)}
@@ -294,14 +297,13 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                             <Text
                               variant="caption"
                               weight="semibold"
-                              style={{ color: palette.text }}
                             >
                               {replyUsername}
                             </Text>
                           </TouchableOpacity>
                           <Text
                             variant="micro"
-                            style={{ color: palette.muted }}
+                            color="muted"
                           >
                             {formatRelativeTime(reply.created_at)}
                           </Text>
@@ -309,40 +311,35 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
 
                         <Text
                           variant="caption"
-                          style={{
-                            color: palette.text,
-                            marginTop: 2,
-                            lineHeight: 16,
-                          }}
+                          style={styles.replyBodyText}
                         >
                           {reply.content}
                         </Text>
 
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 6 }}>
+                        <View style={styles.replyActionBar}>
                           <TouchableOpacity
                             onPress={() => handleReplyPress(item.id, replyUsername)}
                             activeOpacity={0.7}
                           >
-                            <Text variant="micro" weight="semibold" style={{ color: palette.muted }}>
+                            <Text variant="micro" weight="semibold" color="muted">
                               Reply
                             </Text>
                           </TouchableOpacity>
                         </View>
                       </View>
 
-                      <TouchableOpacity
+                      <PressableScale
                         onPress={() => toggleLikeComment(reply.id)}
-                        style={{ padding: 4, alignItems: "center", justifyContent: "center" }}
-                        activeOpacity={0.7}
+                        style={styles.replyLikeButton}
                         accessibilityRole="button"
                         accessibilityLabel={isReplyLiked ? "Unlike reply" : "Like reply"}
                       >
                         <Ionicons
                           name={isReplyLiked ? "heart" : "heart-outline"}
-                          size={14}
+                          size={15}
                           color={isReplyLiked ? palette.like : palette.muted}
                         />
-                      </TouchableOpacity>
+                      </PressableScale>
                     </View>
                   );
                 })}
@@ -353,16 +350,21 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
             <TouchableOpacity
               onPress={() => toggleReplies(item.id)}
               activeOpacity={0.7}
-              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 }}
+              style={styles.toggleRepliesButton}
             >
-              <View style={{ width: 24, height: 1, backgroundColor: palette.border }} />
-              <Text variant="caption" weight="semibold" style={{ color: palette.muted }}>
+              <View style={[styles.toggleRepliesLine, { backgroundColor: palette.border }]} />
+              <Text variant="caption" weight="semibold" color="muted">
                 {isExpanded
                   ? "Hide replies"
                   : `View ${item.replies!.length} ${
                       item.replies!.length === 1 ? "reply" : "replies"
                     }`}
               </Text>
+              <Ionicons
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={14}
+                color={palette.muted}
+              />
             </TouchableOpacity>
           </View>
         )}
@@ -386,7 +388,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
       <View style={styles.modalOverlay}>
         {/* Backdrop */}
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose}>
-          <View style={styles.backdrop} />
+          <View style={[styles.backdrop, { backgroundColor: palette.overlay }]} />
         </Pressable>
 
         {/* Animated Sheet */}
@@ -395,6 +397,7 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
             styles.sheetContainer,
             {
               backgroundColor: palette.surface,
+              borderColor: palette.border,
               transform: [{ translateY: slideAnim }],
               height: dynamicSheetHeight,
               marginBottom: keyboardHeight,
@@ -403,74 +406,61 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
         >
           <View style={styles.flexContainer}>
             {/* Header Handle */}
-            <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
+            <View style={styles.handleContainer}>
               <View
-                style={{
-                  height: 4,
-                  width: 44,
-                  borderRadius: 2,
-                  backgroundColor: palette.border,
-                }}
+                style={[
+                  styles.handleBar,
+                  { backgroundColor: palette.borderSubtle },
+                ]}
               />
             </View>
 
             {/* Header Title */}
             <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: 20,
-                paddingBottom: 12,
-                paddingTop: 4,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderColor: palette.borderSubtle,
-              }}
+              style={[
+                styles.headerRow,
+                { borderBottomColor: palette.borderSubtle },
+              ]}
             >
-              <View style={{ width: 24 }} />
-              <Text variant="headline" weight="bold" style={{ color: palette.text }}>
+              <View style={styles.headerSpacer} />
+              <Text variant="headline" weight="bold">
                 Comments
               </Text>
-              <TouchableOpacity
+              <IconButton
+                icon={<Ionicons name="close" size={20} color={palette.muted} />}
                 onPress={handleClose}
-                activeOpacity={0.7}
-                accessibilityRole="button"
                 accessibilityLabel="Close comments"
-              >
-                <Ionicons name="close" size={22} color={palette.muted} />
-              </TouchableOpacity>
+                size="sm"
+              />
             </View>
 
-            {/* Comments List */}
+            {/* Comments List / Skeleton Shimmer */}
             {loading ? (
-              <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 }}>
-                <ActivityIndicator size="small" color={palette.primary} />
+              <View style={styles.skeletonList}>
+                {[0, 1, 2, 3].map((i) => (
+                  <Skeleton.Row key={i} style={styles.skeletonRow} />
+                ))}
               </View>
             ) : (
               <FlatList
                 data={comments}
                 keyExtractor={(c) => c.id}
-                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}
+                contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 renderItem={renderCommentItem}
                 ListEmptyComponent={
-                  <View style={{ alignItems: "center", paddingVertical: 48, paddingHorizontal: 40 }}>
-                    <Ionicons name="chatbubbles-outline" size={42} color={palette.muted} />
-                    <Text
-                      variant="body"
-                      weight="medium"
-                      style={{ color: palette.text, marginTop: 12, textAlign: "center" }}
-                    >
-                      No comments yet
-                    </Text>
-                    <Text
-                      variant="bodyMedium"
-                      style={{ color: palette.muted, textAlign: "center", marginTop: 4 }}
-                    >
-                      Be the first to share what you think!
-                    </Text>
-                  </View>
+                  <EmptyState
+                    icon={
+                      <Ionicons
+                        name="chatbubbles-outline"
+                        size={44}
+                        color={palette.muted}
+                      />
+                    }
+                    title="No comments yet"
+                    description="Be the first to share what you think!"
+                  />
                 }
               />
             )}
@@ -478,44 +468,44 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
             {/* Replying Banner */}
             {replyingTo && (
               <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderTopWidth: StyleSheet.hairlineWidth,
-                  backgroundColor: palette.surfaceMuted,
-                  borderColor: palette.borderSubtle,
-                }}
+                style={[
+                  styles.replyingBanner,
+                  {
+                    backgroundColor: palette.surfaceElevated,
+                    borderColor: palette.borderSubtle,
+                  },
+                ]}
               >
-                <Text variant="caption" style={{ color: palette.muted }}>
-                  Replying to <Text variant="caption" weight="bold" style={{ color: palette.primary }}>@{replyingTo.username}</Text>
-                </Text>
+                <View style={styles.replyingTextRow}>
+                  <Ionicons name="return-down-forward" size={16} color={palette.accent} />
+                  <Text variant="caption" color="muted">
+                    Replying to{" "}
+                    <Text variant="caption" weight="bold" color="accent">
+                      @{replyingTo.username}
+                    </Text>
+                  </Text>
+                </View>
                 <TouchableOpacity
                   onPress={cancelReply}
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel="Cancel reply"
-                  style={{ padding: 4 }}
+                  style={styles.cancelReplyBtn}
                 >
-                  <Ionicons name="close-circle" size={16} color={palette.muted} />
+                  <Ionicons name="close-circle" size={18} color={palette.muted} />
                 </TouchableOpacity>
               </View>
             )}
 
             {/* Comment Input Footer */}
             <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                borderTopWidth: StyleSheet.hairlineWidth,
-                backgroundColor: palette.surface,
-                borderColor: palette.borderSubtle,
-              }}
+              style={[
+                styles.inputFooter,
+                {
+                  backgroundColor: palette.surface,
+                  borderTopColor: palette.borderSubtle,
+                },
+              ]}
             >
               <TextInput
                 ref={inputRef}
@@ -531,23 +521,22 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                 style={[
                   styles.textInput,
                   {
-                    backgroundColor: palette.surfaceMuted,
+                    backgroundColor: palette.background,
                     color: palette.text,
-                    borderColor: palette.borderSubtle,
+                    borderColor: palette.border,
                   },
                 ]}
               />
-              <TouchableOpacity
+              <PressableScale
                 onPress={handleSubmit}
                 disabled={submitting || !text.trim()}
-                activeOpacity={0.7}
                 style={[
                   styles.postButton,
                   {
                     backgroundColor:
                       submitting || !text.trim()
-                        ? palette.surfaceMuted
-                        : palette.primary,
+                        ? palette.surfaceElevated
+                        : palette.accent,
                   },
                 ]}
               >
@@ -558,13 +547,16 @@ const CommentsModal = ({ postId, onClose }: CommentsModalProps) => {
                     variant="bodyMedium"
                     weight="bold"
                     style={{
-                      color: submitting || !text.trim() ? palette.muted : palette.onAccent,
+                      color:
+                        submitting || !text.trim()
+                          ? palette.muted
+                          : palette.onAccent,
                     }}
                   >
                     Post
                   </Text>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           </View>
         </Animated.View>
@@ -580,19 +572,162 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
   sheetContainer: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1,
     overflow: "hidden",
   },
   flexContainer: {
     flex: 1,
   },
+  handleContainer: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  handleBar: {
+    height: 5,
+    width: 44,
+    borderRadius: 2.5,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    paddingTop: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerSpacer: {
+    width: 32,
+  },
+  skeletonList: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 16,
+    flex: 1,
+  },
+  skeletonRow: {
+    marginVertical: 4,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  commentItemWrapper: {
+    marginBottom: 16,
+  },
+  commentMainRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "flex-start",
+  },
+  avatarTouchable: {
+    marginTop: 2,
+  },
+  commentContentCol: {
+    flex: 1,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  commentBodyText: {
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  actionBarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginTop: 8,
+  },
+  likeButton: {
+    padding: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  threadedRepliesContainer: {
+    paddingLeft: 48,
+    marginTop: 8,
+  },
+  expandedRepliesBox: {
+    marginBottom: 8,
+    gap: 12,
+    paddingLeft: 10,
+    borderLeftWidth: 1.5,
+  },
+  replyRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  replyContentCol: {
+    flex: 1,
+  },
+  replyMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  replyBodyText: {
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  replyActionBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 6,
+  },
+  replyLikeButton: {
+    padding: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toggleRepliesButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  toggleRepliesLine: {
+    width: 24,
+    height: 1,
+  },
+  replyingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  replyingTextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  cancelReplyBtn: {
+    padding: 4,
+  },
+  inputFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   textInput: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
@@ -600,7 +735,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   postButton: {
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 18,
     paddingVertical: 10,
     alignItems: "center",
@@ -609,4 +744,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CommentsModal;
+export default CommentsModal;

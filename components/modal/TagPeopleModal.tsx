@@ -5,18 +5,25 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
-  Text,
-  TextInput,
+  StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ProfileSearchResult, profileService } from "@/services/profileService";
-import { colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
+import {
+  Avatar,
+  Button,
+  EmptyState,
+  IconButton,
+  PressableScale,
+  Text,
+  TextField,
+} from "@/components/ui";
 
 type TagPeopleModalProps = {
   visible: boolean;
@@ -31,7 +38,7 @@ export default function TagPeopleModal({
   onClose,
   onSave,
 }: TagPeopleModalProps) {
-  const { isDark, palette } = useTheme();
+  const { palette } = useTheme();
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<ProfileSearchResult[]>([]);
   const [selected, setSelected] = useState<ProfileSearchResult[]>([]);
@@ -98,139 +105,120 @@ export default function TagPeopleModal({
       visible={visible}
       animationType="slide"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 justify-end"
-        style={{ backgroundColor: palette.overlay }}
+        style={styles.keyboardContainer}
       >
+        <Pressable
+          style={[StyleSheet.absoluteFill, { backgroundColor: palette.overlay }]}
+          onPress={onClose}
+        />
+
         <View
-          className="rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t shadow-2xl"
-          style={{
-            backgroundColor: palette.surface,
-            borderColor: palette.border,
-          }}
+          style={[
+            styles.sheetCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            },
+          ]}
         >
           {/* Sheet Handle */}
-          <View className="items-center mb-3">
+          <View style={styles.handleWrapper}>
             <View
-              className="w-12 h-1.5 rounded-full"
-              style={{
-                backgroundColor: isDark
-                  ? colors.slate[700]
-                  : colors.slate[300],
-              }}
+              style={[
+                styles.handleBar,
+                { backgroundColor: palette.borderSubtle },
+              ]}
             />
           </View>
 
           {/* Header */}
           <View
-            className="flex-row items-center justify-between pb-3 border-b"
-            style={{ borderColor: palette.borderSubtle }}
+            style={[
+              styles.headerRow,
+              { borderBottomColor: palette.borderSubtle },
+            ]}
           >
-            <TouchableOpacity
+            <IconButton
+              icon={<Ionicons name="close" size={22} color={palette.muted} />}
               onPress={onClose}
-              accessibilityRole="button"
               accessibilityLabel="Close"
-              className="p-1"
-            >
-              <Ionicons name="close" size={24} color={palette.muted} />
-            </TouchableOpacity>
+              size="sm"
+            />
 
-            <Text
-              className="text-lg font-bold"
-              style={{ color: palette.text }}
-            >
+            <Text variant="headline" weight="bold">
               Tag People {selected.length > 0 ? `(${selected.length})` : ""}
             </Text>
 
-            <TouchableOpacity
+            <Button
+              title="Done"
+              size="sm"
+              variant="primary"
               onPress={handleDone}
-              className="px-4 py-1.5 rounded-full"
-              style={{ backgroundColor: palette.primary }}
-            >
-              <Text className="text-white font-bold text-sm">Done</Text>
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Search Bar */}
-          <View
-            className="flex-row items-center rounded-2xl px-3.5 py-2.5 my-3.5 border"
-            style={{
-              backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-              borderColor: palette.border,
-            }}
-          >
-            <Ionicons name="search" size={18} color={palette.muted} />
-            <TextInput
-              placeholder="Search people to tag..."
-              placeholderTextColor={palette.placeholder}
+          <View style={styles.searchSection}>
+            <TextField
               value={search}
               onChangeText={setSearch}
+              placeholder="Search people to tag..."
               autoCapitalize="none"
-              className="flex-1 ml-2.5 text-sm"
-              style={{ color: palette.text }}
+              leftIcon={
+                <Ionicons name="search" size={18} color={palette.muted} />
+              }
+              rightIcon={
+                search.length > 0 ? (
+                  <TouchableOpacity onPress={() => setSearch("")}>
+                    <Ionicons
+                      name="close-circle"
+                      size={18}
+                      color={palette.muted}
+                    />
+                  </TouchableOpacity>
+                ) : undefined
+              }
             />
-            {search.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setSearch("")}
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-              >
-                <Ionicons name="close-circle" size={18} color={palette.muted} />
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Selected Users Chips */}
           {selected.length > 0 && (
-            <View className="mb-3">
+            <View style={styles.chipsSection}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8 }}
+                contentContainerStyle={styles.chipsScroll}
               >
                 {selected.map((user) => (
-                  <TouchableOpacity
+                  <PressableScale
                     key={user.id}
                     onPress={() => toggleUser(user)}
-                    className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border"
-                    style={{
-                      backgroundColor: isDark
-                        ? colors.blue[950] + "50"
-                        : colors.blue[50],
-                      borderColor: isDark
-                        ? colors.blue[900] + "60"
-                        : colors.blue[200],
-                    }}
+                    style={[
+                      styles.chipItem,
+                      {
+                        backgroundColor: palette.surfaceElevated,
+                        borderColor: palette.border,
+                      },
+                    ]}
                   >
-                    {user.avatar_url ? (
-                      <Image
-                        source={{ uri: user.avatar_url }}
-                        className="w-5 h-5 rounded-full"
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <Ionicons
-                        name="person-circle"
-                        size={20}
-                        color={palette.primary}
-                      />
-                    )}
-                    <Text
-                      className="text-xs font-bold"
-                      style={{
-                        color: isDark ? colors.blue[300] : colors.blue[700],
-                      }}
-                    >
+                    <Avatar
+                      url={user.avatar_url}
+                      name={user.full_name || user.username}
+                      size="xs"
+                    />
+                    <Text variant="caption" weight="bold">
                       @{user.username || "user"}
                     </Text>
                     <Ionicons
                       name="close-circle"
                       size={16}
-                      color={palette.primary}
+                      color={palette.muted}
                     />
-                  </TouchableOpacity>
+                  </PressableScale>
                 ))}
               </ScrollView>
             </View>
@@ -238,91 +226,84 @@ export default function TagPeopleModal({
 
           {/* User Results List */}
           {loading ? (
-            <View className="flex-1 items-center justify-center py-12">
-              <ActivityIndicator size="small" color={palette.primary} />
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="small" color={palette.accent} />
             </View>
           ) : results.length === 0 ? (
-            <View className="flex-1 items-center justify-center py-12 gap-2">
-              <Ionicons name="people-outline" size={40} color={colors.slate[400]} />
-              <Text
-                className="text-sm font-semibold"
-                style={{ color: palette.muted }}
-              >
-                {search ? "No users found" : "Search users by username or name"}
-              </Text>
-            </View>
+            <EmptyState
+              icon={
+                <Ionicons
+                  name="people-outline"
+                  size={40}
+                  color={palette.muted}
+                />
+              }
+              title={search ? "No users found" : "Search to tag people"}
+              description={
+                search
+                  ? `No profiles matched "${search}"`
+                  : "Type a username or full name above"
+              }
+            />
           ) : (
             <FlatList
               data={results}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
                 const isSelected = selected.some((u) => u.id === item.id);
                 return (
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => toggleUser(item)}
-                    className="flex-row items-center justify-between py-3 border-b"
-                    style={{ borderColor: palette.borderSubtle }}
+                    style={[
+                      styles.userRow,
+                      { borderBottomColor: palette.borderSubtle },
+                    ]}
                   >
-                    <View className="flex-row items-center gap-3 flex-1 mr-3">
-                      <View
-                        className="w-11 h-11 rounded-full overflow-hidden items-center justify-center border"
-                        style={{
-                          backgroundColor: isDark
-                            ? colors.slate[800]
-                            : colors.slate[100],
-                          borderColor: palette.border,
-                        }}
-                      >
-                        {item.avatar_url ? (
-                          <Image
-                            source={{ uri: item.avatar_url }}
-                            className="w-full h-full"
-                            contentFit="cover"
-                          />
-                        ) : (
-                          <Ionicons
-                            name="person-outline"
-                            size={20}
-                            color={palette.muted}
-                          />
-                        )}
-                      </View>
+                    <View style={styles.userRowLeft}>
+                      <Avatar
+                        url={item.avatar_url}
+                        name={item.full_name || item.username}
+                        size="md"
+                      />
 
-                      <View className="flex-1">
-                        <Text
-                          className="text-sm font-bold"
-                          style={{ color: palette.text }}
-                          numberOfLines={1}
-                        >
+                      <View style={styles.userTextCol}>
+                        <Text variant="body" weight="bold" numberOfLines={1}>
                           @{item.username || "user"}
                         </Text>
-                        {item.full_name && (
+                        {item.full_name ? (
                           <Text
-                            className="text-xs"
-                            style={{ color: palette.muted }}
+                            variant="caption"
+                            color="muted"
                             numberOfLines={1}
                           >
                             {item.full_name}
                           </Text>
-                        )}
+                        ) : null}
                       </View>
                     </View>
 
                     <View
-                      className="w-6 h-6 rounded-full items-center justify-center border"
-                      style={{
-                        backgroundColor: isSelected
-                          ? palette.primary
-                          : "transparent",
-                        borderColor: isSelected
-                          ? palette.primary
-                          : palette.border,
-                      }}
+                      style={[
+                        styles.checkbox,
+                        {
+                          backgroundColor: isSelected
+                            ? palette.accent
+                            : "transparent",
+                          borderColor: isSelected
+                            ? palette.accent
+                            : palette.border,
+                        },
+                      ]}
                     >
                       {isSelected && (
-                        <Ionicons name="checkmark" size={16} color="white" />
+                        <Ionicons
+                          name="checkmark"
+                          size={14}
+                          color={palette.onAccent}
+                        />
                       )}
                     </View>
                   </TouchableOpacity>
@@ -335,3 +316,89 @@ export default function TagPeopleModal({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  sheetCard: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: "85%",
+    flex: 1,
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+  },
+  handleWrapper: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  handleBar: {
+    width: 44,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  searchSection: {
+    paddingVertical: 12,
+  },
+  chipsSection: {
+    marginBottom: 10,
+  },
+  chipsScroll: {
+    gap: 8,
+  },
+  chipItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 4,
+    paddingRight: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    borderWidth: 1,
+  },
+  loaderContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+  },
+  listContent: {
+    paddingBottom: 16,
+  },
+  userRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  userRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+    marginRight: 12,
+  },
+  userTextCol: {
+    flex: 1,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

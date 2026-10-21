@@ -27,7 +27,9 @@ import {
 import { CAMERA_FILTERS } from "@/components/camera/FilterPicker";
 import { stopAllSounds, useTrackSound } from "@/lib/useTrackSound";
 import Toast from "react-native-toast-message";
+import * as Haptics from "expo-haptics";
 import { colors } from "@/constants/theme";
+import { Dialog, PressableScale } from "@/components/ui";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const STORY_DURATION = 5; // seconds per image story; videos use their own length.
@@ -110,6 +112,33 @@ export default function StoryViewer() {
   const [paused, setPaused] = useState(false);
   const [viewerWidth, setViewerWidth] = useState(SCREEN_W);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const [likedStories, setLikedStories] = useState<Record<string, boolean>>({});
+  const [burstEmoji, setBurstEmoji] = useState<string | null>(null);
+  const burstAnim = useRef(new Animated.Value(0)).current;
+
+  const triggerBurst = (emoji: string = "❤️") => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setBurstEmoji(emoji);
+    burstAnim.setValue(0);
+    Animated.timing(burstAnim, {
+      toValue: 1,
+      duration: 850,
+      useNativeDriver: true,
+    }).start(() => {
+      setBurstEmoji(null);
+    });
+  };
+
+  const handleToggleLike = () => {
+    if (!activeStory) return;
+    const wasLiked = !!likedStories[activeStory.id];
+    setLikedStories((prev) => ({ ...prev, [activeStory.id]: !wasLiked }));
+    if (!wasLiked) {
+      triggerBurst("❤️");
+    } else {
+      Haptics.selectionAsync();
+    }
+  };
 
   const progress = useRef(new Animated.Value(0)).current;
   const progressAnimRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -487,13 +516,81 @@ export default function StoryViewer() {
         </View>
       </View>
 
+      {/* Floating Reaction Burst */}
+      {burstEmoji && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            bottom: "35%",
+            alignSelf: "center",
+            opacity: burstAnim.interpolate({
+              inputRange: [0, 0.7, 1],
+              outputRange: [0, 1, 0],
+            }),
+            transform: [
+              {
+                translateY: burstAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, -120],
+                }),
+              },
+              {
+                scale: burstAnim.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0.6, 1.4, 1.2],
+                }),
+              },
+            ],
+            zIndex: 100,
+          }}
+        >
+          {burstEmoji === "❤️" ? (
+            <Ionicons name="heart" size={88} color={colors.red[500]} />
+          ) : (
+            <Text style={{ fontSize: 72 }}>{burstEmoji}</Text>
+          )}
+        </Animated.View>
+      )}
+
+      {/* Quick reaction emojis */}
+      <View
+        style={{
+          position: "absolute",
+          left: 14,
+          right: 14,
+          bottom: insets.bottom + 66,
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
+        {["❤️", "🔥", "😂", "😮", "👏", "🎉"].map((emoji) => (
+          <PressableScale
+            key={emoji}
+            onPress={() => triggerBurst(emoji)}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: "rgba(0,0,0,0.45)",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.2)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>{emoji}</Text>
+          </PressableScale>
+        ))}
+      </View>
+
       {/* Reply bar */}
       <View
         style={{
           position: "absolute",
           left: 14,
           right: 14,
-          bottom: insets.bottom + 18,
+          bottom: insets.bottom + 16,
         }}
         className="flex-row items-center gap-3"
       >
@@ -511,14 +608,19 @@ export default function StoryViewer() {
         >
           <Text className="text-white/80 text-sm font-semibold">Send message</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          hitSlop={10}
-          onPress={() => Toast.show({ type: "success", text1: "Liked!" })}
+
+        <PressableScale
+          onPress={handleToggleLike}
           accessibilityRole="button"
           accessibilityLabel="Like story"
         >
-          <Ionicons name="heart-outline" size={28} color="white" />
-        </TouchableOpacity>
+          <Ionicons
+            name={activeStory && likedStories[activeStory.id] ? "heart" : "heart-outline"}
+            size={28}
+            color={activeStory && likedStories[activeStory.id] ? colors.red[500] : colors.white}
+          />
+        </PressableScale>
+
         <TouchableOpacity
           hitSlop={10}
           onPress={() => Toast.show({ type: "info", text1: "Share sheet coming soon" })}
@@ -530,33 +632,17 @@ export default function StoryViewer() {
       </View>
 
       {/* Delete confirmation modal */}
-      <Modal
-        transparent
+      <Dialog
         visible={showDeleteMenu}
-        animationType="fade"
-        onRequestClose={() => setShowDeleteMenu(false)}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => setShowDeleteMenu(false)}
-          className="flex-1 bg-black/50 items-center justify-center px-8"
-        >
-          <View className="w-full bg-white rounded-2xl overflow-hidden">
-            <TouchableOpacity
-              onPress={handleDeleteStory}
-              className="py-4 items-center border-b border-black/10"
-            >
-              <Text className="text-red-500 font-bold">Delete</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowDeleteMenu(false)}
-              className="py-4 items-center"
-            >
-              <Text className="text-black/80 font-semibold">Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setShowDeleteMenu(false)}
+        title="Delete Story?"
+        message="Are you sure you want to delete this story? This action cannot be undone."
+        confirmText="Delete"
+        destructive
+        onConfirm={handleDeleteStory}
+        cancelText="Cancel"
+        onCancel={() => setShowDeleteMenu(false)}
+      />
     </View>
   );
 }

@@ -1,5 +1,8 @@
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { colors } from "@/constants/theme";
+import { PressableScale, Text } from "@/components/ui";
 
 export type FilterOption = {
   id: string;
@@ -28,48 +31,102 @@ export default function FilterPicker({
   selectedFilter,
   onSelectFilter,
 }: FilterPickerProps) {
+  const handleSelect = (id: string) => {
+    Haptics.selectionAsync();
+    onSelectFilter(id);
+  };
+
   return (
-    <View className="py-2">
+    <View style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+        contentContainerStyle={styles.scrollContent}
       >
         {CAMERA_FILTERS.map((filter) => {
           const active = selectedFilter === filter.id;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={filter.id}
-              activeOpacity={0.8}
-              onPress={() => onSelectFilter(filter.id)}
-              className="items-center gap-1.5"
+              onPress={() => handleSelect(filter.id)}
+              style={styles.filterItem}
+              accessibilityRole="button"
+              accessibilityLabel={`${filter.name} filter`}
             >
               <View
-                className={`w-14 h-14 rounded-2xl overflow-hidden items-center justify-center border-2 ${
-                  active ? "border-white bg-white/20" : "border-white/20 bg-black/40"
-                }`}
+                style={[
+                  styles.previewBox,
+                  active ? styles.previewActive : styles.previewInactive,
+                ]}
               >
                 {filter.overlayColor && (
                   <View
-                    className="absolute inset-0"
-                    style={{ backgroundColor: filter.overlayColor }}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      { backgroundColor: filter.overlayColor },
+                    ]}
                   />
                 )}
-                <Text className="text-white text-[11px] font-bold">
+                <Text
+                  variant="micro"
+                  weight="bold"
+                  style={styles.labelPreview}
+                >
                   {filter.name.slice(0, 3).toUpperCase()}
                 </Text>
               </View>
               <Text
-                className={`text-[11px] font-medium ${
-                  active ? "text-white font-bold" : "text-white/60"
-                }`}
+                variant="micro"
+                weight={active ? "bold" : "medium"}
+                style={active ? styles.textActive : styles.textInactive}
               >
                 {filter.name}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 8,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  filterItem: {
+    alignItems: "center",
+    gap: 6,
+  },
+  previewBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  previewActive: {
+    borderColor: colors.white,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+  },
+  previewInactive: {
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  labelPreview: {
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+  textActive: {
+    color: colors.white,
+  },
+  textInactive: {
+    color: "rgba(255, 255, 255, 0.65)",
+  },
+});

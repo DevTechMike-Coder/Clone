@@ -3,12 +3,9 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +17,7 @@ import {
   TextStyleMode,
 } from "@/store/pendingPost";
 import { colors } from "@/constants/theme";
+import { Button, IconButton, PressableScale, Text } from "@/components/ui";
 
 const COLOR_PALETTE = [
   colors.white,
@@ -123,7 +121,6 @@ export default function TextOverlayModal({
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Compute effective text & bg colors
     let effectiveTextColor = selectedColor;
     let effectiveBgColor: string | undefined = undefined;
 
@@ -266,31 +263,29 @@ export default function TextOverlayModal({
       >
         {/* Top Control Bar */}
         <View style={styles.topBar}>
-          <TouchableOpacity
+          <IconButton
+            icon={<Ionicons name="close" size={24} color={colors.white} />}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setText("");
               onClose();
             }}
-            accessibilityRole="button"
             accessibilityLabel="Close text editor"
-            style={styles.circleBtn}
-          >
-            <Ionicons name="close" size={24} color="white" />
-          </TouchableOpacity>
+            size="md"
+          />
 
           {/* Center Toolbar (Alignment, Background Style, Size) */}
           <View style={styles.centerToolbar}>
             {/* Text Alignment */}
-            <TouchableOpacity
+            <PressableScale
               onPress={cycleAlignment}
               style={styles.toolbarPillBtn}
             >
-              <Ionicons name={getAlignmentIcon()} size={18} color="white" />
-            </TouchableOpacity>
+              <Ionicons name={getAlignmentIcon()} size={18} color={colors.white} />
+            </PressableScale>
 
             {/* Background Highlight Mode */}
-            <TouchableOpacity
+            <PressableScale
               onPress={cycleBgMode}
               style={styles.toolbarPillBtn}
             >
@@ -299,17 +294,17 @@ export default function TextOverlayModal({
                   BG_MODES.find((m) => m.id === bgMode)?.icon || "square-outline"
                 }
                 size={18}
-                color="white"
+                color={colors.white}
               />
-              <Text style={styles.toolbarPillText}>
+              <Text variant="micro" weight="bold" style={styles.toolbarPillText}>
                 {BG_MODES.find((m) => m.id === bgMode)?.label}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
 
             {/* Font Size Selector */}
             <View style={styles.sizeGroup}>
               {FONT_SIZES.map((sz) => (
-                <TouchableOpacity
+                <PressableScale
                   key={sz.label}
                   onPress={() => {
                     Haptics.selectionAsync();
@@ -321,6 +316,8 @@ export default function TextOverlayModal({
                   ]}
                 >
                   <Text
+                    variant="micro"
+                    weight="bold"
                     style={[
                       styles.sizeBtnText,
                       fontSize === sz.size && styles.sizeBtnTextActive,
@@ -328,15 +325,18 @@ export default function TextOverlayModal({
                   >
                     {sz.label}
                   </Text>
-                </TouchableOpacity>
+                </PressableScale>
               ))}
             </View>
           </View>
 
           {/* Done CTA */}
-          <TouchableOpacity onPress={handleDone} style={styles.doneBtn}>
-            <Text style={styles.doneBtnText}>Done</Text>
-          </TouchableOpacity>
+          <Button
+            title="Done"
+            size="sm"
+            variant="primary"
+            onPress={handleDone}
+          />
         </View>
 
         {/* Live Input Field (Centered in screen) */}
@@ -366,9 +366,8 @@ export default function TextOverlayModal({
             {FONT_STYLES.map((f) => {
               const active = fontStyle === f.id;
               return (
-                <TouchableOpacity
+                <PressableScale
                   key={f.id}
-                  activeOpacity={0.8}
                   onPress={() => {
                     Haptics.selectionAsync();
                     setFontStyle(f.id);
@@ -379,6 +378,8 @@ export default function TextOverlayModal({
                   ]}
                 >
                   <Text
+                    variant="caption"
+                    weight="bold"
                     style={[
                       styles.fontPillText,
                       active && styles.fontPillTextActive,
@@ -388,7 +389,7 @@ export default function TextOverlayModal({
                   >
                     {f.label}
                   </Text>
-                </TouchableOpacity>
+                </PressableScale>
               );
             })}
           </ScrollView>
@@ -402,7 +403,7 @@ export default function TextOverlayModal({
             {COLOR_PALETTE.map((color) => {
               const active = selectedColor === color;
               return (
-                <Pressable
+                <PressableScale
                   key={color}
                   onPress={() => {
                     Haptics.selectionAsync();
@@ -425,7 +426,7 @@ export default function TextOverlayModal({
                       ]}
                     />
                   )}
-                </Pressable>
+                </PressableScale>
               );
             })}
           </ScrollView>
@@ -450,14 +451,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     zIndex: 20,
   },
-  circleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   centerToolbar: {
     flexDirection: "row",
     alignItems: "center",
@@ -475,9 +468,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
   toolbarPillText: {
-    color: "white",
-    fontSize: 11,
-    fontWeight: "700",
+    color: colors.white,
   },
   sizeGroup: {
     flexDirection: "row",
@@ -494,31 +485,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sizeBtnActive: {
-    backgroundColor: "white",
+    backgroundColor: colors.white,
   },
   sizeBtnText: {
     color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 11,
-    fontWeight: "800",
   },
   sizeBtnTextActive: {
-    color: "black",
-  },
-  doneBtn: {
-    backgroundColor: colors.blue[600],
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 20,
-    shadowColor: colors.blue[600],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  doneBtnText: {
-    color: "white",
-    fontWeight: "800",
-    fontSize: 14,
+    color: colors.black,
   },
   inputCanvas: {
     flex: 1,
@@ -560,17 +533,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.15)",
   },
   fontPillActive: {
-    backgroundColor: "white",
-    borderColor: "white",
+    backgroundColor: colors.white,
+    borderColor: colors.white,
   },
   fontPillText: {
     color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 13,
-    fontWeight: "700",
   },
   fontPillTextActive: {
-    color: "black",
-    fontWeight: "800",
+    color: colors.black,
   },
   colorSwatchRow: {
     paddingHorizontal: 16,
@@ -587,7 +557,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   colorCircleActive: {
-    borderColor: "white",
+    borderColor: colors.white,
     transform: [{ scale: 1.15 }],
   },
   colorInnerDot: {

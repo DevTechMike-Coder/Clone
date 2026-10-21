@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import {
   ProfileSearchResult,
@@ -17,12 +19,16 @@ import {
 import { Post, postService } from "@/services/postService";
 import PostGridThumbnail from "@/components/PostGridThumbnail";
 import { useTheme } from "@/context/ThemeContext";
-import { Screen } from "@/components/ui/Screen";
-import { Text } from "@/components/ui/Text";
-import { Avatar } from "@/components/ui/Avatar";
-import { TextField } from "@/components/ui/TextField";
-import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
-import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  Avatar,
+  EmptyState,
+  PressableScale,
+  Screen,
+  SegmentedTabs,
+  Skeleton,
+  Text,
+  TextField,
+} from "@/components/ui";
 
 const CATEGORIES = [
   "All",
@@ -101,50 +107,44 @@ const CATEGORY_KEYWORDS: Record<Exclude<Category, "All" | "Trending">, string[]>
   Music: [
     "music",
     "song",
+    "sound",
+    "audio",
+    "beat",
     "track",
+    "melody",
+    "dance",
     "concert",
     "band",
-    "album",
-    "sound",
-    "beat",
-    "dj",
   ],
 };
 
-function haystackFor(post: Post): string {
-  return [
-    post.caption,
-    post.music_track_title,
-    post.music_track_artist,
-    post.profiles?.username,
-    post.profiles?.full_name,
+function postMatchesCategory(post: Post, cat: Category): boolean {
+  if (cat === "All" || cat === "Trending") return true;
+
+  const textToScan = [
+    post.caption ?? "",
+    post.music_track_title ?? "",
+    post.music_track_artist ?? "",
   ]
-    .filter(Boolean)
     .join(" ")
     .toLowerCase();
-}
 
-function postMatchesCategory(post: Post, category: Category): boolean {
-  if (category === "All" || category === "Trending") return true;
-  const keywords = CATEGORY_KEYWORDS[category];
-  const haystack = haystackFor(post);
-  if (category === "Music" && (post.has_sound || post.music_track_title)) {
-    return true;
-  }
-  return keywords.some((keyword) => haystack.includes(keyword));
+  const keywords = CATEGORY_KEYWORDS[cat] ?? [];
+  return keywords.some((kw) => textToScan.includes(kw));
 }
 
 function engagementScore(post: Post): number {
-  return (
-    (post.view_count ?? 0) +
-    (post.like_count ?? 0) * 3 +
-    (post.comment_count ?? 0) * 2 +
-    (post.repost_count ?? 0) * 2
-  );
+  const likes = post.like_count ?? 0;
+  const comments = post.comment_count ?? 0;
+  const reposts = post.repost_count ?? 0;
+  return likes * 1 + comments * 2 + reposts * 3;
 }
 
-export default function Search() {
+export default function SearchScreen() {
   const { palette } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const tileWidth = windowWidth / 3;
+
   const [searchText, setSearchText] = useState("");
   const [searchTab, setSearchTab] = useState<SearchTab>("users");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
@@ -227,14 +227,37 @@ export default function Search() {
     return () => clearTimeout(timer);
   }, [searchText]);
 
+  const handleSelectCategory = (cat: Category) => {
+    Haptics.selectionAsync();
+    setSelectedCategory(cat);
+  };
+
+  const handleOpenPost = (postId: string) => {
+    Haptics.selectionAsync();
+    router.push({
+      pathname: "/(pages)/viewPost",
+      params: { id: postId, postId },
+    });
+  };
+
   const isSearching = searchText.trim().length > 0;
 
   const renderContent = () => {
     if (isSearching) {
       if (searchLoading) {
-        return (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <ActivityIndicator size="large" color={palette.primary} />
+        return searchTab === "users" ? (
+          <View style={styles.searchSkeletonContainer}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton.Row key={i} style={styles.skeletonRow} />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.gridContainer}>
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <View key={i} style={[styles.gridTileWrapper, { width: tileWidth, height: tileWidth }]}>
+                <Skeleton width="100%" height="100%" borderRadius={0} />
+              </View>
+            ))}
           </View>
         );
       }
@@ -243,7 +266,13 @@ export default function Search() {
         if (userResults.length === 0 && searched) {
           return (
             <EmptyState
-              icon="people-outline"
+              icon={
+                <Ionicons
+                  name="people-outline"
+                  size={48}
+                  color={palette.muted}
+                />
+              }
               title="No people found"
               description="Try searching for another username or full name."
             />
@@ -256,29 +285,25 @@ export default function Search() {
             data={userResults}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ padding: 16 }}
+            contentContainerStyle={styles.usersListContent}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                activeOpacity={0.8}
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={`View profile of ${item.full_name || item.username || "user"}`}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: palette.surface,
-                  borderColor: palette.border,
-                  borderWidth: 1,
-                  borderRadius: 16,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  marginBottom: 10,
-                }}
-                onPress={() =>
+                style={[
+                  styles.userCard,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.border,
+                  },
+                ]}
+                onPress={() => {
+                  Haptics.selectionAsync();
                   router.push({
                     pathname: "/(pages)/userProfile",
                     params: { userId: item.id },
-                  })
-                }
+                  });
+                }}
               >
                 <Avatar
                   url={item.avatar_url}
@@ -286,14 +311,14 @@ export default function Search() {
                   size={46}
                 />
 
-                <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={styles.userTextContainer}>
                   <Text variant="body" weight="semibold" numberOfLines={1}>
                     {item.full_name || item.username || "User"}
                   </Text>
                   <Text
                     variant="caption"
                     color="muted"
-                    style={{ marginTop: 2 }}
+                    style={styles.marginTop2}
                     numberOfLines={1}
                   >
                     @{item.username || "user"}
@@ -302,7 +327,7 @@ export default function Search() {
                     <Text
                       variant="micro"
                       color="muted"
-                      style={{ marginTop: 2 }}
+                      style={styles.marginTop2}
                       numberOfLines={1}
                     >
                       {item.bio}
@@ -315,7 +340,7 @@ export default function Search() {
                   size={18}
                   color={palette.muted}
                 />
-              </TouchableOpacity>
+              </PressableScale>
             )}
           />
         );
@@ -324,7 +349,13 @@ export default function Search() {
         if (postResults.length === 0 && searched) {
           return (
             <EmptyState
-              icon="images-outline"
+              icon={
+                <Ionicons
+                  name="images-outline"
+                  size={48}
+                  color={palette.muted}
+                />
+              }
               title="No posts found"
               description="Try searching for different keywords or tags."
             />
@@ -345,19 +376,14 @@ export default function Search() {
                 accessibilityLabel={
                   item.caption ? `Open post: ${item.caption}` : "Open post"
                 }
-                onPress={() =>
-                  router.push({
-                    pathname: "/(pages)/viewPost",
-                    params: { postId: item.id },
-                  })
-                }
-                style={{
-                  width: "33.333%",
-                  aspectRatio: 1,
-                  borderWidth: 0.5,
-                  borderColor: palette.border,
-                  backgroundColor: palette.surface,
-                }}
+                onPress={() => handleOpenPost(item.id)}
+                style={[
+                  styles.gridTile,
+                  {
+                    borderColor: palette.border,
+                    backgroundColor: palette.surface,
+                  },
+                ]}
               >
                 <PostGridThumbnail post={item} />
               </TouchableOpacity>
@@ -370,8 +396,12 @@ export default function Search() {
     // Default Explore View
     if (exploreLoading && !refreshing) {
       return (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={palette.primary} />
+        <View style={styles.gridContainer}>
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <View key={i} style={[styles.gridTileWrapper, { width: tileWidth, height: tileWidth }]}>
+              <Skeleton width="100%" height="100%" borderRadius={0} />
+            </View>
+          ))}
         </View>
       );
     }
@@ -379,7 +409,13 @@ export default function Search() {
     if (explorePosts.length === 0) {
       return (
         <EmptyState
-          icon="compass-outline"
+          icon={
+            <Ionicons
+              name="compass-outline"
+              size={48}
+              color={palette.muted}
+            />
+          }
           title="Explore Content"
           description="No posts discovered yet. Be the first to share!"
         />
@@ -389,7 +425,13 @@ export default function Search() {
     if (filteredExplorePosts.length === 0) {
       return (
         <EmptyState
-          icon="funnel-outline"
+          icon={
+            <Ionicons
+              name="funnel-outline"
+              size={48}
+              color={palette.muted}
+            />
+          }
           title={`No ${selectedCategory} posts`}
           description="Nothing in this category yet. Try another filter or be the first to share."
         />
@@ -407,7 +449,7 @@ export default function Search() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={palette.primary}
+            tintColor={palette.accent}
           />
         }
         renderItem={({ item }) => (
@@ -417,19 +459,14 @@ export default function Search() {
             accessibilityLabel={
               item.caption ? `Open post: ${item.caption}` : "Open post"
             }
-            onPress={() =>
-              router.push({
-                pathname: "/(pages)/viewPost",
-                params: { postId: item.id },
-              })
-            }
-            style={{
-              width: "33.333%",
-              aspectRatio: 1,
-              borderWidth: 0.5,
-              borderColor: palette.border,
-              backgroundColor: palette.surface,
-            }}
+            onPress={() => handleOpenPost(item.id)}
+            style={[
+              styles.gridTile,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.surface,
+              },
+            ]}
           >
             <PostGridThumbnail post={item} />
           </TouchableOpacity>
@@ -441,7 +478,7 @@ export default function Search() {
   return (
     <Screen>
       {/* Search Input Bar */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6 }}>
+      <View style={styles.searchInputBar}>
         <TextField
           placeholder="Search creators, topics, captions..."
           leftIcon={
@@ -460,14 +497,14 @@ export default function Search() {
 
         {/* Search Switcher Tabs (When Searching) */}
         {isSearching && (
-          <View style={{ marginTop: 10 }}>
+          <View style={styles.tabsWrapper}>
             <SegmentedTabs
               tabs={[
                 { key: "users", label: "People", badge: userResults.length },
                 { key: "posts", label: "Posts", badge: postResults.length },
               ]}
               activeTab={searchTab}
-              onTabChange={(key) => setSearchTab(key)}
+              onTabChange={(key) => setSearchTab(key as SearchTab)}
             />
           </View>
         )}
@@ -475,43 +512,43 @@ export default function Search() {
 
       {/* Category Pills (When Not Searching) */}
       {!isSearching && (
-        <View style={{ paddingVertical: 10 }}>
+        <View style={styles.categoriesSection}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+            contentContainerStyle={styles.categoriesScroll}
           >
             {CATEGORIES.map((cat) => {
               const active = selectedCategory === cat;
               return (
-                <TouchableOpacity
+                <PressableScale
                   key={cat}
-                  activeOpacity={0.7}
-                  onPress={() => setSelectedCategory(cat)}
+                  onPress={() => handleSelectCategory(cat)}
                   accessibilityRole="tab"
                   accessibilityLabel={`${cat} category`}
                   accessibilityState={{ selected: active }}
-                  style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 7,
-                    borderRadius: 20,
-                    backgroundColor: active
-                      ? palette.primary
-                      : palette.surface,
-                    borderWidth: 1,
-                    borderColor: active
-                      ? palette.primary
-                      : palette.border,
-                  }}
+                  style={[
+                    styles.categoryPill,
+                    {
+                      backgroundColor: active
+                        ? palette.accent
+                        : palette.surface,
+                      borderColor: active
+                        ? palette.accent
+                        : palette.border,
+                    },
+                  ]}
                 >
                   <Text
                     variant="caption"
                     weight="bold"
-                    color={active ? "white" : "muted"}
+                    style={{
+                      color: active ? palette.onAccent : palette.muted,
+                    }}
                   >
                     {cat}
                   </Text>
-                </TouchableOpacity>
+                </PressableScale>
               );
             })}
           </ScrollView>
@@ -523,3 +560,67 @@ export default function Search() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  searchInputBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  tabsWrapper: {
+    marginTop: 10,
+  },
+  categoriesSection: {
+    paddingVertical: 10,
+  },
+  categoriesScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  categoryPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    flex: 1,
+  },
+  gridTileWrapper: {
+    borderWidth: 0.5,
+    borderColor: "transparent",
+  },
+  gridTile: {
+    width: "33.333%",
+    aspectRatio: 1,
+    borderWidth: 0.5,
+  },
+  searchSkeletonContainer: {
+    padding: 16,
+    gap: 12,
+  },
+  skeletonRow: {
+    marginVertical: 4,
+  },
+  usersListContent: {
+    padding: 16,
+  },
+  userCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 10,
+  },
+  userTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  marginTop2: {
+    marginTop: 2,
+  },
+});

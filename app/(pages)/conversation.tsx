@@ -2,13 +2,16 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -24,15 +27,19 @@ import { profileService } from "@/services/profileService";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { colors } from "@/constants/theme";
-import { Screen } from "@/components/ui/Screen";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { Text } from "@/components/ui/Text";
-import { Avatar } from "@/components/ui/Avatar";
-import { IconButton } from "@/components/ui/IconButton";
-import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  Avatar,
+  EmptyState,
+  IconButton,
+  PressableScale,
+  Screen,
+  ScreenHeader,
+  Skeleton,
+  Text,
+} from "@/components/ui";
 
 export default function Conversation() {
-  const { palette, isDark } = useTheme();
+  const { palette } = useTheme();
   const { user: authUser } = useAuth();
   const { conversationId, otherUserId } = useLocalSearchParams<{
     conversationId: string;
@@ -45,6 +52,7 @@ export default function Conversation() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const fetchInitialData = useCallback(async () => {
@@ -189,12 +197,12 @@ export default function Conversation() {
                 });
               }
             }}
-            style={{ padding: 4 }}
+            style={styles.headerAvatarTouch}
           >
             <Avatar
               url={otherUser?.avatar_url}
               name={otherUser?.full_name || otherUser?.username}
-              size={34}
+              size={36}
             />
           </TouchableOpacity>
         }
@@ -205,11 +213,22 @@ export default function Conversation() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
-        style={{ flex: 1 }}
+        style={styles.flex1}
       >
         {loading ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <ActivityIndicator size="large" color={palette.primary} />
+          <View style={styles.skeletonContainer}>
+            <View style={styles.skeletonPartnerBubble}>
+              <Skeleton width={180} height={42} borderRadius={18} />
+            </View>
+            <View style={styles.skeletonUserBubble}>
+              <Skeleton width={220} height={52} borderRadius={18} />
+            </View>
+            <View style={styles.skeletonPartnerBubble}>
+              <Skeleton width={140} height={38} borderRadius={18} />
+            </View>
+            <View style={styles.skeletonUserBubble}>
+              <Skeleton width={190} height={42} borderRadius={18} />
+            </View>
           </View>
         ) : (
           <FlatList
@@ -217,13 +236,19 @@ export default function Conversation() {
             data={messages}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+            contentContainerStyle={styles.listContent}
             onContentSizeChange={() =>
               flatListRef.current?.scrollToEnd({ animated: false })
             }
             ListEmptyComponent={
               <EmptyState
-                icon="chatbubbles-outline"
+                icon={
+                  <Ionicons
+                    name="chatbubbles-outline"
+                    size={48}
+                    color={palette.muted}
+                  />
+                }
                 title="No messages yet"
                 description="Send a friendly message or photo to say hello!"
               />
@@ -233,43 +258,36 @@ export default function Conversation() {
 
               return (
                 <View
-                  style={{
-                    marginBottom: 12,
-                    flexDirection: "row",
-                    justifyContent: isMe ? "flex-end" : "flex-start",
-                  }}
+                  style={[
+                    styles.messageRow,
+                    { justifyContent: isMe ? "flex-end" : "flex-start" },
+                  ]}
                 >
                   <View
-                    style={{
-                      maxWidth: "78%",
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      borderRadius: 18,
-                      borderBottomRightRadius: isMe ? 4 : 18,
-                      borderBottomLeftRadius: isMe ? 18 : 4,
-                      backgroundColor: isMe ? palette.primary : palette.surface,
-                      borderWidth: isMe ? 0 : 1,
-                      borderColor: palette.border,
-                    }}
+                    style={[
+                      styles.bubbleCard,
+                      {
+                        borderBottomRightRadius: isMe ? 4 : 18,
+                        borderBottomLeftRadius: isMe ? 18 : 4,
+                        backgroundColor: isMe ? palette.accent : palette.surface,
+                        borderWidth: isMe ? 0 : 1,
+                        borderColor: palette.border,
+                      },
+                    ]}
                   >
                     {/* Media Attachment */}
                     {item.media_url ? (
-                      <View
-                        style={{
-                          width: 220,
-                          height: 220,
-                          borderRadius: 12,
-                          overflow: "hidden",
-                          marginBottom: item.content ? 8 : 4,
-                          backgroundColor: palette.surfaceMuted,
-                        }}
+                      <PressableScale
+                        onPress={() => setPreviewMediaUrl(item.media_url || null)}
+                        style={styles.mediaContainer}
                       >
                         <Image
                           source={{ uri: item.media_url }}
-                          style={{ width: "100%", height: "100%" }}
-                          resizeMode="cover"
+                          style={styles.mediaImage}
+                          contentFit="cover"
+                          transition={200}
                         />
-                      </View>
+                      </PressableScale>
                     ) : null}
 
                     {/* Text content */}
@@ -277,22 +295,33 @@ export default function Conversation() {
                       <Text
                         variant="body"
                         color={isMe ? "white" : "default"}
-                        style={{ lineHeight: 20 }}
+                        style={styles.messageText}
                       >
                         {item.content}
                       </Text>
                     ) : null}
 
-                    <Text
-                      variant="micro"
-                      style={{
-                        marginTop: 4,
-                        textAlign: "right",
-                        color: isMe ? "rgba(255,255,255,0.7)" : palette.muted,
-                      }}
-                    >
-                      {formatRelativeTime(item.created_at)}
-                    </Text>
+                    {/* Time & Delivery status */}
+                    <View style={styles.bubbleFooter}>
+                      <Text
+                        variant="micro"
+                        style={{
+                          color: isMe
+                            ? "rgba(255,255,255,0.75)"
+                            : palette.muted,
+                        }}
+                      >
+                        {formatRelativeTime(item.created_at)}
+                      </Text>
+                      {isMe && (
+                        <Ionicons
+                          name="checkmark-done"
+                          size={13}
+                          color="rgba(255,255,255,0.85)"
+                          style={styles.checkIcon}
+                        />
+                      )}
+                    </View>
                   </View>
                 </View>
               );
@@ -303,66 +332,49 @@ export default function Conversation() {
         {/* Selected Image Preview (Before Sending) */}
         {selectedImage && (
           <View
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderTopWidth: 1,
-              borderColor: palette.borderSubtle,
-              backgroundColor: palette.surface,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-            }}
+            style={[
+              styles.selectedPreviewBanner,
+              {
+                borderColor: palette.borderSubtle,
+                backgroundColor: palette.surfaceElevated,
+              },
+            ]}
           >
             <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 12,
-                overflow: "hidden",
-                borderWidth: 1,
-                borderColor: palette.border,
-                position: "relative",
-              }}
+              style={[
+                styles.previewThumbnailBox,
+                { borderColor: palette.border },
+              ]}
             >
               <Image
                 source={{ uri: selectedImage }}
-                style={{ width: "100%", height: "100%" }}
-                resizeMode="cover"
+                style={styles.previewImage}
+                contentFit="cover"
               />
               <TouchableOpacity
                 onPress={() => setSelectedImage(null)}
                 accessibilityRole="button"
                 accessibilityLabel="Remove selected photo"
-                style={{
-                  position: "absolute",
-                  top: 3,
-                  right: 3,
-                  backgroundColor: "rgba(0,0,0,0.6)",
-                  borderRadius: 12,
-                  padding: 2,
-                }}
+                style={styles.removeImageBtn}
               >
                 <Ionicons name="close" size={14} color={colors.white} />
               </TouchableOpacity>
             </View>
-            <Text variant="caption" color="muted" style={{ flex: 1 }}>
-              Photo ready to send. Add a caption below if you like.
+            <Text variant="caption" color="muted" style={styles.flex1}>
+              Photo attached. Add a message below and tap send.
             </Text>
           </View>
         )}
 
         {/* Input Bar */}
         <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            borderTopWidth: 1,
-            borderColor: palette.borderSubtle,
-            backgroundColor: palette.surface,
-          }}
+          style={[
+            styles.inputBar,
+            {
+              borderTopColor: palette.borderSubtle,
+              backgroundColor: palette.surface,
+            },
+          ]}
         >
           <IconButton
             icon={<Ionicons name="image-outline" size={24} color={palette.muted} />}
@@ -373,28 +385,20 @@ export default function Conversation() {
           />
 
           <View
-            style={{
-              flex: 1,
-              flexDirection: "row",
-              alignItems: "center",
-              borderRadius: 20,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              marginHorizontal: 8,
-              borderWidth: 1,
-              borderColor: palette.border,
-              backgroundColor: palette.background,
-            }}
+            style={[
+              styles.textInputBox,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.background,
+              },
+            ]}
           >
             <TextInput
               placeholder="Send a message..."
-              style={{
-                flex: 1,
-                fontSize: 15,
-                color: palette.text,
-                maxHeight: 96,
-                padding: 0,
-              }}
+              style={[
+                styles.textInputField,
+                { color: palette.text },
+              ]}
               placeholderTextColor={palette.placeholder}
               value={text}
               onChangeText={setText}
@@ -403,41 +407,206 @@ export default function Conversation() {
             />
           </View>
 
-          <TouchableOpacity
+          <PressableScale
             onPress={handleSend}
             disabled={(!text.trim() && !selectedImage) || sending}
-            activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Send message"
-            style={{
-              height: 42,
-              width: 42,
-              borderRadius: 21,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor:
-                text.trim() || selectedImage
-                  ? palette.primary
-                  : palette.surfaceMuted,
-            }}
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor:
+                  text.trim() || selectedImage
+                    ? palette.accent
+                    : palette.surfaceElevated,
+              },
+            ]}
           >
             {sending ? (
-              <ActivityIndicator size="small" color={colors.white} />
+              <ActivityIndicator size="small" color={palette.onAccent} />
             ) : (
               <Ionicons
                 name="send"
                 size={18}
                 color={
                   text.trim() || selectedImage
-                    ? colors.white
+                    ? palette.onAccent
                     : palette.muted
                 }
-                style={{ marginLeft: 2 }}
+                style={styles.sendIconOffset}
               />
             )}
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Lightbox Image Preview Modal */}
+      <Modal
+        visible={!!previewMediaUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewMediaUrl(null)}
+        statusBarTranslucent
+      >
+        <View style={styles.lightboxContainer}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setPreviewMediaUrl(null)}
+          />
+          <View style={styles.lightboxHeader}>
+            <IconButton
+              icon={<Ionicons name="close" size={24} color={colors.white} />}
+              onPress={() => setPreviewMediaUrl(null)}
+              accessibilityLabel="Close photo preview"
+              size="md"
+            />
+          </View>
+          {previewMediaUrl && (
+            <Image
+              source={{ uri: previewMediaUrl }}
+              style={styles.lightboxImage}
+              contentFit="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
+  headerAvatarTouch: {
+    padding: 2,
+  },
+  skeletonContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    gap: 16,
+  },
+  skeletonPartnerBubble: {
+    alignItems: "flex-start",
+  },
+  skeletonUserBubble: {
+    alignItems: "flex-end",
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  messageRow: {
+    marginBottom: 12,
+    flexDirection: "row",
+  },
+  bubbleCard: {
+    maxWidth: "80%",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+  },
+  mediaContainer: {
+    width: 220,
+    height: 220,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 6,
+  },
+  mediaImage: {
+    width: "100%",
+    height: "100%",
+  },
+  messageText: {
+    lineHeight: 20,
+  },
+  bubbleFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginTop: 4,
+    gap: 4,
+  },
+  checkIcon: {
+    marginLeft: 2,
+  },
+  selectedPreviewBanner: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  previewThumbnailBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    position: "relative",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  removeImageBtn: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 10,
+    padding: 3,
+  },
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  textInputBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginHorizontal: 8,
+    borderWidth: 1,
+  },
+  textInputField: {
+    flex: 1,
+    fontSize: 15,
+    maxHeight: 96,
+    padding: 0,
+    fontFamily: "PlusJakartaSans_400Regular",
+  },
+  sendButton: {
+    height: 42,
+    width: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendIconOffset: {
+    marginLeft: 2,
+  },
+  lightboxContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.94)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxHeader: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  lightboxImage: {
+    width: "100%",
+    height: "80%",
+  },
+});

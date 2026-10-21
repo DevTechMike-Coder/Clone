@@ -1,20 +1,28 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Text,
-  TextInput,
+  Pressable,
+  StyleSheet,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { locationService, RealLocationItem } from "@/services/locationService";
+import {
+  Button,
+  EmptyState,
+  IconButton,
+  PressableScale,
+  Text,
+  TextField,
+} from "@/components/ui";
 
 type LocationPickerModalProps = {
   visible: boolean;
@@ -119,160 +127,175 @@ export default function LocationPickerModal({
       visible={visible}
       animationType="slide"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 justify-end"
-        style={{ backgroundColor: palette.overlay }}
+        style={styles.keyboardContainer}
       >
+        <Pressable
+          style={[StyleSheet.absoluteFill, { backgroundColor: palette.overlay }]}
+          onPress={onClose}
+        />
+
         <View
-          className="rounded-t-[32px] max-h-[85%] flex-1 pt-4 pb-8 px-5 border-t shadow-2xl"
-          style={{
-            backgroundColor: palette.surface,
-            borderColor: palette.border,
-          }}
+          style={[
+            styles.sheetCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            },
+          ]}
         >
           {/* Sheet Handle */}
-          <View className="items-center mb-3">
+          <View style={styles.handleWrapper}>
             <View
-              className="w-12 h-1.5 rounded-full"
-              style={{
-                backgroundColor: isDark
-                  ? colors.slate[700]
-                  : colors.slate[300],
-              }}
+              style={[
+                styles.handleBar,
+                { backgroundColor: palette.borderSubtle },
+              ]}
             />
           </View>
 
           {/* Header */}
           <View
-            className="flex-row items-center justify-between pb-3 border-b"
-            style={{ borderColor: palette.borderSubtle }}
+            style={[
+              styles.headerRow,
+              { borderBottomColor: palette.borderSubtle },
+            ]}
           >
-            <TouchableOpacity
+            <IconButton
+              icon={<Ionicons name="close" size={22} color={palette.muted} />}
               onPress={onClose}
-              accessibilityRole="button"
               accessibilityLabel="Close"
-              className="p-1"
-            >
-              <Ionicons name="close" size={24} color={palette.muted} />
-            </TouchableOpacity>
+              size="sm"
+            />
 
-            <Text
-              className="text-lg font-bold"
-              style={{ color: palette.text }}
-            >
+            <Text variant="headline" weight="bold">
               Add Location
             </Text>
 
             {selectedLocation ? (
-              <TouchableOpacity onPress={handleClearLocation}>
-                <Text className="text-red-500 font-bold text-sm">Remove</Text>
-              </TouchableOpacity>
+              <Button
+                title="Remove"
+                variant="danger"
+                size="sm"
+                onPress={handleClearLocation}
+              />
             ) : (
-              <View className="w-8" />
+              <View style={styles.headerSpacer} />
             )}
           </View>
 
           {/* Search Bar */}
-          <View
-            className="flex-row items-center rounded-2xl px-3.5 py-2.5 my-3.5 border"
-            style={{
-              backgroundColor: isDark ? colors.slate[800] : colors.slate[100],
-              borderColor: palette.border,
-            }}
-          >
-            <Ionicons name="search-outline" size={18} color={palette.muted} />
-            <TextInput
-              placeholder="Search city, neighborhood, or place..."
-              placeholderTextColor={palette.placeholder}
+          <View style={styles.searchSection}>
+            <TextField
               value={search}
               onChangeText={handleSearchChange}
-              className="flex-1 ml-2.5 text-sm"
-              style={{ color: palette.text }}
+              placeholder="Search city, neighborhood, or place..."
+              autoCapitalize="none"
               autoCorrect={false}
+              leftIcon={
+                searching ? (
+                  <ActivityIndicator size="small" color={palette.accent} />
+                ) : (
+                  <Ionicons
+                    name="search-outline"
+                    size={18}
+                    color={palette.muted}
+                  />
+                )
+              }
+              rightIcon={
+                search.length > 0 ? (
+                  <TouchableOpacity onPress={() => handleSearchChange("")}>
+                    <Ionicons
+                      name="close-circle"
+                      size={18}
+                      color={palette.muted}
+                    />
+                  </TouchableOpacity>
+                ) : undefined
+              }
             />
-            {searching ? (
-              <ActivityIndicator size="small" color={palette.primary} />
-            ) : search.length > 0 ? (
-              <TouchableOpacity
-                onPress={() => handleSearchChange("")}
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-              >
-                <Ionicons name="close-circle" size={18} color={palette.muted} />
-              </TouchableOpacity>
-            ) : null}
           </View>
 
           {/* Current Real-Time GPS Location Row */}
           {!search && (
-            <View className="mb-3">
+            <View style={styles.realtimeSection}>
               <Text
-                className="text-xs font-bold uppercase tracking-wider mb-2 px-1"
-                style={{ color: palette.muted }}
+                variant="caption"
+                weight="bold"
+                color="muted"
+                style={styles.realtimeHeader}
               >
-                Real-Time Location
+                REAL-TIME LOCATION
               </Text>
 
               {loadingCurrent ? (
                 <View
-                  className="flex-row items-center gap-3 p-3.5 rounded-2xl border"
-                  style={{
-                    backgroundColor: isDark
-                      ? colors.blue[950] + "40"
-                      : colors.blue[50] + "80",
-                    borderColor: isDark
-                      ? colors.blue[900] + "60"
-                      : colors.blue[100],
-                  }}
+                  style={[
+                    styles.currentLocationRow,
+                    {
+                      backgroundColor: palette.surfaceElevated,
+                      borderColor: palette.border,
+                    },
+                  ]}
                 >
-                  <ActivityIndicator size="small" color={palette.primary} />
-                  <Text
-                    className="text-sm font-medium"
-                    style={{
-                      color: isDark ? colors.blue[300] : colors.blue[900],
-                    }}
-                  >
+                  <ActivityIndicator size="small" color={palette.accent} />
+                  <Text variant="body" color="muted">
                     Detecting current GPS location...
                   </Text>
                 </View>
               ) : currentLocation ? (
-                <TouchableOpacity
-                  activeOpacity={0.7}
+                <PressableScale
                   onPress={() => handlePickLocation(currentLocation.name)}
-                  className="flex-row items-center justify-between p-3.5 rounded-2xl border"
-                  style={{
-                    backgroundColor: isDark
-                      ? colors.emerald[950] + "50"
-                      : colors.emerald[50],
-                    borderColor: isDark
-                      ? colors.emerald[900] + "70"
-                      : colors.emerald[200],
-                  }}
+                  style={[
+                    styles.currentLocationRow,
+                    {
+                      backgroundColor: isDark
+                        ? colors.emerald[950] + "50"
+                        : colors.emerald[50],
+                      borderColor: isDark
+                        ? colors.emerald[900] + "70"
+                        : colors.emerald[200],
+                    },
+                  ]}
                 >
-                  <View className="flex-row items-center gap-3 flex-1 mr-2">
-                    <View className="w-9 h-9 rounded-xl bg-emerald-600 items-center justify-center shadow-sm">
-                      <Ionicons name="navigate" size={18} color="white" />
+                  <View style={styles.currentLocLeft}>
+                    <View
+                      style={[
+                        styles.currentLocIconBox,
+                        { backgroundColor: palette.success },
+                      ]}
+                    >
+                      <Ionicons
+                        name="navigate"
+                        size={18}
+                        color={colors.white}
+                      />
                     </View>
-                    <View className="flex-1">
-                      <View className="flex-row items-center gap-1.5">
-                        <Text
-                          className="text-sm font-bold"
-                          style={{
-                            color: isDark ? colors.emerald[200] : colors.emerald[900],
-                          }}
-                          numberOfLines={1}
-                        >
-                          {currentLocation.name}
-                        </Text>
-                      </View>
+                    <View style={styles.flex1}>
                       <Text
-                        className="text-xs mt-0.5"
-                        style={{
-                          color: isDark ? colors.emerald[400] : colors.emerald[700],
-                        }}
+                        variant="body"
+                        weight="bold"
                         numberOfLines={1}
+                        style={{
+                          color: isDark
+                            ? colors.emerald[200]
+                            : colors.emerald[900],
+                        }}
+                      >
+                        {currentLocation.name}
+                      </Text>
+                      <Text
+                        variant="caption"
+                        numberOfLines={1}
+                        style={{
+                          color: isDark
+                            ? colors.emerald[400]
+                            : colors.emerald[700],
+                        }}
                       >
                         {currentLocation.subtitle} • Current Device Location
                       </Text>
@@ -280,48 +303,56 @@ export default function LocationPickerModal({
                   </View>
 
                   <View
-                    className="px-2 py-1 rounded-full"
-                    style={{
-                      backgroundColor: isDark
-                        ? colors.emerald[900] + "60"
-                        : colors.emerald[600] + "20",
-                    }}
+                    style={[
+                      styles.liveBadge,
+                      {
+                        backgroundColor: isDark
+                          ? colors.emerald[900] + "60"
+                          : colors.emerald[600] + "20",
+                      },
+                    ]}
                   >
                     <Text
-                      className="text-[10px] font-bold"
+                      variant="micro"
+                      weight="bold"
                       style={{
-                        color: isDark ? colors.emerald[300] : colors.emerald[800],
+                        color: isDark
+                          ? colors.emerald[300]
+                          : colors.emerald[800],
                       }}
                     >
                       LIVE
                     </Text>
                   </View>
-                </TouchableOpacity>
+                </PressableScale>
               ) : permissionDenied ? (
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={handleFetchCurrentLocation}
-                  className="flex-row items-center justify-between p-3.5 rounded-2xl border"
-                  style={{
-                    backgroundColor: isDark ? colors.slate[800] : colors.slate[50],
-                    borderColor: palette.border,
-                  }}
+                  style={[
+                    styles.currentLocationRow,
+                    {
+                      backgroundColor: palette.surfaceElevated,
+                      borderColor: palette.border,
+                    },
+                  ]}
                 >
-                  <View className="flex-row items-center gap-2.5 flex-1 mr-2">
-                    <Ionicons name="location-outline" size={20} color={palette.muted} />
-                    <View className="flex-1">
-                      <Text
-                        className="text-xs font-semibold"
-                        style={{ color: palette.text }}
-                      >
+                  <View style={styles.currentLocLeft}>
+                    <Ionicons
+                      name="location-outline"
+                      size={20}
+                      color={palette.muted}
+                    />
+                    <View style={styles.flex1}>
+                      <Text variant="body" weight="semibold">
                         Enable location permission
                       </Text>
-                      <Text className="text-[10px]" style={{ color: palette.muted }}>
+                      <Text variant="caption" color="muted">
                         Tap to allow access to local real-time places
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-xs font-bold" style={{ color: palette.primary }}>
+                  <Text variant="caption" weight="bold" color="accent">
                     Allow
                   </Text>
                 </TouchableOpacity>
@@ -331,86 +362,76 @@ export default function LocationPickerModal({
 
           {/* Custom Typed Location Option */}
           {search.trim().length > 0 && (
-            <TouchableOpacity
+            <PressableScale
               onPress={() => handlePickLocation(search.trim())}
-              className="flex-row items-center gap-3 p-3.5 rounded-2xl mb-3 border"
-              style={{
-                backgroundColor: isDark
-                  ? colors.blue[950] + "50"
-                  : colors.blue[50],
-                borderColor: isDark
-                  ? colors.blue[900] + "70"
-                  : colors.blue[200],
-              }}
+              style={[
+                styles.customLocationRow,
+                {
+                  backgroundColor: palette.surfaceElevated,
+                  borderColor: palette.border,
+                },
+              ]}
             >
               <View
-                className="w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: palette.primary }}
+                style={[
+                  styles.customAddIcon,
+                  { backgroundColor: palette.accent },
+                ]}
               >
-                <Ionicons name="add" size={18} color="white" />
+                <Ionicons name="add" size={18} color={palette.onAccent} />
               </View>
-              <View className="flex-1">
-                <Text
-                  className="text-sm font-bold"
-                  style={{
-                    color: isDark ? colors.blue[200] : colors.blue[900],
-                  }}
-                >
+              <View style={styles.flex1}>
+                <Text variant="body" weight="bold">
                   {`Use "${search.trim()}"`}
                 </Text>
-                <Text
-                  className="text-xs"
-                  style={{
-                    color: isDark ? colors.blue[400] : colors.blue[600],
-                  }}
-                >
+                <Text variant="caption" color="muted">
                   Tag custom location
                 </Text>
               </View>
-            </TouchableOpacity>
+            </PressableScale>
           )}
 
           {/* Search Results / Live Places List */}
-          {search.trim().length > 0 && searchResults.length === 0 && !searching ? (
-            <View className="py-8 items-center justify-center">
-              <Ionicons
-                name="location-outline"
-                size={36}
-                color={colors.slate[400]}
-              />
-              <Text
-                className="text-sm font-semibold mt-2"
-                style={{ color: palette.text }}
-              >
-                {`No places found for "${search.trim()}"`}
-              </Text>
-              <Text className="text-xs mt-0.5" style={{ color: palette.muted }}>
-                {'You can still tap "Use" above to tag this custom name.'}
-              </Text>
-            </View>
+          {search.trim().length > 0 &&
+          searchResults.length === 0 &&
+          !searching ? (
+            <EmptyState
+              icon={
+                <Ionicons
+                  name="location-outline"
+                  size={40}
+                  color={palette.muted}
+                />
+              }
+              title={`No places found for "${search.trim()}"`}
+              description='You can still tap "Use" above to tag this custom name.'
+            />
           ) : (
             <FlatList
               data={searchResults}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
                 const isSelected = selectedLocation === item.name;
                 return (
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => handlePickLocation(item.name)}
-                    className="flex-row items-center justify-between py-3.5 border-b"
-                    style={{ borderColor: palette.borderSubtle }}
+                    style={[
+                      styles.locationItemRow,
+                      { borderBottomColor: palette.borderSubtle },
+                    ]}
                   >
-                    <View className="flex-row items-center gap-3 flex-1 mr-3">
+                    <View style={styles.locationItemLeft}>
                       <View
-                        className="w-10 h-10 rounded-2xl items-center justify-center border"
-                        style={{
-                          backgroundColor: isDark
-                            ? colors.slate[800]
-                            : colors.slate[100],
-                          borderColor: palette.border,
-                        }}
+                        style={[
+                          styles.locationIconTile,
+                          {
+                            backgroundColor: palette.surfaceElevated,
+                            borderColor: palette.border,
+                          },
+                        ]}
                       >
                         <Ionicons
                           name="location-sharp"
@@ -419,17 +440,13 @@ export default function LocationPickerModal({
                         />
                       </View>
 
-                      <View className="flex-1">
-                        <Text
-                          className="text-sm font-bold"
-                          style={{ color: palette.text }}
-                          numberOfLines={1}
-                        >
+                      <View style={styles.flex1}>
+                        <Text variant="body" weight="bold" numberOfLines={1}>
                           {item.name}
                         </Text>
                         <Text
-                          className="text-xs mt-0.5"
-                          style={{ color: palette.muted }}
+                          variant="caption"
+                          color="muted"
                           numberOfLines={1}
                         >
                           {item.subtitle}
@@ -441,7 +458,7 @@ export default function LocationPickerModal({
                       <Ionicons
                         name="checkmark-circle"
                         size={22}
-                        color={palette.primary}
+                        color={palette.accent}
                       />
                     )}
                   </TouchableOpacity>
@@ -454,3 +471,121 @@ export default function LocationPickerModal({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  sheetCard: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: "85%",
+    flex: 1,
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+  },
+  handleWrapper: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  handleBar: {
+    width: 44,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  headerSpacer: {
+    width: 32,
+  },
+  searchSection: {
+    paddingVertical: 12,
+  },
+  realtimeSection: {
+    marginBottom: 12,
+  },
+  realtimeHeader: {
+    marginBottom: 8,
+    paddingHorizontal: 2,
+    letterSpacing: 0.5,
+  },
+  currentLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  currentLocLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  currentLocIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  liveBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+  },
+  customLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  customAddIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listContent: {
+    paddingBottom: 16,
+  },
+  locationItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  locationItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+    marginRight: 12,
+  },
+  locationIconTile: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  flex1: {
+    flex: 1,
+  },
+});

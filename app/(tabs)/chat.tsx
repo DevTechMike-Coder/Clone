@@ -1,13 +1,14 @@
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
+  StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import {
   ConversationItem,
@@ -15,14 +16,18 @@ import {
 } from "@/services/chatService";
 import { formatRelativeTime } from "@/lib/dateUtils";
 import { useTheme } from "@/context/ThemeContext";
-import { Screen } from "@/components/ui/Screen";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { Text } from "@/components/ui/Text";
-import { Avatar } from "@/components/ui/Avatar";
-import { TextField } from "@/components/ui/TextField";
-import { IconButton } from "@/components/ui/IconButton";
-import { Badge } from "@/components/ui/Badge";
-import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  Avatar,
+  Badge,
+  EmptyState,
+  IconButton,
+  PressableScale,
+  Screen,
+  ScreenHeader,
+  Skeleton,
+  Text,
+  TextField,
+} from "@/components/ui";
 
 export default function Chat() {
   const { palette } = useTheme();
@@ -52,6 +57,17 @@ export default function Chat() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchConversations();
+  };
+
+  const handleOpenConversation = (item: ConversationItem) => {
+    Haptics.selectionAsync();
+    router.push({
+      pathname: "/(pages)/conversation",
+      params: {
+        conversationId: item.id,
+        otherUserId: item.otherUser?.id,
+      },
+    });
   };
 
   const filteredConversations = conversations.filter((c) => {
@@ -89,7 +105,7 @@ export default function Chat() {
       />
 
       {/* Search Bar */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+      <View style={styles.searchContainer}>
         <TextField
           placeholder="Search conversations..."
           leftIcon={
@@ -109,12 +125,20 @@ export default function Chat() {
 
       {/* Content */}
       {loading && !refreshing ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={palette.primary} />
+        <View style={styles.skeletonContainer}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Skeleton.Row key={i} style={styles.skeletonRow} />
+          ))}
         </View>
       ) : filteredConversations.length === 0 ? (
         <EmptyState
-          icon="chatbubbles-outline"
+          icon={
+            <Ionicons
+              name="chatbubbles-outline"
+              size={48}
+              color={palette.muted}
+            />
+          }
           title="No messages yet"
           description="Connect with friends and creators to start chatting!"
           actionTitle="Discover People"
@@ -124,69 +148,60 @@ export default function Chat() {
         <FlatList
           data={filteredConversations}
           keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={palette.primary}
+              tintColor={palette.accent}
             />
           }
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
-            const hasUnread = item.unreadCount > 0;
-            return (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(pages)/conversation",
-                    params: {
-                      conversationId: item.id,
-                      otherUserId: item.otherUser?.id,
-                    },
-                  })
-                }
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  marginBottom: 8,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: palette.border,
-                  backgroundColor: palette.surface,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    flex: 1,
-                    marginRight: 10,
-                  }}
-                >
-                  <Avatar
-                    url={item.otherUser?.avatar_url}
-                    name={item.otherUser?.full_name || item.otherUser?.username}
-                    size={48}
-                  />
+            const hasUnread = (item.unreadCount ?? 0) > 0;
 
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
+            return (
+              <PressableScale
+                onPress={() => handleOpenConversation(item)}
+                style={[
+                  styles.conversationCard,
+                  {
+                    borderColor: hasUnread
+                      ? palette.accent + "50"
+                      : palette.border,
+                    backgroundColor: hasUnread
+                      ? palette.surfaceElevated
+                      : palette.surface,
+                  },
+                ]}
+              >
+                <View style={styles.cardLeft}>
+                  <View style={styles.avatarWrapper}>
+                    <Avatar
+                      url={item.otherUser?.avatar_url}
+                      name={item.otherUser?.full_name || item.otherUser?.username}
+                      size={48}
+                    />
+                    {hasUnread && (
+                      <View
+                        style={[
+                          styles.unreadDot,
+                          {
+                            backgroundColor: palette.accent,
+                            borderColor: palette.surface,
+                          },
+                        ]}
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.textContainer}>
+                    <View style={styles.titleRow}>
                       <Text
                         variant="body"
                         weight={hasUnread ? "bold" : "semibold"}
                         numberOfLines={1}
-                        style={{ flex: 1, marginRight: 8 }}
+                        style={styles.userNameText}
                       >
                         {item.otherUser?.full_name ||
                           item.otherUser?.username ||
@@ -204,7 +219,7 @@ export default function Chat() {
                       color={hasUnread ? "default" : "muted"}
                       weight={hasUnread ? "semibold" : "regular"}
                       numberOfLines={1}
-                      style={{ marginTop: 3 }}
+                      style={styles.lastMessageText}
                     >
                       {item.lastMessage?.content ||
                         (item.lastMessage?.media_url
@@ -215,9 +230,13 @@ export default function Chat() {
                 </View>
 
                 {hasUnread && (
-                  <Badge content={item.unreadCount} variant="primary" size="sm" />
+                  <Badge
+                    content={item.unreadCount}
+                    variant="primary"
+                    size="sm"
+                  />
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             );
           }}
         />
@@ -225,3 +244,68 @@ export default function Chat() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  skeletonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 12,
+  },
+  skeletonRow: {
+    paddingVertical: 12,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  conversationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  cardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 10,
+  },
+  avatarWrapper: {
+    position: "relative",
+  },
+  unreadDot: {
+    position: "absolute",
+    bottom: -1,
+    right: -1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+  },
+  textContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  userNameText: {
+    flex: 1,
+    marginRight: 8,
+  },
+  lastMessageText: {
+    marginTop: 3,
+  },
+});
